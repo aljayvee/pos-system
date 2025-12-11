@@ -2,13 +2,15 @@
 
 @section('content')
 <div class="container py-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="mb-0"><i class="fas fa-file-invoice-dollar text-danger"></i> Outstanding Credits (Utang)</h2>
-        
-        {{-- NEW EXPORT BUTTON --}}
-        <a href="{{ route('credits.export') }}" class="btn btn-success">
-            <i class="fas fa-file-download"></i> Export List
-        </a>
+    <div class="row align-items-center mb-4">
+        <div class="col-md-6">
+            <h2 class="mb-0"><i class="fas fa-file-invoice-dollar text-danger"></i> Outstanding Credits</h2>
+        </div>
+        <div class="col-md-6 text-md-end">
+            <a href="{{ route('credits.export') }}" class="btn btn-success btn-sm">
+                <i class="fas fa-file-download"></i> Export List
+            </a>
+        </div>
     </div>
 
     @if(session('success'))
@@ -19,6 +21,45 @@
         <div class="alert alert-danger">{{ $errors->first() }}</div>
     @endif
 
+
+    
+    {{-- SUMMARY CARD --}}
+    <div class="card bg-danger text-white mb-4 shadow-sm">
+        <div class="card-body d-flex justify-content-between align-items-center">
+            <div>
+                <h6 class="mb-0 text-white-50">Total Collectibles (Utang)</h6>
+                <h2 class="fw-bold mb-0">₱{{ number_format($totalReceivables, 2) }}</h2>
+            </div>
+            <i class="fas fa-hand-holding-usd fa-3x opacity-25"></i>
+        </div>
+    </div>
+    
+
+    {{-- SEARCH & FILTER TOOLBAR --}}
+    <div class="card bg-light border-0 mb-3">
+        <div class="card-body py-2">
+            <form action="{{ route('credits.index') }}" method="GET" class="row g-2">
+                <div class="col-md-6">
+                    <div class="input-group">
+                        <span class="input-group-text bg-white"><i class="fas fa-search"></i></span>
+                        <input type="text" name="search" class="form-control" 
+                               placeholder="Search customer name..." value="{{ request('search') }}">
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <select name="sort" class="form-select">
+                        <option value="newest" {{ request('sort') == 'newest' ? 'selected' : '' }}>Sort: Newest First</option>
+                        <option value="oldest" {{ request('sort') == 'oldest' ? 'selected' : '' }}>Sort: Oldest First</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-dark w-100">Go</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    
     <div class="card shadow-sm">
         <div class="card-body p-0">
             <table class="table table-striped table-hover mb-0">

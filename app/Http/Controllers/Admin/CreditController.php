@@ -11,14 +11,32 @@ use Illuminate\Support\Facades\Auth;
 
 class CreditController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $credits = CustomerCredit::with('customer', 'sale')
-                    ->where('is_paid', false)
-                    ->latest()
-                    ->get();
+        $query = CustomerCredit::with('customer', 'sale')
+                    ->where('is_paid', false);
 
-        return view('admin.credits.index', compact('credits'));
+        // 1. Search by Customer Name
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->whereHas('customer', function($q) use ($search) {
+                $q->where('name', 'like', "%$search%");
+            });
+        }
+
+        // 2. Sort Logic (Default: Oldest due first, or Newest created)
+        if ($request->sort == 'oldest') {
+            $query->orderBy('created_at', 'asc');
+        } else {
+            $query->latest(); // Default: Newest first
+        }
+
+        // 3. Get Total Receivables (Sum of remaining balances in this filtered view)
+        $totalReceivables = $query->sum('remaining_balance');
+
+        $credits = $query->paginate(15)->withQueryString();
+
+        return view('admin.credits.index', compact('credits', 'totalReceivables'));
     }
 
     // Updated Repay Function
