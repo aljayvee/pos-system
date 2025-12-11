@@ -18,10 +18,12 @@ class POSController extends Controller
     {
         $products = Product::where('stock', '>', 0)->get();
         $customers = Customer::orderBy('name')->get();
+        // NEW: Fetch Categories for the filter buttons
+        $categories = \App\Models\Category::has('products')->orderBy('name')->get();
        // Check if Loyalty is Enabled (Default to '0' / Off)
         $loyaltyEnabled = \App\Models\Setting::where('key', 'enable_loyalty')->value('value') ?? '0';
 
-        return view('cashier.index', compact('products', 'customers', 'loyaltyEnabled'));
+        return view('cashier.index', compact('products', 'customers', 'categories', 'loyaltyEnabled'));
     }
 
     public function store(Request $request)

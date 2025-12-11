@@ -22,12 +22,26 @@
                     </div>
                 </div>
 
+                {{-- CATEGORY FILTER TOOLBAR --}}
+                <div class="px-3 py-2 bg-light border-bottom overflow-auto text-nowrap" style="white-space: nowrap;">
+                    <button class="btn btn-dark rounded-pill me-1 category-filter active" onclick="filterCategory('all', this)">
+                        All Items
+                    </button>
+                    @foreach($categories as $cat)
+                        <button class="btn btn-outline-secondary rounded-pill me-1 category-filter" 
+                                onclick="filterCategory('{{ strtolower($cat->name) }}', this)">
+                            {{ $cat->name }}
+                        </button>
+                    @endforeach
+                </div>
+
                 <div class="card-body p-0 overflow-auto" style="height: 70vh;">
                     <div class="row g-3 p-3" id="product-list">
                         @foreach($products as $product)
                         <div class="col-md-4 col-sm-6 product-card" 
                              data-name="{{ strtolower($product->name) }}" 
-                             data-sku="{{ $product->sku }}">
+                             data-sku="{{ $product->sku }}"
+                             data-category="{{ strtolower($product->category->name ?? '') }}"> {{-- NEW DATA ATTRIBUTE --}}
                             <div class="card h-100 shadow-sm border-0 product-item" onclick='addToCart(@json($product))' style="cursor: pointer; transition: all 0.2s;">
                                 <div class="card-body text-center d-flex flex-column justify-content-center">
                                     <h6 class="fw-bold text-dark mb-1">{{ $product->name }}</h6>
@@ -495,6 +509,37 @@
             console.error(err);
             alert("Transaction failed. Check console.");
         });
+    }
+
+
+    // --- CATEGORY FILTER LOGIC ---
+    function filterCategory(category, btnElement) {
+        // 1. Update Buttons Visual State
+        document.querySelectorAll('.category-filter').forEach(btn => {
+            btn.classList.remove('btn-dark', 'active');
+            btn.classList.add('btn-outline-secondary');
+        });
+        btnElement.classList.remove('btn-outline-secondary');
+        btnElement.classList.add('btn-dark', 'active');
+
+        // 2. Filter Products
+        const cards = document.querySelectorAll('.product-card');
+        const noProductsMsg = document.getElementById('no-products');
+        let hasVisible = false;
+
+        cards.forEach(card => {
+            const productCat = card.getAttribute('data-category');
+            
+            if (category === 'all' || productCat === category) {
+                card.style.display = 'block';
+                hasVisible = true;
+            } else {
+                card.style.display = 'none';
+            }
+        });
+
+        // 3. Show/Hide Empty State
+        noProductsMsg.style.display = hasVisible ? 'none' : 'block';
     }
 </script>
 @endsection
