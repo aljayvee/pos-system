@@ -105,6 +105,13 @@
                 <a href="{{ route('users.index') }}" class="list-group-item list-group-item-action {{ request()->routeIs('users.*') ? 'active' : '' }}">
                     <i class="fas fa-user-cog"></i> User Management
                 </a>
+
+                {{-- NEW SETTINGS LINK --}}
+                <a href="{{ route('settings.index') }}" class="list-group-item list-group-item-action {{ request()->routeIs('settings.*') ? 'active' : '' }}">
+                    <i class="fas fa-cogs"></i> Settings
+                </a>
+                
+                <form action="{{ route('logout') }}" method="POST" class="mt-auto">
                 
                 <form action="{{ route('logout') }}" method="POST" class="mt-auto">
                     @csrf
@@ -112,6 +119,7 @@
                         <i class="fas fa-sign-out-alt"></i> Logout
                     </button>
                 </form>
+                
             </div>
         </div>
 
