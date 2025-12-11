@@ -36,6 +36,9 @@ class ReportController extends Controller
         $cash_sales = $sales->where('payment_method', 'cash')->sum('total_amount');
         $credit_sales = $sales->where('payment_method', 'credit')->sum('total_amount');
 
+        // NEW: Digital Sales
+        $digital_sales = $sales->where('payment_method', 'digital')->sum('total_amount');
+
         // 3. Tithes Logic (Existing)
         $tithesEnabled = Setting::where('key', 'enable_tithes')->value('value') ?? '1'; 
         $tithesAmount = ($tithesEnabled == '1') ? $total_sales * 0.10 : 0;
@@ -84,9 +87,11 @@ class ReportController extends Controller
             ->take(10)
             ->get();
 
+         
+
         return view('admin.reports.index', compact(
             'sales', 'total_sales', 'total_transactions', 
-            'cash_sales', 'credit_sales', 'date', 'type',
+            'cash_sales', 'credit_sales', 'digital_sales','date', 'type', 
             'topItems', 'tithesAmount', 'tithesEnabled', 'gross_profit',
             'slowMovingItems' // <--- Pass this
         ));

@@ -62,10 +62,35 @@ class ProductController extends Controller
     }
 
     // 1. Show List
-    public function index()
+   public function index(Request $request)
     {
-        $products = Product::with('category')->latest()->get();
-        return view('admin.products.index', compact('products'));
+        $query = Product::with('category')->latest();
+
+        // 1. Search Filter (Name or SKU)
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('name', 'like', "%$search%")
+                  ->orWhere('sku', 'like', "%$search%");
+            });
+        }
+
+        // 2. Category Filter
+        if ($request->filled('category')) {
+            $query->where('category_id', $request->category);
+        }
+
+        // 3. Stock Level Filter (Optional: "Low Stock")
+        if ($request->filled('filter') && $request->filter == 'low') {
+            $query->whereColumn('stock', '<=', 'reorder_point');
+        }
+
+        $products = $query->paginate(10)->withQueryString(); // Keep filters in pagination links
+        
+        // Fetch categories for the dropdown
+        $categories = \App\Models\Category::orderBy('name')->get();
+
+        return view('admin.products.index', compact('products', 'categories'));
     }
 
     // 2. Show Create Form
@@ -81,6 +106,7 @@ class ProductController extends Controller
         $request->validate([
             'name' => 'required',
             'price' => 'required|numeric',
+            'unit' => 'required|string|max:20', // New validation
             'category_id' => 'required|exists:categories,id',
             'sku' => 'nullable|unique:products,sku',
             'stock' => 'integer|min:0',

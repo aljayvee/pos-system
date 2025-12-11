@@ -89,6 +89,12 @@
                         <span>Cash Sales:</span>
                         <span class="fw-bold text-success">₱{{ number_format($cash_sales, 2) }}</span>
                     </div>
+                    {{-- NEW: Digital Sales Row --}}
+                    <div class="d-flex justify-content-between border-bottom py-2">
+                        <span>Digital (e-Wallet / Banks):</span>
+                        <span class="fw-bold text-info">₱{{ number_format($digital_sales, 2) }}</span>
+                    </div>
+                    
                     <div class="d-flex justify-content-between border-bottom py-2">
                         <span>Credit (Utang):</span>
                         <span class="fw-bold text-warning">₱{{ number_format($credit_sales, 2) }}</span>
@@ -97,7 +103,7 @@
                         <span>Total:</span>
                         <span class="fw-bold">₱{{ number_format($total_sales, 2) }}</span>
                     </div>
-                </div>
+                </div>  
             </div>
         </div>
     </div>

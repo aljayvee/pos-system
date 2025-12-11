@@ -15,6 +15,54 @@
         </div>
     </div>
 
+    {{-- SEARCH & FILTER TOOLBAR --}}
+    <div class="card bg-light border-0 mb-4">
+        <div class="card-body py-3">
+            <form action="{{ route('products.index') }}" method="GET" class="row g-2 align-items-center">
+                
+                {{-- Search Input --}}
+                <div class="col-md-4">
+                    <div class="input-group">
+                        <span class="input-group-text bg-white border-end-0"><i class="fas fa-search text-muted"></i></span>
+                        <input type="text" name="search" class="form-control border-start-0" 
+                               placeholder="Search name, barcode/SKU..." value="{{ request('search') }}">
+                    </div>
+                </div>
+
+                {{-- Category Filter --}}
+                <div class="col-md-3">
+                    <select name="category" class="form-select" onchange="this.form.submit()">
+                        <option value="">-- All Categories --</option>
+                        @foreach($categories as $cat)
+                            <option value="{{ $cat->id }}" {{ request('category') == $cat->id ? 'selected' : '' }}>
+                                {{ $cat->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+
+                {{-- Quick Filter --}}
+                <div class="col-md-3">
+                    <select name="filter" class="form-select" onchange="this.form.submit()">
+                        <option value="">-- All Status --</option>
+                        <option value="low" {{ request('filter') == 'low' ? 'selected' : '' }}>Low Stock Only</option>
+                    </select>
+                </div>
+
+                {{-- Buttons --}}
+                <div class="col-md-2 d-flex gap-2">
+                    <button type="submit" class="btn btn-dark w-100">Filter</button>
+                    @if(request()->anyFilled(['search', 'category', 'filter']))
+                        <a href="{{ route('products.index') }}" class="btn btn-outline-secondary" title="Reset">
+                            <i class="fas fa-undo"></i>
+                        </a>
+                    @endif
+                </div>
+
+            </form>
+        </div>
+    </div>
+
 <div class="container py-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2>Product Inventory</h2>
@@ -71,11 +119,11 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="7" class="text-center py-4">
-                            <h5 class="text-muted">No products available</h5>
-                            <a href="{{ route('products.create') }}" class="btn btn-sm btn-outline-primary">Add your first product</a>
-                        </td>
-                    </tr>
+                            <td colspan="7" class="text-center py-5 text-muted">
+                                <i class="fas fa-box-open fa-3x mb-3 opacity-25"></i><br>
+                                No products found matching your filters.
+                            </td>
+                        </tr>
                     @endforelse
                 </tbody>
             </table>
