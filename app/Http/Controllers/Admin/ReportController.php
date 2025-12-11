@@ -21,12 +21,47 @@ class ReportController extends Controller
 
         $query = Sale::with('user', 'customer')->latest();
 
+        // --- PASTE FILTER LOGIC HERE (Same as index) ---
         if ($type === 'daily') {
-            $query->whereDate('created_at', $date);
+            $query->whereDate('created_at', $startDate);
+        } elseif ($type === 'weekly') {
+            $start = Carbon::parse($startDate)->startOfWeek();
+            $end = Carbon::parse($startDate)->endOfWeek();
+            $query->whereBetween('created_at', [$start, $end]);
         } elseif ($type === 'monthly') {
-            $query->whereMonth('created_at', Carbon::parse($date)->month)
-                  ->whereYear('created_at', Carbon::parse($date)->year);
+            $query->whereMonth('created_at', Carbon::parse($startDate)->month)
+                  ->whereYear('created_at', Carbon::parse($startDate)->year);
+        } elseif ($type === 'custom') {
+            $query->whereBetween('created_at', [
+                Carbon::parse($startDate)->startOfDay(), 
+                Carbon::parse($endDate)->endOfDay()
+            ]);
         }
+        // -----------------------------------------------
+
+        // --- FILTER LOGIC ---
+        if ($type === 'daily') {
+            $query->whereDate('created_at', $startDate);
+        } 
+        elseif ($type === 'weekly') {
+            // Find start and end of the week based on selected date
+            $start = Carbon::parse($startDate)->startOfWeek();
+            $end = Carbon::parse($startDate)->endOfWeek();
+            $query->whereBetween('created_at', [$start, $end]);
+        } 
+        elseif ($type === 'monthly') {
+            $query->whereMonth('created_at', Carbon::parse($startDate)->month)
+                  ->whereYear('created_at', Carbon::parse($startDate)->year);
+        } 
+        elseif ($type === 'custom') {
+            // Ensure end date includes the full day (23:59:59)
+            $query->whereBetween('created_at', [
+                Carbon::parse($startDate)->startOfDay(), 
+                Carbon::parse($endDate)->endOfDay()
+            ]);
+        }
+
+        //----------------------------------
 
         $sales = $query->get();
         $salesIds = $sales->pluck('id');    
@@ -91,7 +126,7 @@ class ReportController extends Controller
 
         return view('admin.reports.index', compact(
             'sales', 'total_sales', 'total_transactions', 
-            'cash_sales', 'credit_sales', 'digital_sales','date', 'type', 
+            'cash_sales', 'credit_sales', 'digital_sales','date', 'type', 'startDate', 'endDate',
             'topItems', 'tithesAmount', 'tithesEnabled', 'gross_profit',
             'slowMovingItems' // <--- Pass this
         ));
@@ -100,18 +135,34 @@ class ReportController extends Controller
     // --- ADD THIS NEW FUNCTION BELOW ---
     public function export(Request $request)
     {
+
+        $type = $request->input('type', 'daily');
+        $startDate = $request->input('start_date', Carbon::today()->toDateString());
+        $endDate = $request->input('end_date', Carbon::today()->toDateString());
+
         $date = $request->input('date', Carbon::today()->toDateString());
         $type = $request->input('type', 'daily');
 
         // 1. Fetch Data (Same logic as index to ensure what they see is what they export)
         $query = Sale::with('user', 'customer')->latest();
 
+        // --- PASTE FILTER LOGIC HERE (Same as index) ---
         if ($type === 'daily') {
-            $query->whereDate('created_at', $date);
+            $query->whereDate('created_at', $startDate);
+        } elseif ($type === 'weekly') {
+            $start = Carbon::parse($startDate)->startOfWeek();
+            $end = Carbon::parse($startDate)->endOfWeek();
+            $query->whereBetween('created_at', [$start, $end]);
         } elseif ($type === 'monthly') {
-            $query->whereMonth('created_at', Carbon::parse($date)->month)
-                  ->whereYear('created_at', Carbon::parse($date)->year);
+            $query->whereMonth('created_at', Carbon::parse($startDate)->month)
+                  ->whereYear('created_at', Carbon::parse($startDate)->year);
+        } elseif ($type === 'custom') {
+            $query->whereBetween('created_at', [
+                Carbon::parse($startDate)->startOfDay(), 
+                Carbon::parse($endDate)->endOfDay()
+            ]);
         }
+        // -----------------------------------------------
 
         $sales = $query->get();
 
