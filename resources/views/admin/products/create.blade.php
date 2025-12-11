@@ -69,12 +69,14 @@
     let html5QrcodeScanner;
 
     function openScanner() {
+        // Show Modal
         const modal = new bootstrap.Modal(document.getElementById('scanModal'));
         modal.show();
 
+        // OPTIMIZED CONFIGURATION
         const config = { 
             fps: 10, 
-            qrbox: { width: 250, height: 150 }, 
+            qrbox: { width: 300, height: 150 }, 
             formatsToSupport: [ 
                 Html5QrcodeSupportedFormats.UPC_A, 
                 Html5QrcodeSupportedFormats.UPC_E,
@@ -82,12 +84,16 @@
                 Html5QrcodeSupportedFormats.EAN_8, 
                 Html5QrcodeSupportedFormats.CODE_128,
                 Html5QrcodeSupportedFormats.CODE_39
-            ]
+            ],
+            experimentalFeatures: {
+                useBarCodeDetectorIfSupported: true
+            }
         };
 
+        // Start Scanner
         if (!html5QrcodeScanner) {
             html5QrcodeScanner = new Html5QrcodeScanner("reader", config, false);
-            html5QrcodeScanner.render(onScanSuccess);
+            html5QrcodeScanner.render(onScanSuccess, onScanFailure);
         }
     }
 

@@ -184,32 +184,43 @@
         }
     });
 
-    // --- CAMERA SCANNER LOGIC ---
-    function openCameraModal() {
-        const modal = new bootstrap.Modal(document.getElementById('cameraModal'));
-        modal.show();
-        
-        // Define standard barcode formats (UPC, EAN, Code 128)
-        const config = { 
-            fps: 10, 
-            qrbox: { width: 250, height: 150 }, // Wider box is better for barcodes
-            aspectRatio: 1.0,
-            formatsToSupport: [ 
-                Html5QrcodeSupportedFormats.UPC_A, 
-                Html5QrcodeSupportedFormats.UPC_E,
-                Html5QrcodeSupportedFormats.EAN_13,
-                Html5QrcodeSupportedFormats.EAN_8, 
-                Html5QrcodeSupportedFormats.CODE_128,
-                Html5QrcodeSupportedFormats.CODE_39
-            ]
-        };
+        // Function for Cashier or Admin
+        function openCameraModal() {
+                const modal = new bootstrap.Modal(document.getElementById('cameraModal'));
+                modal.show();
+                
+                // OPTIMIZED CONFIGURATION FOR 1D BARCODES
+                const config = { 
+                    fps: 10, 
+                    // Wider box for long barcodes
+                    qrbox: { width: 300, height: 150 }, 
+                    aspectRatio: 1.0,
+                    // Explicitly look for product barcodes
+                    formatsToSupport: [ 
+                        Html5QrcodeSupportedFormats.UPC_A, 
+                        Html5QrcodeSupportedFormats.UPC_E,
+                        Html5QrcodeSupportedFormats.EAN_13,
+                        Html5QrcodeSupportedFormats.EAN_8, 
+                        Html5QrcodeSupportedFormats.CODE_128,
+                        Html5QrcodeSupportedFormats.CODE_39
+                    ],
+                    // KEY FIX: Use Chrome/Edge native barcode detector (much faster)
+                    experimentalFeatures: {
+                        useBarCodeDetectorIfSupported: true
+                    }
+                };
 
-        if (!html5QrcodeScanner) {
-            html5QrcodeScanner = new Html5QrcodeScanner("reader", config, /* verbose= */ false);
-            html5QrcodeScanner.render(onScanSuccess);
-        }
-    }  }
-    }
+                if (!html5QrcodeScanner) {
+                    html5QrcodeScanner = new Html5QrcodeScanner("reader", config, /* verbose= */ false);
+                    html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+                }
+            }
+
+// Optional: Add this function to see errors in console (F12)
+function onScanFailure(error) {
+    // console.warn(`Code scan error = ${error}`);
+} 
+    
 
     function stopCamera() {
         if (html5QrcodeScanner) {
