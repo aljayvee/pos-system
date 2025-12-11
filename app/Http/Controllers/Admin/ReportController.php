@@ -96,12 +96,23 @@ class ReportController extends Controller
             ->take(10)
             ->get();
 
+
+        // 8. NEW: Sales By Category (For Charts)
+        // We join sale_items -> products -> categories to sum revenue per category
+        $salesByCategory = SaleItem::select('categories.name', DB::raw('sum(sale_items.price * sale_items.quantity) as total_revenue'))
+            ->join('products', 'sale_items.product_id', '=', 'products.id')
+            ->join('categories', 'products.category_id', '=', 'categories.id')
+            ->whereIn('sale_items.sale_id', $salesIds) // Respect the Date Filters!
+            ->groupBy('categories.name')
+            ->orderByDesc('total_revenue')
+            ->get();
+
         return view('admin.reports.index', compact(
             'sales', 'total_sales', 'total_transactions', 
             'cash_sales', 'credit_sales', 'digital_sales',
             'type', 'startDate', 'endDate', 'date', // <--- Added 'date' here
             'topItems', 'topCustomers', 'slowMovingItems', 
-            'tithesAmount', 'tithesEnabled', 'gross_profit'
+            'tithesAmount', 'tithesEnabled', 'gross_profit', 'salesByCategory'
         ));
     }
 

@@ -1,5 +1,5 @@
 @extends('admin.layout')
-
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script> {{-- Import Chart.js --}}
 @section('content')
 <div class="container py-4">
     <h2 class="mb-4"><i class="fas fa-chart-line text-primary"></i> Sales Report</h2>
@@ -69,6 +69,30 @@
                 <div class="card-header bg-primary text-white">
                     <i class="fas fa-trophy me-1"></i> Top Selling Items ({{ ucfirst($type) }})
                 </div>
+                {{-- VISUAL ANALYTICS ROW --}}
+    <div class="row mb-4">
+        <div class="col-lg-6">
+            <div class="card h-100 shadow-sm">
+                <div class="card-header bg-white font-weight-bold">
+                    <i class="fas fa-chart-pie text-primary me-1"></i> Sales by Category
+                </div>
+                <div class="card-body">
+                    <canvas id="categoryChart" style="max-height: 300px;"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="card h-100 shadow-sm">
+                <div class="card-header bg-white font-weight-bold">
+                    <i class="fas fa-wallet text-success me-1"></i> Payment Method Distribution
+                </div>
+                <div class="card-body">
+                    <canvas id="paymentChart" style="max-height: 300px;"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
                 <div class="card-body p-0">
                    <table class="table table-sm table-striped mb-0">
                         <thead>
@@ -316,6 +340,71 @@
     </div>
 </div>
 <script>
+
+
+document.addEventListener("DOMContentLoaded", function() {
+        // 1. Prepare Data for Category Chart
+        const catData = @json($salesByCategory);
+        const catLabels = catData.map(item => item.name);
+        const catValues = catData.map(item => item.total_revenue);
+
+        // 2. Render Category Chart
+        if (catLabels.length > 0) {
+            new Chart(document.getElementById('categoryChart'), {
+                type: 'doughnut',
+                data: {
+                    labels: catLabels,
+                    datasets: [{
+                        data: catValues,
+                        backgroundColor: [
+                            '#0d6efd', '#198754', '#ffc107', '#dc3545', 
+                            '#6610f2', '#fd7e14', '#20c997', '#6c757d'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'right' }
+                    }
+                }
+            });
+        } else {
+            document.getElementById('categoryChart').parentNode.innerHTML = "<p class='text-center text-muted mt-5'>No data available for this period.</p>";
+        }
+
+        // 3. Prepare Data for Payment Chart
+        const cash = {{ $cash_sales }};
+        const digital = {{ $digital_sales }};
+        const credit = {{ $credit_sales }};
+
+        // 4. Render Payment Chart
+        if ((cash + digital + credit) > 0) {
+            new Chart(document.getElementById('paymentChart'), {
+                type: 'pie',
+                data: {
+                    labels: ['Cash', 'Digital (Gcash)', 'Credit (Utang)'],
+                    datasets: [{
+                        data: [cash, digital, credit],
+                        backgroundColor: ['#198754', '#0dcaf0', '#ffc107'], // Green, Cyan, Yellow
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'right' }
+                    }
+                }
+            });
+        } else {
+            document.getElementById('paymentChart').parentNode.innerHTML = "<p class='text-center text-muted mt-5'>No sales recorded.</p>";
+        }
+    });
+
     function toggleDateInputs() {
         const type = document.getElementById('report-type').value;
         const endWrapper = document.getElementById('end-date-wrapper');
