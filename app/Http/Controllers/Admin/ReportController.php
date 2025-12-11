@@ -28,11 +28,28 @@ class ReportController extends Controller
         }
 
         $sales = $query->get();
+        $salesIds = $sales->pluck('id');    
 
         $total_sales = $sales->sum('total_amount');
         $total_transactions = $sales->count();
         $cash_sales = $sales->where('payment_method', 'cash')->sum('total_amount');
         $credit_sales = $sales->where('payment_method', 'credit')->sum('total_amount');
+
+        // 3. Tithes Logic (Existing)
+        $tithesEnabled = Setting::where('key', 'enable_tithes')->value('value') ?? '1'; 
+        $tithesAmount = ($tithesEnabled == '1') ? $total_sales * 0.10 : 0;
+
+        // 4. NEW: GROSS PROFIT CALCULATION
+        // We fetch all items sold in this period and compare Sales Price vs Product Cost
+        $soldItems = SaleItem::whereIn('sale_id', $salesIds)->with('product')->get();
+        
+        $total_cost = 0;
+        foreach ($soldItems as $item) {
+            // If product has a cost, use it. Otherwise 0.
+            $cost = $item->product->cost ?? 0;
+            $total_cost += ($cost * $item->quantity);
+        }
+        $gross_profit = $total_sales - $total_cost;
 
         // 3. NEW: Top Selling Items Logic
         // We aggregate the SaleItems, sum the quantity, and order by highest sum
@@ -55,7 +72,7 @@ class ReportController extends Controller
         return view('admin.reports.index', compact(
             'sales', 'total_sales', 'total_transactions', 
             'cash_sales', 'credit_sales', 'date', 'type',
-            'topItems' // Pass the new variable
+            'topItems', 'tithesAmount', 'tithesEnabled', 'gross_profit' // Pass the new variable
         ));
     }
 

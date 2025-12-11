@@ -103,6 +103,53 @@
     </div>
 {{-- ... existing code ... --}}
 
+<div class="row">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Total Sales</h5>
+                    <h2 class="fw-bold">₱{{ number_format($total_sales, 2) }}</h2>
+                    <small>Revenue</small>
+                </div>
+            </div>
+        </div>
+
+        {{-- NEW: GROSS PROFIT CARD --}}
+        <div class="col-md-3">
+            <div class="card bg-success text-white mb-4">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="fas fa-coins"></i> Gross Profit</h5>
+                    <h2 class="fw-bold">₱{{ number_format($gross_profit, 2) }}</h2>
+                    <small>Income (Sales - Cost)</small>
+                </div>
+            </div>
+        </div>
+
+        {{-- Tithes Card (Existing) --}}
+        @if($tithesEnabled == '1')
+        <div class="col-md-3">
+            <div class="card bg-info text-white mb-4 position-relative overflow-hidden">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="fas fa-hand-holding-heart"></i> Tithes (10%)</h5>
+                    <h2 class="fw-bold">₱{{ number_format($tithesAmount, 2) }}</h2>
+                    <small class="text-white-50">Allocated for Offering</small>
+                </div>
+                <i class="fas fa-church position-absolute" style="font-size: 5rem; opacity: 0.2; right: 10px; bottom: -10px;"></i>
+            </div>
+        </div>
+        @endif
+        
+        <div class="col-md-3">
+            <div class="card bg-secondary text-white mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Transactions</h5>
+                    <h2 class="fw-bold">{{ $total_transactions }}</h2>
+                    <small>Count</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="row mb-4 text-center">
         <div class="col-md-3">
             <div class="card bg-success text-white">

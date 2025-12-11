@@ -2,12 +2,14 @@
 
 @section('content')
 <div class="container py-4">
-    <h2 class="mb-4"><i class="fas fa-file-invoice-dollar text-danger"></i> Outstanding Credits (Utang)</h2>
-
-    {{-- NEW EXPORT BUTTON --}}
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0"><i class="fas fa-file-invoice-dollar text-danger"></i> Outstanding Credits (Utang)</h2>
+        
+        {{-- NEW EXPORT BUTTON --}}
         <a href="{{ route('credits.export') }}" class="btn btn-success">
             <i class="fas fa-file-download"></i> Export List
         </a>
+    </div>
 
     @if(session('success'))
         <div class="alert alert-success">{{ session('success') }}</div>
