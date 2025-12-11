@@ -18,13 +18,15 @@
                                 <label class="form-label">Product Name</label>
                                 <input type="text" name="name" class="form-control" value="{{ $product->name }}" required>
                             </div>
-                            <div class="mb-3">
-                                <label class="form-label">Barcode / SKU (Optional)</label>
-                                <div class="input-group">
-                                    <span class="input-group-text"><i class="fas fa-barcode"></i></span>
-                                    <input type="text" name="sku" class="form-control" value="{{ $product->sku }}" placeholder="Scan or type barcode here...">
-                                </div>
+                           <div class="mb-3">
+                            <label class="form-label">Barcode / SKU (Optional)</label>
+                            <div class="input-group">
+                                <input type="text" id="sku-input" name="sku" class="form-control" value="{{ $product->sku }}" placeholder="Scan or type barcode...">
+                                <button type="button" class="btn btn-outline-secondary" onclick="openScanner()">
+                                    <i class="fas fa-camera"></i> Scan
+                                </button>
                             </div>
+                        </div>
                         </div>
 
                         <div class="mb-3">
