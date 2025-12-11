@@ -70,4 +70,41 @@ class InventoryController extends Controller
         $adjustments = StockAdjustment::with('product', 'user')->latest()->get();
         return view('admin.inventory.history', compact('adjustments'));
     }
+
+    // NEW: Export Inventory to CSV
+    public function export()
+    {
+        $products = Product::with('category')->get();
+
+        $filename = "inventory_report_" . date('Y-m-d') . ".csv";
+        $headers = [
+            "Content-type"        => "text/csv",
+            "Content-Disposition" => "attachment; filename=$filename",
+            "Pragma"              => "no-cache",
+            "Cache-Control"       => "must-revalidate, post-check=0, pre-check=0",
+            "Expires"             => "0"
+        ];
+
+        $callback = function() use ($products) {
+            $file = fopen('php://output', 'w');
+            // Header Row
+            fputcsv($file, ['ID', 'Product Name', 'Category', 'Cost Price', 'Selling Price', 'Current Stock', 'Stock Value (Cost)', 'Stock Value (Selling)']);
+
+            foreach ($products as $product) {
+                fputcsv($file, [
+                    $product->id,
+                    $product->name,
+                    $product->category->name ?? 'N/A',
+                    $product->cost ?? 0,
+                    $product->price,
+                    $product->stock,
+                    ($product->cost ?? 0) * $product->stock, // Total Cost Value
+                    $product->price * $product->stock        // Total Sales Value
+                ]);
+            }
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
 }

@@ -29,6 +29,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->group(function () {
     // Credit Management
     Route::get('/credits', [CreditController::class, 'index'])->name('credits.index');
     Route::post('/credits/{credit}/pay', [CreditController::class, 'repay'])->name('credits.repay');
+    Route::get('/credits/export', [\App\Http\Controllers\Admin\CreditController::class, 'export'])->name('credits.export');
 
     // User Management
     Route::resource('users', UserController::class)->except(['show', 'edit', 'update']);
@@ -50,6 +51,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->group(function () {
     Route::get('/inventory/adjust', [App\Http\Controllers\Admin\InventoryController::class, 'adjust'])->name('inventory.adjust');
     Route::post('/inventory/adjust', [App\Http\Controllers\Admin\InventoryController::class, 'process'])->name('inventory.process');
     Route::get('/inventory/history', [App\Http\Controllers\Admin\InventoryController::class, 'history'])->name('inventory.history');
+    Route::get('/inventory/export', [\App\Http\Controllers\Admin\InventoryController::class, 'export'])->name('inventory.export');
 
     Route::post('/products/import', [\App\Http\Controllers\Admin\ProductController::class, 'import'])->name('products.import');
     Route::resource('products', ProductController::class);

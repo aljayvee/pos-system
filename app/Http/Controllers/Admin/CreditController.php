@@ -79,4 +79,40 @@ class CreditController extends Controller
 
         return view('admin.credits.logs', compact('payments'));
     }
+
+    // NEW: Export Credits to CSV
+    public function export()
+    {
+        $credits = CustomerCredit::with('customer')->where('is_paid', false)->get();
+
+        $filename = "outstanding_credits_" . date('Y-m-d') . ".csv";
+        $headers = [
+            "Content-type"        => "text/csv",
+            "Content-Disposition" => "attachment; filename=$filename",
+            "Pragma"              => "no-cache",
+            "Cache-Control"       => "must-revalidate, post-check=0, pre-check=0",
+            "Expires"             => "0"
+        ];
+
+        $callback = function() use ($credits) {
+            $file = fopen('php://output', 'w');
+            // Header Row
+            fputcsv($file, ['Credit ID', 'Customer Name', 'Date Incurred', 'Due Date', 'Original Amount', 'Amount Paid', 'Remaining Balance']);
+
+            foreach ($credits as $credit) {
+                fputcsv($file, [
+                    $credit->credit_id, // Ensure this matches your primary key name
+                    $credit->customer->name ?? 'Unknown',
+                    $credit->created_at->format('Y-m-d'),
+                    $credit->due_date ?? 'N/A',
+                    $credit->total_amount,
+                    $credit->amount_paid,
+                    $credit->remaining_balance
+                ]);
+            }
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
 }

@@ -4,6 +4,11 @@
 <div class="container py-4">
     <h2 class="mb-4"><i class="fas fa-file-invoice-dollar text-danger"></i> Outstanding Credits (Utang)</h2>
 
+    {{-- NEW EXPORT BUTTON --}}
+        <a href="{{ route('credits.export') }}" class="btn btn-success">
+            <i class="fas fa-file-download"></i> Export List
+        </a>
+
     @if(session('success'))
         <div class="alert alert-success">{{ session('success') }}</div>
     @endif
