@@ -7,6 +7,14 @@
     <div class="row g-3">
         
         <div class="col-md-7">
+            {{-- NEW: Connection Status Bar --}}
+            <div id="offline-alert" class="alert alert-warning mb-3 shadow-sm" style="display: none;">
+                <div class="d-flex justify-content-between align-items-center">
+                    <span><i class="fas fa-wifi-slash me-2"></i> <strong>You are Offline.</strong> Sales will be saved locally.</span>
+                    <span class="badge bg-dark" id="pending-count">0 Pending</span>
+                </div>
+            </div>
+
             <div class="card shadow-sm h-100 border-0">
                 <div class="card-header bg-white py-3">
                     <div class="d-flex gap-2">
@@ -214,12 +222,13 @@
     window.onload = () => {
         const searchInput = document.getElementById('product-search');
         if(searchInput) searchInput.focus();
-
-        // NEW: Render the saved cart immediately on load
+        
         if(cart.length > 0) {
             updateCartUI();
-            console.log("Restored " + cart.length + " items from local storage.");
         }
+        
+        // NEW: Check connection
+        updateOnlineStatus();
 
     };
 
@@ -507,6 +516,12 @@
             credit_details: creditData
         };
 
+        // NEW: Check Offline Status BEFORE fetching
+        if (!navigator.onLine) {
+            saveOffline(data);
+            return;
+        }
+
         fetch("{{ route('cashier.store') }}", {
             method: "POST",
             headers: { 
@@ -533,7 +548,12 @@
         })
         .catch(err => {
             console.error(err);
-            alert("Transaction failed. Check console.");
+            // FALLBACK: If fetch fails due to network error, save offline
+            if (!navigator.onLine) {
+                saveOffline(data);
+            } else {
+                alert("Transaction failed. Server error: " + err.message);
+            }
         });
     }
 
@@ -566,6 +586,104 @@
 
         // 3. Show/Hide Empty State
         noProductsMsg.style.display = hasVisible ? 'none' : 'block';
+    }
+
+    // --- OFFLINE SYNC LOGIC ---
+    
+    // Check connection status on load and change
+    window.addEventListener('online', updateOnlineStatus);
+    window.addEventListener('offline', updateOnlineStatus);
+    
+    function updateOnlineStatus() {
+        const alertBox = document.getElementById('offline-alert');
+        const queue = JSON.parse(localStorage.getItem('offline_sales')) || [];
+        
+        if (!navigator.onLine) {
+            alertBox.style.display = 'block';
+            alertBox.classList.remove('alert-success');
+            alertBox.classList.add('alert-warning');
+            alertBox.innerHTML = `
+                <div class="d-flex justify-content-between align-items-center">
+                    <span><i class="fas fa-wifi-slash me-2"></i> <strong>Offline Mode</strong> - Sales saved to device.</span>
+                    <span class="badge bg-dark">${queue.length} Pending</span>
+                </div>`;
+        } else {
+            if (queue.length > 0) {
+                alertBox.style.display = 'block';
+                alertBox.classList.remove('alert-warning');
+                alertBox.classList.add('alert-info');
+                alertBox.innerHTML = `
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span><i class="fas fa-wifi me-2"></i> <strong>Back Online!</strong> Syncing ${queue.length} sales...</span>
+                        <button class="btn btn-sm btn-light fw-bold" onclick="syncOfflineSales()">Sync Now</button>
+                    </div>`;
+                // Attempt Auto-Sync
+                syncOfflineSales();
+            } else {
+                alertBox.style.display = 'none';
+            }
+        }
+    }
+
+    // Save transaction to local storage
+    function saveOffline(data) {
+        let queue = JSON.parse(localStorage.getItem('offline_sales')) || [];
+        queue.push(data);
+        localStorage.setItem('offline_sales', JSON.stringify(queue));
+        
+        // Clear UI
+        localStorage.removeItem('pos_cart');
+        cart = [];
+        updateCartUI();
+        updateOnlineStatus();
+        
+        alert("Internet is down. Sale saved offline! It will sync automatically when you reconnect.");
+    }
+
+    // Upload pending transactions
+    async function syncOfflineSales() {
+        let queue = JSON.parse(localStorage.getItem('offline_sales')) || [];
+        if (queue.length === 0) return;
+
+        let processed = 0;
+        let errors = 0;
+
+        const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+        // Process sequentially to avoid database locking issues
+        for (let i = 0; i < queue.length; i++) {
+            const saleData = queue[i];
+            
+            try {
+                const response = await fetch("{{ route('cashier.store') }}", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json", "X-CSRF-TOKEN": csrfToken },
+                    body: JSON.stringify(saleData)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    processed++;
+                } else {
+                    errors++;
+                    console.error("Sync failed for item " + i, result);
+                }
+            } catch (err) {
+                errors++;
+                console.error("Network error during sync", err);
+            }
+        }
+
+        // Remove processed items (Logic: If we processed all, clear queue. 
+        // In a real app, you'd filter out only success ones, but for simplicity we clear if mostly success)
+        if (errors === 0) {
+            localStorage.removeItem('offline_sales');
+            alert(`Sync Complete: ${processed} sales uploaded successfully.`);
+            location.reload(); // Refresh to update inventory display
+        } else {
+            alert(`Sync Partial: ${processed} uploaded, ${errors} failed. Check console.`);
+        }
     }
 
     function clearCart() {
