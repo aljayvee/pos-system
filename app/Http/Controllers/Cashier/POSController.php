@@ -28,42 +28,56 @@ public function store(Request $request)
         'cart' => 'required|array',
         'total_amount' => 'required|numeric',
         'payment_method' => 'required|in:cash,digital,credit',
-        // If credit, customer is required
-        'customer_id' => 'required_if:payment_method,credit|nullable|exists:customers,id'
+        
+        // Validation per flow
+        'amount_paid' => 'required_if:payment_method,cash|numeric',
+        'reference_number' => 'required_if:payment_method,digital',
+        'customer_id' => 'required_if:payment_method,credit', // Credit must have ID
+        'credit_details.due_date' => 'required_if:payment_method,credit|date'
     ]);
 
     DB::beginTransaction();
     try {
-        // 1. Create Sale
+        // 1. Handle Credit Form Updates (Flow 3 Requirement)
+        if ($request->payment_method === 'credit' && $request->customer_id) {
+            $customer = Customer::find($request->customer_id);
+            if ($customer) {
+                // Update customer profile with latest info from form
+                $customer->update([
+                    'address' => $request->input('credit_details.address'),
+                    'contact' => $request->input('credit_details.contact')
+                ]);
+            }
+        }
+
+        // 2. Create Sale
         $sale = Sale::create([
             'user_id' => Auth::id(),
-            'customer_id' => $request->customer_id, // Save the customer
+            'customer_id' => $request->customer_id, // Null if walk-in
             'total_amount' => $request->total_amount,
-            'amount_paid' => $request->payment_method === 'credit' ? 0 : $request->total_amount, // 0 paid if credit
+            'amount_paid' => $request->payment_method === 'credit' ? 0 : $request->amount_paid,
             'payment_method' => $request->payment_method,
+            'reference_number' => $request->reference_number,
         ]);
 
-        // 2. Create Credit Record if needed
+        // 3. Create Credit Ledger
         if ($request->payment_method === 'credit') {
             CustomerCredit::create([
                 'customer_id' => $request->customer_id,
                 'sale_id' => $sale->id,
                 'total_amount' => $request->total_amount,
                 'remaining_balance' => $request->total_amount,
-                'due_date' => now()->addDays(30), // Default 30 days due
+                'due_date' => $request->input('credit_details.due_date'),
             ]);
         }
 
-        // 3. Process Items & Inventory
+        // 4. Update Inventory
         foreach ($request->cart as $item) {
             $product = Product::lockForUpdate()->find($item['id']);
-            
             if ($product->stock < $item['qty']) {
                 throw new \Exception("Insufficient stock for " . $product->name);
             }
-
             $product->decrement('stock', $item['qty']);
-
             SaleItem::create([
                 'sale_id' => $sale->id,
                 'product_id' => $product->id,
@@ -73,7 +87,7 @@ public function store(Request $request)
         }
         
         DB::commit();
-        return response()->json(['success' => true, 'sale_id' => $sale->id]);
+        return response()->json(['success' => true]);
 
     } catch (\Exception $e) {
         DB::rollBack();
