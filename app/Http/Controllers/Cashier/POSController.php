@@ -23,19 +23,7 @@ class POSController extends Controller
 
     public function store(Request $request)
     {
-
-        // Create Sale
-            $sale = Sale::create([
-                'user_id' => Auth::id(),
-                'customer_id' => $customerId,
-                'total_amount' => $request->total_amount,
-                'amount_paid' => $request->payment_method === 'credit' ? 0 : $request->amount_paid,
-                'payment_method' => $request->payment_method,
-                'reference_number' => $request->payment_method === 'digital' ? $request->reference_number : null, 
-            ]);
-
-
-        // ... (Keep existing validation logic) ...
+        // 1. VALIDATE FIRST
         $request->validate([
             'cart' => 'required|array',
             'total_amount' => 'required|numeric',
@@ -50,27 +38,12 @@ class POSController extends Controller
         try {
             $customerId = $request->customer_id;
 
-
-            // --- NEW: LOYALTY POINTS LOGIC ---
-            // Only award points to registered customers (not walk-ins)
-            if ($customerId) {
-                // Rule: 1 Point per ₱100 spent
-                $pointsEarned = floor($request->total_amount / 100);
-                
-                if ($pointsEarned > 0) {
-                    $customer = Customer::find($customerId);
-                    if ($customer) {
-                        $customer->increment('points', $pointsEarned);
-                    }
-                }
-            }
-
-            
-
-            // ... (Keep existing Customer Logic: New/Update) ...
+            // 2. HANDLE CUSTOMER (Create New or Update Existing)
             if ($request->payment_method === 'credit') {
                 $details = $request->input('credit_details');
+                
                 if ($customerId === 'new') {
+                    // Create New Customer
                     $newCustomer = Customer::create([
                         'name' => $details['name'],
                         'address' => $details['address'],
@@ -78,6 +51,7 @@ class POSController extends Controller
                     ]);
                     $customerId = $newCustomer->id;
                 } else {
+                    // Update Existing Customer details if provided
                     $customer = Customer::find($customerId);
                     if ($customer) {
                         $customer->update([
@@ -87,40 +61,49 @@ class POSController extends Controller
                     }
                 }
             } else {
+                // For Cash/Digital, if 'walk-in' is selected, set customer_id to null
                 if ($customerId === 'walk-in') $customerId = null;
             }
 
-            // Create Sale
+            // 3. CREATE SALE (Now that we have the $customerId)
             $sale = Sale::create([
                 'user_id' => Auth::id(),
                 'customer_id' => $customerId,
                 'total_amount' => $request->total_amount,
                 'amount_paid' => $request->payment_method === 'credit' ? 0 : $request->amount_paid,
                 'payment_method' => $request->payment_method,
-                // Only save ref number if digital
                 'reference_number' => $request->payment_method === 'digital' ? $request->reference_number : null, 
             ]);
 
-            // 3. Create Credit Ledger
-            if ($request->payment_method === 'credit') {
-                
-                // FIX: safely get the date. If it's empty, make it NULL.
-                $dueDate = $request->input('credit_details.due_date');
-                if (empty($dueDate)) {
-                    $dueDate = null; 
+            // 4. LOYALTY POINTS LOGIC (After sale is created)
+            if ($customerId) {
+                $pointsEarned = floor($request->total_amount / 100);
+                if ($pointsEarned > 0) {
+                    $customer = Customer::find($customerId);
+                    if ($customer) {
+                        $customer->increment('points', $pointsEarned);
+                    }
                 }
+            }
+
+            // 5. CREATE CREDIT LEDGER
+            if ($request->payment_method === 'credit') {
+                // Fix date handling
+                $dueDate = $request->input('credit_details.due_date');
+                if (empty($dueDate)) $dueDate = null;
 
                 CustomerCredit::create([
                     'customer_id' => $customerId,
                     'sale_id' => $sale->id,
                     'total_amount' => $request->total_amount,
                     'remaining_balance' => $request->total_amount,
-                    // 'amount_paid' and 'is_paid' have defaults, so we can omit them safely now
+                    'amount_paid' => 0,
+                    'is_paid' => false,
                     'due_date' => $dueDate, 
                 ]);
             }
 
-            // ... (Keep existing Inventory Update Logic) ...
+            // 6. UPDATE INVENTORY
             foreach ($request->cart as $item) {
                 $product = Product::lockForUpdate()->find($item['id']);
                 if ($product->stock < $item['qty']) {
@@ -137,7 +120,7 @@ class POSController extends Controller
             
             DB::commit();
             
-            // UPDATE RETURN: Send back the Sale ID
+            // Return Success
             return response()->json(['success' => true, 'sale_id' => $sale->id]);
 
         } catch (\Exception $e) {
