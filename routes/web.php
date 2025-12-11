@@ -5,6 +5,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Cashier\POSController;
 use App\Http\Controllers\Admin\ProductController;
+use App\Http\Controllers\Admin\UserController; // <--- This was likely missing
 use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\CreditController;
 
@@ -31,7 +32,6 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->group(function () {
 
     // User Management
     Route::resource('users', UserController::class)->except(['show', 'edit', 'update']);
-    // Custom route for toggling status (optional)
     Route::post('/users/{user}/toggle', [UserController::class, 'toggleStatus'])->name('users.toggle');
 });
 

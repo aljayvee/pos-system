@@ -82,10 +82,11 @@
                 <a href="{{ route('customers.index') }}" class="list-group-item list-group-item-action {{ request()->routeIs('customers.*') ? 'active' : '' }}">
                     <i class="fas fa-users"></i> Customers
                 </a>
-                <a href="#" class="list-group-item list-group-item-action disabled">
-                    <i class="fas fa-chart-line"></i> Sales Reports
+                <a href="{{ route('credits.index') }}" class="list-group-item list-group-item-action {{ request()->routeIs('credits.*') ? 'active' : '' }}">
+                    <i class="fas fa-file-invoice-dollar"></i> Credits (Utang)
                 </a>
-                <a href="#" class="list-group-item list-group-item-action disabled">
+                
+                <a href="{{ route('users.index') }}" class="list-group-item list-group-item-action {{ request()->routeIs('users.*') ? 'active' : '' }}">
                     <i class="fas fa-user-cog"></i> User Management
                 </a>
                 
