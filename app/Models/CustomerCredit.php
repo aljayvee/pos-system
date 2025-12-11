@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class CustomerCredit extends Model
 {
+
+    protected $primaryKey = 'credit_id';
     protected $guarded = []; // Allow mass assignment for all fields
     // Allow these fields to be updated
     protected $fillable = [

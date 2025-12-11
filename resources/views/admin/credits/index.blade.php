@@ -36,31 +36,31 @@
                         <td class="text-danger fw-bold">₱{{ number_format($credit->remaining_balance, 2) }}</td>
                         <td>{{ $credit->due_date ? \Carbon\Carbon::parse($credit->due_date)->format('M d') : '-' }}</td>
                         <td>
-                            {{-- 1. Pass the unique ID to the modal target --}}
+                            {{-- USE credit_id HERE --}}
                             <button type="button" 
                                     class="btn btn-primary btn-sm" 
                                     data-bs-toggle="modal" 
-                                    data-bs-target="#repayModal-{{ $credit->id }}">
+                                    data-bs-target="#repayModal-{{ $credit->credit_id }}">
                                 Pay
                             </button>
 
-                            {{-- 2. Create a unique Modal ID for each row --}}
-                            <div class="modal fade" id="repayModal-{{ $credit->id }}" tabindex="-1" aria-hidden="true">
+                            {{-- USE credit_id HERE FOR ID --}}
+                            <div class="modal fade" id="repayModal-{{ $credit->credit_id }}" tabindex="-1" aria-hidden="true">
                                 <div class="modal-dialog">
-                                    {{-- 3. Set the action DIRECTLY here (No JS needed) --}}
-                                    <form action="{{ route('credits.repay', $credit->id) }}" method="POST">
+                                    {{-- USE credit_id HERE FOR ROUTE --}}
+                                    <form action="{{ route('credits.repay', $credit->credit_id) }}" method="POST">
                                         @csrf
                                         <div class="modal-content">
                                             <div class="modal-header">
-                                                <h5 class="modal-title">Repay Credit</h5>
+                                                <h5 class="modal-title">Repay Credit - {{ $credit->customer->name }}</h5>
                                                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                             </div>
                                             
                                             <div class="modal-body">
                                                 <div class="mb-3">
-                                                    <label class="form-label">Amount</label>
-                                                    {{-- Suggested amount: remaining balance --}}
+                                                    <label class="form-label">Payment Amount</label>
                                                     <input type="number" class="form-control" name="payment_amount" 
+                                                           step="0.01" 
                                                            max="{{ $credit->remaining_balance }}" 
                                                            value="{{ $credit->remaining_balance }}" required>
                                                 </div>
@@ -86,5 +86,4 @@
         </div>
     </div>
 </div>
-{{-- Script removed because we handled the URL directly in Blade above --}}
 @endsection
