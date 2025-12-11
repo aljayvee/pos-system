@@ -44,7 +44,11 @@
                             @endif
                         </td>
                         <td>
-                            <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#payModal{{ $credit->id }}">
+                            <button type="button" 
+                                    class="btn btn-primary btn-sm" 
+                                    data-bs-toggle="modal" 
+                                    data-bs-target="#repayModal"
+                                    onclick="setRepayRoute({{ $credit->id }})">
                                 Pay
                             </button>
 
@@ -55,8 +59,9 @@
                                             <h5 class="modal-title">Record Payment: {{ $credit->customer->name }}</h5>
                                             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                         </div>
-                                        <form action="{{ route('credits.repay', $credit->id) }}" method="POST">
+                                        <form id="repayForm" action="#" method="POST">
                                             @csrf
+                                            @method('POST')
                                             <div class="modal-body">
                                                 <div class="mb-3">
                                                     <label>Remaining Balance</label>
@@ -88,3 +93,14 @@
     </div>
 </div>
 @endsection
+<script>
+    function setRepayRoute(id) {
+        // 1. Get the form element
+        var form = document.getElementById('repayForm');
+        
+        // 2. Generate the correct URL
+        // We use a placeholder '000' and replace it with the actual ID
+        var url = "{{ route('credits.repay', '000') }}";
+        form.action = url.replace('000', id);
+    }
+</script>
