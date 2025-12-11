@@ -5,6 +5,67 @@
     <h2 class="mb-4"><i class="fas fa-chart-line text-primary"></i> Sales Report</h2>
 
    {{-- ... existing code ... --}}
+   {{-- ... Statistics Cards are above here ... --}}
+
+    <div class="row">
+        <div class="col-xl-6">
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <i class="fas fa-trophy me-1"></i>
+                    Top Selling Items ({{ ucfirst($type) }})
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-sm table-striped mb-0">
+                        <thead>
+                            <tr>
+                                <th class="ps-3">Item Name</th>
+                                <th class="text-center">Qty Sold</th>
+                                <th class="text-end pe-3">Revenue</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse($topItems as $item)
+                            <tr>
+                                <td class="ps-3">{{ $item->product->name ?? 'Unknown Item' }}</td>
+                                <td class="text-center fw-bold">{{ $item->total_qty }}</td>
+                                <td class="text-end pe-3">₱{{ number_format($item->total_revenue, 2) }}</td>
+                            </tr>
+                            @empty
+                            <tr>
+                                <td colspan="3" class="text-center p-3">No sales data for this period.</td>
+                            </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-chart-pie me-1"></i>
+                    Payment Breakdown
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between border-bottom py-2">
+                        <span>Cash Sales:</span>
+                        <span class="fw-bold text-success">₱{{ number_format($cash_sales, 2) }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between border-bottom py-2">
+                        <span>Credit (Utang):</span>
+                        <span class="fw-bold text-warning">₱{{ number_format($credit_sales, 2) }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between py-2">
+                        <span>Total:</span>
+                        <span class="fw-bold">₱{{ number_format($total_sales, 2) }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{-- ... Sales Transaction Table follows here ... --}}
     <div class="card shadow-sm mb-4">
         <div class="card-body">
             {{-- REMOVE action="..." from the form tag so buttons can decide where to go --}}

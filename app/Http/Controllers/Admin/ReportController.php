@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Sale;
+use App\Models\SaleItem;
 use Carbon\Carbon;
 use Symfony\Component\HttpFoundation\StreamedResponse; // Import this!
 
@@ -32,7 +33,29 @@ class ReportController extends Controller
         $cash_sales = $sales->where('payment_method', 'cash')->sum('total_amount');
         $credit_sales = $sales->where('payment_method', 'credit')->sum('total_amount');
 
-        return view('admin.reports.index', compact('sales', 'total_sales', 'total_transactions', 'cash_sales', 'credit_sales', 'date', 'type'));
+        // 3. NEW: Top Selling Items Logic
+        // We aggregate the SaleItems, sum the quantity, and order by highest sum
+        $topItems = SaleItem::select('product_id', DB::raw('sum(quantity) as total_qty'), DB::raw('sum(price * quantity) as total_revenue'))
+            ->whereHas('sale', function($q) use ($date, $type) {
+                // Apply the same date filters to the items
+                if ($type === 'daily') {
+                    $q->whereDate('created_at', $date);
+                } elseif ($type === 'monthly') {
+                    $q->whereMonth('created_at', Carbon::parse($date)->month)
+                      ->whereYear('created_at', Carbon::parse($date)->year);
+                }
+            })
+            ->groupBy('product_id')
+            ->orderByDesc('total_qty')
+            ->with('product') // Eager load product name
+            ->take(10) // Get top 10
+            ->get();
+
+        return view('admin.reports.index', compact(
+            'sales', 'total_sales', 'total_transactions', 
+            'cash_sales', 'credit_sales', 'date', 'type',
+            'topItems' // Pass the new variable
+        ));
     }
 
     // --- ADD THIS NEW FUNCTION BELOW ---
