@@ -122,6 +122,18 @@
                                 </option>
                             @endforeach
                         </select>
+
+                        {{-- NEW: Debt Payment Section --}}
+                        <div id="debt-section" class="mt-2 p-2 bg-danger bg-opacity-10 border border-danger rounded d-flex justify-content-between align-items-center" style="display: none;">
+                            <div>
+                                <small class="text-danger fw-bold d-block">Outstanding Balance</small>
+                                <span class="fs-5 fw-bold text-danger">₱<span id="customer-balance">0.00</span></span>
+                            </div>
+                            <button class="btn btn-sm btn-danger" onclick="openDebtModal()">
+                                <i class="fas fa-hand-holding-usd"></i> Pay Debt
+                            </button>
+                        </div>
+
                         <div id="loyalty-badge" class="mt-2" style="display: none;">
                             <span class="badge bg-warning text-dark border border-dark">
                                 <i class="fas fa-star"></i> Loyalty Points: <span id="customer-points" class="fw-bold">0</span>
@@ -173,6 +185,30 @@
             <div class="modal-body text-center">
                 <div id="reader" style="width: 100%;"></div>
                 <p class="text-muted mt-2">Point camera at product barcode</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="debtPaymentModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title"><i class="fas fa-hand-holding-usd"></i> Collect Debt Payment</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-2">Customer: <strong id="debt-customer-name"></strong></p>
+                <p class="mb-3">Total Owed: <strong class="text-danger fs-5">₱<span id="debt-amount-display"></span></strong></p>
+                
+                <div class="form-group">
+                    <label>Payment Amount</label>
+                    <input type="number" id="debt-payment-amount" class="form-control form-control-lg" placeholder="Enter amount">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button class="btn btn-danger" onclick="processDebtPayment()">Confirm Payment</button>
             </div>
         </div>
     </div>
@@ -255,6 +291,18 @@
             if(redemptionBox) redemptionBox.style.display = 'none';
         }
         
+        // NEW: Update Debt Display
+        const balance = parseFloat(selectedOption.getAttribute('data-balance') || 0);
+        const debtSection = document.getElementById('debt-section');
+        const balanceSpan = document.getElementById('customer-balance');
+
+        if (balance > 0) {
+            debtSection.style.display = 'flex';
+            balanceSpan.innerText = balance.toLocaleString(undefined, {minimumFractionDigits: 2});
+        } else {
+            debtSection.style.display = 'none';
+        }
+
         const pointsInput = document.getElementById('points-to-use');
         if(pointsInput) pointsInput.value = '';
         calculateTotalWithPoints(); 
@@ -271,6 +319,46 @@
         }
         toggleFlow();
     });
+
+
+    // --- NEW: DEBT PAYMENT FUNCTIONS ---
+    function openDebtModal() {
+        const select = document.getElementById('customer-id');
+        const name = select.options[select.selectedIndex].text;
+        const balance = document.getElementById('customer-balance').innerText;
+
+        document.getElementById('debt-customer-name').innerText = name;
+        document.getElementById('debt-amount-display').innerText = balance;
+        document.getElementById('debt-payment-amount').value = ''; // Clear input
+        
+        new bootstrap.Modal(document.getElementById('debtPaymentModal')).show();
+    }
+
+    function processDebtPayment() {
+        const customerId = document.getElementById('customer-id').value;
+        const amount = document.getElementById('debt-payment-amount').value;
+
+        if(!amount || amount <= 0) { alert("Please enter a valid amount"); return; }
+
+        fetch("{{ route('cashier.credit.pay') }}", {
+            method: "POST",
+            headers: { 
+                "Content-Type": "application/json", 
+                "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute('content') 
+            },
+            body: JSON.stringify({ customer_id: customerId, amount: amount })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if(data.success) {
+                alert("Payment Successful!");
+                location.reload(); // Reload to update balance
+            } else {
+                alert("Error: " + data.message);
+            }
+        })
+        .catch(err => alert("Network Error: " + err));
+    }
 
     // --- LOYALTY CALCULATION ---
     function calculateTotalWithPoints() {

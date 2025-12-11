@@ -18,12 +18,86 @@ class POSController extends Controller
     {
         $products = Product::where('stock', '>', 0)->get();
         $customers = Customer::orderBy('name')->get();
+
+        // NEW: Fetch Customers with Total Unpaid Debt (Balance)
+        $customers = Customer::withSum(['credits as balance' => function($q) {
+            $q->where('is_paid', false);
+        }], 'remaining_balance')->orderBy('name')->get();
+
         // NEW: Fetch Categories for the filter buttons
         $categories = \App\Models\Category::has('products')->orderBy('name')->get();
        // Check if Loyalty is Enabled (Default to '0' / Off)
         $loyaltyEnabled = \App\Models\Setting::where('key', 'enable_loyalty')->value('value') ?? '0';
 
         return view('cashier.index', compact('products', 'customers', 'categories', 'loyaltyEnabled'));
+    }
+
+    // NEW: Process Debt Payment (Cashier)
+    public function payCredit(Request $request)
+    {
+        $request->validate([
+            'customer_id' => 'required|exists:customers,id',
+            'amount' => 'required|numeric|min:1'
+        ]);
+
+        $paymentAmount = $request->amount;
+        $customerId = $request->customer_id;
+
+        DB::beginTransaction();
+        try {
+            // 1. Get Unpaid Credits (Oldest First)
+            $credits = CustomerCredit::where('customer_id', $customerId)
+                        ->where('is_paid', false)
+                        ->orderBy('created_at', 'asc')
+                        ->lockForUpdate()
+                        ->get();
+
+            if ($credits->isEmpty()) {
+                throw new \Exception("Customer has no outstanding balance.");
+            }
+
+            $totalDebt = $credits->sum('remaining_balance');
+            if ($paymentAmount > $totalDebt) {
+                throw new \Exception("Payment exceeds total debt of ₱" . number_format($totalDebt, 2));
+            }
+
+            $remainingPayment = $paymentAmount;
+
+            // 2. Distribute Payment (Waterfall Method)
+            foreach ($credits as $credit) {
+                if ($remainingPayment <= 0) break;
+
+                $toPay = min($remainingPayment, $credit->remaining_balance);
+
+                // Update Credit
+                $credit->amount_paid += $toPay;
+                $credit->remaining_balance -= $toPay;
+                
+                if ($credit->remaining_balance <= 0) {
+                    $credit->remaining_balance = 0;
+                    $credit->is_paid = true;
+                }
+                $credit->save();
+
+                // Create Log Entry for this specific credit
+                \App\Models\CreditPayment::create([
+                    'customer_credit_id' => $credit->id,
+                    'user_id' => Auth::id(),
+                    'amount' => $toPay,
+                    'payment_date' => now(),
+                    'notes' => 'Paid via POS (Cashier Collection)'
+                ]);
+
+                $remainingPayment -= $toPay;
+            }
+
+            DB::commit();
+            return response()->json(['success' => true, 'message' => 'Payment collected successfully!']);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
     }
 
     public function store(Request $request)
