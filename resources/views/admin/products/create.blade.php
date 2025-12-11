@@ -52,14 +52,14 @@
 </div>
 
 <div class="modal fade" id="scanModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
+    <div class="modal-dialog modal-lg"> <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Scan Barcode</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" onclick="stopScanner()"></button>
             </div>
             <div class="modal-body text-center">
-                <div id="reader" style="width: 100%;"></div>
+                <div id="reader" style="width: 100%; min-height: 300px; background-color: #f0f0f0;"></div>
+                <p class="text-muted mt-2 small">Select your DroidCam source from the dropdown if prompted.</p>
             </div>
         </div>
     </div>
@@ -95,7 +95,7 @@
             html5QrcodeScanner = new Html5QrcodeScanner("reader", config, false);
             html5QrcodeScanner.render(onScanSuccess, onScanFailure);
         }
-    }
+    } 
 
     function onScanSuccess(decodedText, decodedResult) {
         // 1. Put the scanned code into the input
