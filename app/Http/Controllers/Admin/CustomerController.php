@@ -10,7 +10,8 @@ class CustomerController extends Controller
 {
     public function index()
     {
-        $customers = Customer::latest()->get();
+        // Sort by name for easier searching
+        $customers = Customer::orderBy('name')->get();
         return view('admin.customers.index', compact('customers'));
     }
 
@@ -19,14 +20,30 @@ class CustomerController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'contact' => 'nullable|string|max:255',
+            'address' => 'nullable|string|max:255', // Added validation for address
         ]);
 
         Customer::create($request->all());
         return back()->with('success', 'Customer added successfully.');
     }
 
+    // NEW: Update Function
+    public function update(Request $request, Customer $customer)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'contact' => 'nullable|string|max:255',
+            'address' => 'nullable|string|max:255',
+        ]);
+
+        $customer->update($request->all());
+        return back()->with('success', 'Customer details updated.');
+    }
+
     public function destroy(Customer $customer)
     {
+        // Optional: Check for unpaid credits before deleting?
+        // For now, we allow delete (which might cascade delete credits depending on migration)
         $customer->delete();
         return back()->with('success', 'Customer deleted.');
     }
