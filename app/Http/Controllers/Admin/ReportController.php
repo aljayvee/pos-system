@@ -5,23 +5,24 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Sale;
-use App\Models\Setting;
 use App\Models\SaleItem;
+use App\Models\Setting;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
-use Symfony\Component\HttpFoundation\StreamedResponse; // Import this!
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ReportController extends Controller
 {
     public function index(Request $request)
     {
-        // ... (Keep your existing index code exactly as it is) ...
-        $date = $request->input('date', Carbon::today()->toDateString());
+        // 1. Get Filters (Default to Today)
         $type = $request->input('type', 'daily');
+        $startDate = $request->input('start_date', Carbon::today()->toDateString());
+        $endDate = $request->input('end_date', Carbon::today()->toDateString());
 
+        // 2. Build Query
         $query = Sale::with('user', 'customer')->latest();
 
-        // --- PASTE FILTER LOGIC HERE (Same as index) ---
         if ($type === 'daily') {
             $query->whereDate('created_at', $startDate);
         } elseif ($type === 'weekly') {
@@ -37,116 +38,65 @@ class ReportController extends Controller
                 Carbon::parse($endDate)->endOfDay()
             ]);
         }
-        // -----------------------------------------------
-
-        // --- FILTER LOGIC ---
-        if ($type === 'daily') {
-            $query->whereDate('created_at', $startDate);
-        } 
-        elseif ($type === 'weekly') {
-            // Find start and end of the week based on selected date
-            $start = Carbon::parse($startDate)->startOfWeek();
-            $end = Carbon::parse($startDate)->endOfWeek();
-            $query->whereBetween('created_at', [$start, $end]);
-        } 
-        elseif ($type === 'monthly') {
-            $query->whereMonth('created_at', Carbon::parse($startDate)->month)
-                  ->whereYear('created_at', Carbon::parse($startDate)->year);
-        } 
-        elseif ($type === 'custom') {
-            // Ensure end date includes the full day (23:59:59)
-            $query->whereBetween('created_at', [
-                Carbon::parse($startDate)->startOfDay(), 
-                Carbon::parse($endDate)->endOfDay()
-            ]);
-        }
-
-        //----------------------------------
 
         $sales = $query->get();
-        $salesIds = $sales->pluck('id');    
+        $salesIds = $sales->pluck('id');
 
+        // 3. Calculate Totals
         $total_sales = $sales->sum('total_amount');
         $total_transactions = $sales->count();
         $cash_sales = $sales->where('payment_method', 'cash')->sum('total_amount');
         $credit_sales = $sales->where('payment_method', 'credit')->sum('total_amount');
-
-        // NEW: Digital Sales
         $digital_sales = $sales->where('payment_method', 'digital')->sum('total_amount');
 
-        // 3. Tithes Logic (Existing)
+        // 4. Tithes & Profit
         $tithesEnabled = Setting::where('key', 'enable_tithes')->value('value') ?? '1'; 
         $tithesAmount = ($tithesEnabled == '1') ? $total_sales * 0.10 : 0;
 
-        // 4. NEW: GROSS PROFIT CALCULATION
-        // We fetch all items sold in this period and compare Sales Price vs Product Cost
         $soldItems = SaleItem::whereIn('sale_id', $salesIds)->with('product')->get();
-        
         $total_cost = 0;
         foreach ($soldItems as $item) {
-            // If product has a cost, use it. Otherwise 0.
             $cost = $item->product->cost ?? 0;
             $total_cost += ($cost * $item->quantity);
         }
         $gross_profit = $total_sales - $total_cost;
 
-        // 3. NEW: Top Selling Items Logic
-        // We aggregate the SaleItems, sum the quantity, and order by highest sum
+        // 5. Top Items
         $topItems = SaleItem::select('product_id', DB::raw('sum(quantity) as total_qty'), DB::raw('sum(price * quantity) as total_revenue'))
-            ->whereHas('sale', function($q) use ($date, $type) {
-                // Apply the same date filters to the items
-                if ($type === 'daily') {
-                    $q->whereDate('created_at', $date);
-                } elseif ($type === 'monthly') {
-                    $q->whereMonth('created_at', Carbon::parse($date)->month)
-                      ->whereYear('created_at', Carbon::parse($date)->year);
-                }
-            })
+            ->whereIn('sale_id', $salesIds)
             ->groupBy('product_id')
             ->orderByDesc('total_qty')
-            ->with('product') // Eager load product name
-            ->take(10) // Get top 10
-            ->get();
-
-       // 6. Slow Moving Items (Zero sales in last 30 days)
-        // Get IDs of products sold in the last 30 days
-        $soldProductIds = SaleItem::whereHas('sale', function($q) {
-                $q->where('created_at', '>=', Carbon::now()->subDays(30));
-            })
-            ->pluck('product_id')
-            ->unique();
-
-        // Find products NOT in that list, but have stock > 0
-        $slowMovingItems = \App\Models\Product::whereNotIn('id', $soldProductIds)
-            ->where('stock', '>', 0)
+            ->with('product')
             ->take(10)
             ->get();
 
-         
+        // 6. Top Customers
+        $topCustomers = Sale::select('customer_id', DB::raw('sum(total_amount) as total_spent'), DB::raw('count(*) as trans_count'))
+            ->whereNotNull('customer_id')
+            ->whereIn('id', $salesIds)
+            ->groupBy('customer_id')
+            ->orderByDesc('total_spent')
+            ->with('customer')
+            ->take(5)
+            ->get();
 
         return view('admin.reports.index', compact(
             'sales', 'total_sales', 'total_transactions', 
-            'cash_sales', 'credit_sales', 'digital_sales','date', 'type', 'startDate', 'endDate',
-            'topItems', 'tithesAmount', 'tithesEnabled', 'gross_profit',
-            'slowMovingItems' // <--- Pass this
+            'cash_sales', 'credit_sales', 'digital_sales',
+            'type', 'startDate', 'endDate',
+            'topItems', 'topCustomers', 
+            'tithesAmount', 'tithesEnabled', 'gross_profit'
         ));
     }
 
-    // --- ADD THIS NEW FUNCTION BELOW ---
     public function export(Request $request)
     {
-
         $type = $request->input('type', 'daily');
         $startDate = $request->input('start_date', Carbon::today()->toDateString());
         $endDate = $request->input('end_date', Carbon::today()->toDateString());
 
-        $date = $request->input('date', Carbon::today()->toDateString());
-        $type = $request->input('type', 'daily');
-
-        // 1. Fetch Data (Same logic as index to ensure what they see is what they export)
         $query = Sale::with('user', 'customer')->latest();
 
-        // --- PASTE FILTER LOGIC HERE (Same as index) ---
         if ($type === 'daily') {
             $query->whereDate('created_at', $startDate);
         } elseif ($type === 'weekly') {
@@ -162,12 +112,10 @@ class ReportController extends Controller
                 Carbon::parse($endDate)->endOfDay()
             ]);
         }
-        // -----------------------------------------------
 
         $sales = $query->get();
 
-        // 2. Prepare CSV Download
-        $filename = "sales_report_{$type}_{$date}.csv";
+        $filename = "sales_report_{$type}_{$startDate}.csv";
         $headers = [
             "Content-type"        => "text/csv",
             "Content-Disposition" => "attachment; filename=$filename",
@@ -176,14 +124,10 @@ class ReportController extends Controller
             "Expires"             => "0"
         ];
 
-        // 3. Create Stream Callback
         $callback = function() use ($sales) {
             $file = fopen('php://output', 'w');
-
-            // Header Row
             fputcsv($file, ['Sale ID', 'Date/Time', 'Cashier', 'Customer', 'Payment Method', 'Total Amount', 'Amount Paid']);
 
-            // Data Rows
             foreach ($sales as $sale) {
                 fputcsv($file, [
                     $sale->id,
@@ -195,7 +139,6 @@ class ReportController extends Controller
                     $sale->amount_paid
                 ]);
             }
-
             fclose($file);
         };
 
