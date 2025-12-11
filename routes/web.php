@@ -33,6 +33,9 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->group(function () {
     // User Management
     Route::resource('users', UserController::class)->except(['show', 'edit', 'update']);
     Route::post('/users/{user}/toggle', [UserController::class, 'toggleStatus'])->name('users.toggle');
+
+    // Add this new route:
+    Route::get('/reports', [\App\Http\Controllers\Admin\ReportController::class, 'index'])->name('reports.index');
 });
 
 // CASHIER Routes (Protected)

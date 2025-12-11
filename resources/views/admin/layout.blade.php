@@ -85,6 +85,11 @@
                 <a href="{{ route('credits.index') }}" class="list-group-item list-group-item-action {{ request()->routeIs('credits.*') ? 'active' : '' }}">
                     <i class="fas fa-file-invoice-dollar"></i> Credits (Utang)
                 </a>
+
+                {{-- NEW REPORTS BUTTON ADDED HERE --}}
+                <a href="{{ route('reports.index') }}" class="list-group-item list-group-item-action {{ request()->routeIs('reports.*') ? 'active' : '' }}">
+                    <i class="fas fa-chart-line"></i> Sales Reports
+                </a>
                 
                 <a href="{{ route('users.index') }}" class="list-group-item list-group-item-action {{ request()->routeIs('users.*') ? 'active' : '' }}">
                     <i class="fas fa-user-cog"></i> User Management
