@@ -64,7 +64,6 @@
         </div>
     </div>
 </div>
-
 <script>
     let html5QrcodeScanner;
 
@@ -73,10 +72,11 @@
         const modal = new bootstrap.Modal(document.getElementById('scanModal'));
         modal.show();
 
-        // OPTIMIZED CONFIGURATION
+        // CONFIGURATION
         const config = { 
-            fps: 10, 
-            qrbox: { width: 300, height: 150 }, 
+            fps: 5, 
+            qrbox: { width: 300, height: 150 }, // Rectangular box for barcodes
+            aspectRatio: 1.0,
             formatsToSupport: [ 
                 Html5QrcodeSupportedFormats.UPC_A, 
                 Html5QrcodeSupportedFormats.UPC_E,
@@ -93,22 +93,30 @@
         // Start Scanner
         if (!html5QrcodeScanner) {
             html5QrcodeScanner = new Html5QrcodeScanner("reader", config, false);
+            // THIS LINE was causing the error because onScanFailure wasn't defined
             html5QrcodeScanner.render(onScanSuccess, onScanFailure);
         }
-    } 
+    }
 
     function onScanSuccess(decodedText, decodedResult) {
         // 1. Put the scanned code into the input
         document.getElementById('sku-input').value = decodedText;
         
-        // 2. Play a beep (optional) or alert
-        // alert("Scanned: " + decodedText);
-
-        // 3. Close the modal
+        // 2. Close the modal
         stopScanner();
         const modalEl = document.getElementById('scanModal');
         const modalInstance = bootstrap.Modal.getInstance(modalEl);
         modalInstance.hide();
+        
+        // Optional: Alert or beep
+        // alert("Scanned: " + decodedText);
+    }
+
+    // --- THIS WAS MISSING ---
+    function onScanFailure(error) {
+        // This function is called constantly when a QR code is NOT found.
+        // We leave it empty to avoid spamming the console.
+        // console.warn(`Code scan error = ${error}`);
     }
 
     function stopScanner() {
