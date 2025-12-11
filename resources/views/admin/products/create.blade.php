@@ -52,14 +52,14 @@
 </div>
 
 <div class="modal fade" id="scanModal" tabindex="-1">
-    <div class="modal-dialog modal-lg"> <div class="modal-content">
+    <div class="modal-dialog"> <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Scan Barcode</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" onclick="stopScanner()"></button>
             </div>
             <div class="modal-body text-center">
-                <div id="reader" style="width: 100%; min-height: 300px; background-color: #f0f0f0;"></div>
-                <p class="text-muted mt-2 small">Select your DroidCam source from the dropdown if prompted.</p>
+                <div id="reader" style="width: 100%; background-color: #f0f0f0;"></div>
+               
             </div>
         </div>
     </div>
@@ -68,15 +68,21 @@
     let html5QrcodeScanner;
 
     function openScanner() {
-        // Show Modal
         const modal = new bootstrap.Modal(document.getElementById('scanModal'));
         modal.show();
 
-        // CONFIGURATION
+        // HIGH PERFORMANCE CONFIGURATION
         const config = { 
-            fps: 5, 
-            qrbox: { width: 300, height: 150 }, // Rectangular box for barcodes
-            aspectRatio: 1.0,
+            fps: 20, // Increased from 10 to 20 for faster scanning
+            qrbox: { width: 300, height: 150 }, // Wide box for 1D barcodes
+            aspectRatio: 1.0, 
+            
+            // Enable UI Controls for better accuracy
+            showTorchButtonIfSupported: true, // Turn on flash for blue/low-contrast codes
+            showZoomSliderIfSupported: true,  // vital for long distance scanning
+            defaultZoomValueIfSupported: 1.5, // slight zoom to help focus
+
+            // STRICTLY define formats to look for product barcodes
             formatsToSupport: [ 
                 Html5QrcodeSupportedFormats.UPC_A, 
                 Html5QrcodeSupportedFormats.UPC_E,
@@ -85,15 +91,15 @@
                 Html5QrcodeSupportedFormats.CODE_128,
                 Html5QrcodeSupportedFormats.CODE_39
             ],
+            
+            // Use Browser Native API (Faster & more robust for colored barcodes)
             experimentalFeatures: {
                 useBarCodeDetectorIfSupported: true
             }
         };
 
-        // Start Scanner
         if (!html5QrcodeScanner) {
-            html5QrcodeScanner = new Html5QrcodeScanner("reader", config, false);
-            // THIS LINE was causing the error because onScanFailure wasn't defined
+            html5QrcodeScanner = new Html5QrcodeScanner("reader", config, /* verbose= */ false);
             html5QrcodeScanner.render(onScanSuccess, onScanFailure);
         }
     }
