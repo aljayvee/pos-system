@@ -60,6 +60,19 @@
                             <label class="form-check-label fw-bold" for="tithesSwitch">Enable Tithes Calculation</label>
                         </div>
 
+                        <hr class="my-4">
+
+                        <h5 class="text-secondary"><i class="fas fa-boxes me-1"></i> Product Features</h5>
+                        
+                        {{-- Barcode Toggle (Default Off) --}}
+                        <div class="form-check form-switch mb-3">
+                            <input type="hidden" name="enable_barcode" value="0">
+                            <input class="form-check-input" type="checkbox" id="barcodeSwitch" name="enable_barcode" value="1" 
+                                {{ ($settings['enable_barcode'] ?? '0') == '1' ? 'checked' : '' }}>
+                            <label class="form-check-label fw-bold" for="barcodeSwitch">Enable Barcode Label Printing</label>
+                            <div class="form-text">Allows generating printable barcode stickers for products.</div>
+                        </div>
+
                         <div class="text-end">
                             <button type="submit" class="btn btn-primary px-4">
                                 <i class="fas fa-save"></i> Save Changes

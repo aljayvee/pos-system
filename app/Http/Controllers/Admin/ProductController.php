@@ -141,6 +141,24 @@ class ProductController extends Controller
         return redirect()->route('products.index')->with('success', 'Product updated successfully.');
     }
 
+    // NEW: Generate Barcode Label (With Toggle Check)
+    public function printBarcode(\App\Models\Product $product)
+    {
+        // 1. Check if feature is enabled
+        $isEnabled = \App\Models\Setting::where('key', 'enable_barcode')->value('value') ?? '0';
+        
+        if ($isEnabled !== '1') {
+            return back()->with('error', 'Barcode printing is currently disabled in Settings.');
+        }
+
+        // 2. Check SKU
+        if (!$product->sku) {
+            return back()->with('error', 'Product does not have an SKU/Barcode to print.');
+        }
+        
+        return view('admin.products.barcode', compact('product'));
+    }
+
     // 6. Delete Product
     public function destroy(Product $product)
     {

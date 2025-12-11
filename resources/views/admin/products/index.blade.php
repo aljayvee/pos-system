@@ -1,5 +1,8 @@
 @extends('admin.layout')
-
+@php
+    // Fetch Setting
+    $barcodeEnabled = \App\Models\Setting::where('key', 'enable_barcode')->value('value') ?? '0';
+@endphp
 @section('content')
 
 <div class="container-fluid px-4">
@@ -108,6 +111,21 @@
                             @else
                                 <span class="text-success">{{ $product->stock }}</span>
                             @endif
+                        </td>
+                        <td>
+                            {{-- ... Edit Button ... --}}
+
+                            {{-- BARCODE BUTTON (Condition: Feature ON + Product has SKU) --}}
+                            @if($barcodeEnabled == '1' && $product->sku)
+                                <a href="{{ route('products.barcode', $product->id) }}" 
+                                   target="_blank" 
+                                   class="btn btn-sm btn-outline-dark" 
+                                   title="Print Barcode">
+                                    <i class="fas fa-barcode"></i>
+                                </a>
+                            @endif
+
+                            {{-- ... Delete Button ... --}}
                         </td>
                         <td>
                             <a href="{{ route('products.edit', $product) }}" class="btn btn-sm btn-warning">Edit</a>
