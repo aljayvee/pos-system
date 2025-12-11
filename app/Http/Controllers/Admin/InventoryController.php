@@ -19,11 +19,16 @@ class InventoryController extends Controller
         return view('admin.inventory.index', compact('products'));
     }
 
-    // 2. Show the Adjustment Form
+   // 1. Show Adjustment Form
     public function adjust()
     {
-        $products = Product::orderBy('name')->get();
-        return view('admin.inventory.adjust', compact('products'));
+        $products = \App\Models\Product::orderBy('name')->get();
+        // Fetch recent adjustments for the history table
+        $adjustments = \App\Models\StockAdjustment::with('product', 'user')
+                        ->latest()
+                        ->paginate(10);
+
+        return view('admin.inventory.adjust', compact('products', 'adjustments'));
     }
 
     // 3. Process the Adjustment
@@ -64,6 +69,49 @@ class InventoryController extends Controller
         return redirect()->route('inventory.index')->with('success', 'Stock adjustment recorded successfully.');
     }
     
+
+    // 2. Process Stock Adjustment
+    public function storeAdjustment(Request $request)
+    {
+        $request->validate([
+            'product_id' => 'required|exists:products,id',
+            'type'       => 'required|in:add,subtract',
+            'quantity'   => 'required|integer|min:1',
+            'reason'     => 'required|string',
+            'remarks'    => 'nullable|string'
+        ]);
+
+        $product = \App\Models\Product::findOrFail($request->product_id);
+        
+        // Calculate adjustment value (Positive or Negative)
+        $qty = intval($request->quantity);
+        if ($request->type === 'subtract') {
+            $qty = -$qty; // Make it negative
+            
+            // Prevent going below zero? (Optional, but safe)
+            if ($product->stock + $qty < 0) {
+                return back()->withErrors(['quantity' => 'Cannot remove more stock than currently available.']);
+            }
+        }
+
+        \Illuminate\Support\Facades\DB::transaction(function () use ($request, $product, $qty) {
+            // A. Create Log Record
+            \App\Models\StockAdjustment::create([
+                'user_id'    => \Illuminate\Support\Facades\Auth::id(),
+                'product_id' => $product->id,
+                'quantity'   => $qty,
+                'reason'     => $request->reason,
+                'remarks'    => $request->remarks
+            ]);
+
+            // B. Update Actual Product Stock
+            $product->stock += $qty;
+            $product->save();
+        });
+
+        return back()->with('success', 'Stock adjusted successfully.');
+    }
+
     // 4. Show Adjustment History (Optional but recommended)
     public function history()
     {

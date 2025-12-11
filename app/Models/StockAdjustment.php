@@ -10,16 +10,16 @@ class StockAdjustment extends Model
     use HasFactory;
 
     protected $fillable = [
-        'product_id',
         'user_id',
-        'quantity',
-        'type',
+        'product_id',
+        'quantity', // Positive for adding, Negative for deducting
+        'type',   // e.g., 'Spoilage', 'Theft', 'Internal Use'
         'remarks'
     ];
 
     public function product()
     {
-        return $this->belongsTo(Product::class);
+        return $this->belongsTo(Product::class)->withTrashed();
     }
 
     public function user()

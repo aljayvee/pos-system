@@ -67,6 +67,10 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->group(function () {
     // NEW SIDEBAR ROUTE
     Route::get('/credits/payment-logs', [CreditController::class, 'paymentLogs'])->name('credits.logs');
 
+    // Stock Adjustments (Wastage)
+    Route::get('/inventory/adjust', [\App\Http\Controllers\Admin\InventoryController::class, 'adjust'])->name('inventory.adjust');
+    Route::post('/inventory/adjust', [\App\Http\Controllers\Admin\InventoryController::class, 'storeAdjustment'])->name('inventory.storeAdjustment');
+
     // Supplier Management
     Route::resource('suppliers', \App\Http\Controllers\Admin\SupplierController::class)->except(['create', 'show', 'edit']);
 
