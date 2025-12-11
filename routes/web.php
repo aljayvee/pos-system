@@ -50,6 +50,9 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->group(function () {
     Route::get('/inventory/adjust', [App\Http\Controllers\Admin\InventoryController::class, 'adjust'])->name('inventory.adjust');
     Route::post('/inventory/adjust', [App\Http\Controllers\Admin\InventoryController::class, 'process'])->name('inventory.process');
     Route::get('/inventory/history', [App\Http\Controllers\Admin\InventoryController::class, 'history'])->name('inventory.history');
+
+    Route::post('/products/import', [\App\Http\Controllers\Admin\ProductController::class, 'import'])->name('products.import');
+    Route::resource('products', ProductController::class);
 });
 
 // CASHIER Routes (Protected)

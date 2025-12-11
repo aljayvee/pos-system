@@ -1,6 +1,20 @@
 @extends('admin.layout')
 
 @section('content')
+
+<div class="container-fluid px-4">
+    <div class="d-flex justify-content-between align-items-center mt-4 mb-4">
+        <h1>Products</h1>
+        <div>
+            <button class="btn btn-success me-2" data-bs-toggle="modal" data-bs-target="#importModal">
+                <i class="fas fa-file-csv"></i> Import CSV
+            </button>
+            <a href="{{ route('products.create') }}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Add Product
+            </a>
+        </div>
+    </div>
+
 <div class="container py-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2>Product Inventory</h2>
@@ -65,4 +79,33 @@
         </div>
     </div>
 </div>
+
+{{-- INSERT THIS MODAL AT THE BOTTOM OF THE FILE --}}
+    <div class="modal fade" id="importModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Import Products via CSV</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form action="{{ route('products.import') }}" method="POST" enctype="multipart/form-data">
+                    @csrf
+                    <div class="modal-body">
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Select CSV File</label>
+                            <input type="file" name="csv_file" class="form-control" required accept=".csv">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-success">Upload & Import</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+</div>
+
 @endsection

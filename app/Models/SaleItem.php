@@ -6,6 +6,9 @@ use Illuminate\Database\Eloquent\Model;
 
 class SaleItem extends Model
 {
+
+    
+
     // Allow these fields
     protected $fillable = [
         'sale_id', 
@@ -13,6 +16,11 @@ class SaleItem extends Model
         'quantity', 
         'price'
     ];
+
+    public function sale()
+    {
+        return $this->belongsTo(Sale::class);
+    }
 
     public function product()
     {

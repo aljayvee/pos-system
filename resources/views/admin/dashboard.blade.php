@@ -1,11 +1,13 @@
 @extends('admin.layout')
-
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 @section('content')
 <div class="container-fluid px-4">
     <h1 class="mt-4">Store Overview</h1>
     <ol class="breadcrumb mb-4">
         <li class="breadcrumb-item active">Dashboard</li>
     </ol>
+
+
 
     <div class="row">
         <div class="col-xl-3 col-md-6">
@@ -102,5 +104,62 @@
             </div>
         </div>
     </div>
+
+        </div> <div class="row mb-4">
+        <div class="col-xl-12">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-white">
+                    <i class="fas fa-chart-area me-1 text-primary"></i>
+                    Sales Trend (Last 30 Days)
+                </div>
+                <div class="card-body">
+                    <canvas id="salesChart" width="100%" height="30"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
 </div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const ctx = document.getElementById('salesChart');
+        if (ctx) {
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: @json($chartLabels), // Data from Controller
+                    datasets: [{
+                        label: 'Daily Sales (₱)',
+                        data: @json($chartValues), // Data from Controller
+                        borderColor: '#0d6efd', // Bootstrap Primary Blue
+                        backgroundColor: 'rgba(13, 110, 253, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.3 // Makes lines slightly curved
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return '₱' + value; // Add Peso sign
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+        }
+    });
+</script>
+
 @endsection

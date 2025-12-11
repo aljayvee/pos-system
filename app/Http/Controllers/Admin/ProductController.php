@@ -9,6 +9,58 @@ use Illuminate\Http\Request;
 
 class ProductController extends Controller
 {
+
+    public function import(Request $request)
+    {
+        $request->validate([
+            'csv_file' => 'required|file|mimes:csv,txt'
+        ]);
+
+        $file = $request->file('csv_file');
+        $handle = fopen($file->getPathname(), 'r');
+        
+        // Skip the header row
+        fgetcsv($handle);
+
+        DB::beginTransaction();
+        try {
+            $count = 0;
+            while (($row = fgetcsv($handle)) !== false) {
+                // Expected CSV Format: Name, Category, Price, Stock, SKU
+                // Adjust indices based on your CSV structure
+                $name = $row[0] ?? null;
+                $categoryName = $row[1] ?? 'General';
+                $price = $row[2] ?? 0;
+                $stock = $row[3] ?? 0;
+                $sku = $row[4] ?? null;
+
+                if (!$name) continue; // Skip empty rows
+
+                // Find or Create Category
+                $category = Category::firstOrCreate(['name' => trim($categoryName)]);
+
+                // Create Product
+                Product::create([
+                    'name' => $name,
+                    'category_id' => $category->id,
+                    'price' => floatval($price),
+                    'stock' => intval($stock),
+                    'sku' => $sku,
+                ]);
+                $count++;
+            }
+            
+            DB::commit();
+            fclose($handle);
+            
+            return back()->with('success', "$count products imported successfully!");
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->with('error', 'Import failed: ' . $e->getMessage());
+        }
+    }
+
     // 1. Show List
     public function index()
     {
