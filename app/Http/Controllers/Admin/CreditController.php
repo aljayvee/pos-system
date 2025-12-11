@@ -138,4 +138,52 @@ class CreditController extends Controller
 
         return response()->stream($callback, 200, $headers);
     }
+
+    // NEW: Process Debt Payment
+    public function storePayment(Request $request, CustomerCredit $credit)
+    {
+        $request->validate([
+            'amount' => 'required|numeric|min:1',
+            'notes' => 'nullable|string|max:255'
+        ]);
+
+        if ($credit->is_paid) {
+            return back()->with('error', 'This credit is already fully paid.');
+        }
+
+        if ($request->amount > $credit->remaining_balance) {
+            return back()->with('error', 'Payment amount cannot exceed the remaining balance of ₱' . number_format($credit->remaining_balance, 2));
+        }
+
+        DB::transaction(function () use ($request, $credit) {
+            // 1. Record Payment Log
+            CreditPayment::create([
+                'customer_credit_id' => $credit->id,
+                'user_id' => Auth::id(),
+                'amount' => $request->amount,
+                'payment_date' => now(),
+                'notes' => $request->notes
+            ]);
+
+            // 2. Update Credit Record
+            $credit->amount_paid += $request->amount;
+            $credit->remaining_balance -= $request->amount;
+
+            if ($credit->remaining_balance <= 0) {
+                $credit->remaining_balance = 0;
+                $credit->is_paid = true;
+            }
+            
+            $credit->save();
+
+            // 3. Log Activity
+            ActivityLog::create([
+                'user_id' => Auth::id(),
+                'action' => 'Collected Payment',
+                'description' => "Collected ₱{$request->amount} from {$credit->customer->name} for Transaction #{$credit->sale_id}"
+            ]);
+        });
+
+        return back()->with('success', 'Payment recorded successfully.');
+    }
 }

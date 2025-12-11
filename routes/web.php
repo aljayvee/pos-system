@@ -90,6 +90,8 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->group(function () {
     // Audit Logs
     Route::get('/logs', [\App\Http\Controllers\Admin\ActivityLogController::class, 'index'])->name('logs.index');
 
+    Route::post('/credits/{credit}/pay', [\App\Http\Controllers\Admin\CreditController::class, 'storePayment'])->name('credits.pay');
+
     Route::get('/transactions/{sale}/print', [\App\Http\Controllers\Admin\TransactionController::class, 'printReceipt'])->name('transactions.print');
 
 });

@@ -21,6 +21,11 @@ class CustomerCredit extends Model
         'due_date'
     ];
 
+    public function payments()
+    {
+        return $this->hasMany(CreditPayment::class);
+    }
+
     public function customer() {
         return $this->belongsTo(Customer::class);
     }

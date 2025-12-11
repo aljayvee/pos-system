@@ -96,47 +96,60 @@
                             <a href="{{ route('credits.history', $credit->credit_id) }}" class="btn btn-secondary btn-sm ms-1">
                                 <i class="fas fa-history"></i> History
                             </a>
+<td>
+                            {{-- PART A: Pay Button (Only if Unpaid) --}}
+                            @if(!$credit->is_paid)
+                                <button class="btn btn-sm btn-success" 
+                                        data-bs-toggle="modal" 
+                                        data-bs-target="#payCreditModal-{{ $credit->id }}">
+                                    <i class="fas fa-hand-holding-usd"></i> Pay
+                                </button>
+                            @else
+                                <span class="badge bg-success"><i class="fas fa-check"></i> Paid</span>
+                            @endif
 
-                            {{-- USE credit_id HERE FOR ID --}}
-                            <div class="modal fade" id="repayModal-{{ $credit->credit_id }}" tabindex="-1" aria-hidden="true">
+                            {{-- PART B: Payment Modal --}}
+                            <div class="modal fade" id="payCreditModal-{{ $credit->id }}" tabindex="-1">
                                 <div class="modal-dialog">
-                                    {{-- USE credit_id HERE FOR ROUTE --}}
-                                    <form action="{{ route('credits.repay', $credit->credit_id) }}" method="POST">
+                                    <form action="{{ route('credits.pay', $credit->id) }}" method="POST">
                                         @csrf
                                         <div class="modal-content">
-                                            <div class="modal-header">
-                                                <h5 class="modal-title">Repay Credit - {{ $credit->customer->name }}</h5>
-                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                            <div class="modal-header bg-success text-white">
+                                                <h5 class="modal-title">Record Payment</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                             </div>
-                                            
-                                            <div class="modal-body">
+                                            <div class="modal-body text-start">
+                                                <div class="alert alert-light border">
+                                                    <strong>Customer:</strong> {{ $credit->customer->name }}<br>
+                                                    <strong>Total Debt:</strong> ₱{{ number_format($credit->total_amount, 2) }}<br>
+                                                    <strong>Balance Due:</strong> <span class="text-danger fw-bold">₱{{ number_format($credit->remaining_balance, 2) }}</span>
+                                                </div>
+
                                                 <div class="mb-3">
                                                     <label class="form-label">Payment Amount</label>
-                                                    <input type="number" class="form-control" name="payment_amount" 
-                                                           step="0.01" 
-                                                           max="{{ $credit->remaining_balance }}" 
-                                                           value="{{ $credit->remaining_balance }}" required>
+                                                    <div class="input-group">
+                                                        <span class="input-group-text">₱</span>
+                                                        <input type="number" name="amount" class="form-control" 
+                                                               max="{{ $credit->remaining_balance }}" step="0.01" required 
+                                                               placeholder="Enter amount">
+                                                    </div>
+                                                    <div class="form-text">Partial payments are allowed.</div>
+                                                </div>
+
+                                                <div class="mb-3">
+                                                    <label class="form-label">Notes (Optional)</label>
+                                                    <textarea name="notes" class="form-control" rows="2" placeholder="e.g. Paid via Gcash"></textarea>
                                                 </div>
                                             </div>
-                                            
                                             <div class="modal-footer">
-                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                                                <button type="submit" class="btn btn-primary">Confirm Payment</button>
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                                <button type="submit" class="btn btn-success">Confirm Payment</button>
                                             </div>
                                         </div>
                                     </form>
                                 </div>
                             </div>
-                        </td>
-                    </tr>
-                    @empty
-                    <tr>
-                        <td colspan="7" class="text-center py-4 text-muted">No outstanding debts found. Good job!</td>
-                    </tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
+                    </td>
     </div>
 </div>
 @endsection
