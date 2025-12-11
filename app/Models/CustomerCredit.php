@@ -17,7 +17,8 @@ class CustomerCredit extends Model
         'amount_paid', 
         'remaining_balance', 
         'due_date', 
-        'is_paid'
+        'is_paid',
+        'due_date'
     ];
 
     public function customer() {

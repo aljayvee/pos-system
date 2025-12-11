@@ -65,6 +65,8 @@ class POSController extends Controller
                 }
             }
 
+            
+
             // ... (Keep existing Customer Logic: New/Update) ...
             if ($request->payment_method === 'credit') {
                 $details = $request->input('credit_details');
@@ -99,14 +101,22 @@ class POSController extends Controller
                 'reference_number' => $request->payment_method === 'digital' ? $request->reference_number : null, 
             ]);
 
-            // ... (Keep existing Credit Ledger Logic) ...
+            // 3. Create Credit Ledger
             if ($request->payment_method === 'credit') {
+                
+                // FIX: safely get the date. If it's empty, make it NULL.
+                $dueDate = $request->input('credit_details.due_date');
+                if (empty($dueDate)) {
+                    $dueDate = null; 
+                }
+
                 CustomerCredit::create([
                     'customer_id' => $customerId,
                     'sale_id' => $sale->id,
                     'total_amount' => $request->total_amount,
                     'remaining_balance' => $request->total_amount,
-                    'due_date' => $request->input('credit_details.due_date'),
+                    // 'amount_paid' and 'is_paid' have defaults, so we can omit them safely now
+                    'due_date' => $dueDate, 
                 ]);
             }
 
