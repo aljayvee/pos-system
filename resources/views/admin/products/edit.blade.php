@@ -18,6 +18,14 @@
                                 <label class="form-label">Product Name</label>
                                 <input type="text" name="name" class="form-control" value="{{ $product->name }}" required>
                             </div>
+                            <div class="col-md-4 mb-3">
+                        <label class="form-label">Unit</label>
+                        <select name="unit" class="form-select" required>
+                            @foreach(['pc','pack','kg','g','l','ml','box','bottle','can'] as $u)
+                                <option value="{{ $u }}" {{ $product->unit == $u ? 'selected' : '' }}>{{ ucfirst($u) }}</option>
+                            @endforeach
+                        </select>
+                    </div>
                            <div class="mb-3">
                             <label class="form-label">Barcode / SKU (Optional)</label>
                             <div class="input-group">

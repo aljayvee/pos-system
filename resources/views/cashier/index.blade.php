@@ -31,6 +31,10 @@
                             <div class="card h-100 shadow-sm border-0 product-item" onclick='addToCart(@json($product))' style="cursor: pointer; transition: all 0.2s;">
                                 <div class="card-body text-center d-flex flex-column justify-content-center">
                                     <h6 class="fw-bold text-dark mb-1">{{ $product->name }}</h6>
+                                    
+                                    {{-- NEW: UNIT DISPLAY --}}
+                                    <span class="badge bg-light text-dark border mb-2">{{ ucfirst($product->unit) }}</span>
+                                    
                                     <small class="text-muted mb-2">{{ $product->category->name ?? 'General' }}</small>
                                     <h5 class="text-primary fw-bold mb-0">₱{{ number_format($product->price, 2) }}</h5>
                                     @if($product->stock <= 5)
@@ -61,6 +65,18 @@
                 </div>
 
                 <div class="card-footer bg-light p-3 border-top">
+                    
+                    <div id="redemption-section" class="mb-3 p-2 border rounded bg-light" style="display: none;">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="small fw-bold text-warning"><i class="fas fa-star"></i> Use Points?</span>
+                            <small class="text-muted">Available: <span id="avail-points">0</span></small>
+                        </div>
+                        <div class="input-group input-group-sm">
+                            <input type="number" id="points-to-use" class="form-control" placeholder="0" min="0" oninput="calculateTotalWithPoints()">
+                            <span class="input-group-text text-success">-₱<span id="discount-display">0.00</span></span>
+                        </div>
+                    </div>
+
                     <div class="d-flex justify-content-between mb-3">
                         <h4 class="fw-bold">Total</h4>
                         <h4 class="fw-bold text-primary">₱<span id="total-amount">0.00</span></h4>
@@ -71,12 +87,12 @@
                         <select id="customer-id" class="form-select form-select-lg">
                             <option value="walk-in" data-points="0">Walk-in Customer</option>
                             <option value="new" data-points="0">+ New Customer (Credit)</option>
-                           @foreach($customers as $customer) 
+                            @foreach($customers as $customer)
                                 <option value="{{ $customer->id }}" 
                                         data-name="{{ $customer->name }}"
                                         data-contact="{{ $customer->contact }}"
                                         data-address="{{ $customer->address }}"
-                                        data-points="{{ $customer->points }}"> {{-- NEW ATTRIBUTE --}}
+                                        data-points="{{ $customer->points }}">
                                     {{ $customer->name }}
                                 </option>
                             @endforeach
@@ -168,13 +184,12 @@
 
 <script>
     // --- CONFIGURATION ---
-    // Safely fetch settings (defaults to 1 if not set)
     const pointsValue = {{ \App\Models\Setting::where('key', 'points_conversion')->value('value') ?? 1 }};
     const loyaltyEnabled = {{ \App\Models\Setting::where('key', 'enable_loyalty')->value('value') ?? 0 }};
     
     let cart = [];
     let html5QrcodeScanner = null;
-    let currentCustomerPoints = 0; // Store points globally to avoid re-fetching
+    let currentCustomerPoints = 0; 
 
     // --- INITIALIZATION ---
     window.onload = () => {
@@ -187,17 +202,13 @@
         const type = this.value;
         const selectedOption = this.options[this.selectedIndex];
         
-        // 1. Get Points safely
         currentCustomerPoints = parseInt(selectedOption.getAttribute('data-points') || 0);
         
-        // 2. UI Elements
         const badge = document.getElementById('loyalty-badge');
         const redemptionBox = document.getElementById('redemption-section');
         const pointsSpan = document.getElementById('customer-points');
         const availPointsSpan = document.getElementById('avail-points');
 
-        // 3. Toggle Loyalty UI
-        // Only show if Loyalty is Enabled globally AND user is a valid registered customer
         if (loyaltyEnabled == 1 && type !== 'walk-in' && type !== 'new') {
             if(pointsSpan) pointsSpan.innerText = currentCustomerPoints;
             if(availPointsSpan) availPointsSpan.innerText = currentCustomerPoints;
@@ -209,12 +220,10 @@
             if(redemptionBox) redemptionBox.style.display = 'none';
         }
         
-        // 4. Reset Redemption Inputs
         const pointsInput = document.getElementById('points-to-use');
         if(pointsInput) pointsInput.value = '';
-        calculateTotalWithPoints(); // Recalculate totals
+        calculateTotalWithPoints(); 
 
-        // 5. Toggle Payment Flow based on Customer Type
         const paySelect = document.getElementById('payment-method');
         const creditOpt = document.getElementById('opt-credit');
         
@@ -233,44 +242,34 @@
         let subtotal = 0;
         cart.forEach(item => subtotal += item.price * item.qty);
         
-        // Get input (if exists)
         const pointsInputEl = document.getElementById('points-to-use');
         let pointsInput = 0;
         
         if (pointsInputEl) {
             pointsInput = parseInt(pointsInputEl.value) || 0;
 
-            // Validation 1: Cap at available points
             if (pointsInput > currentCustomerPoints) {
                 pointsInput = currentCustomerPoints;
                 pointsInputEl.value = pointsInput;
             }
 
-            // Calculate potential discount
             let discount = pointsInput * pointsValue;
             
-            // Validation 2: Cap at subtotal (cannot have negative total)
             if (discount > subtotal) {
                 discount = subtotal;
-                // Reverse calculate points needed for this max discount
                 pointsInput = Math.ceil(discount / pointsValue);
                 pointsInputEl.value = pointsInput;
             }
 
-            // Update Discount UI
             const discDisplay = document.getElementById('discount-display');
             if(discDisplay) discDisplay.innerText = discount.toFixed(2);
         }
 
-        // Final Calculation
         let discountAmount = pointsInput * pointsValue;
         let finalTotal = subtotal - discountAmount;
         if(finalTotal < 0) finalTotal = 0;
 
-        // Update Total UI
         document.getElementById('total-amount').innerText = finalTotal.toFixed(2);
-        
-        // Recalculate Change if in cash mode
         calculateChange();
     }
 
@@ -283,7 +282,6 @@
                 if (exactMatch) {
                     addToCart(exactMatch);
                     this.value = ''; 
-                    // toastr.success("Item Added"); // Uncomment if you have toastr
                 }
             }
         }
@@ -328,7 +326,6 @@
     }
 
     function onScanFailure(error) {
-        // console.warn(error);
     }
 
     function stopCamera() {
@@ -409,7 +406,6 @@
                 </li>`;
         });
         
-        // Use the new calculation logic instead of just summing items
         calculateTotalWithPoints();
     }
 
@@ -424,7 +420,7 @@
 
     function calculateChange() {
         const totalText = document.getElementById('total-amount').innerText;
-        const total = parseFloat(totalText.replace(/,/g, '')) || 0; // Remove commas if any
+        const total = parseFloat(totalText.replace(/,/g, '')) || 0; 
         const paid = parseFloat(document.getElementById('amount-paid').value) || 0;
         const change = paid - total;
         document.getElementById('change-display').innerText = change >= 0 ? '₱' + change.toFixed(2) : 'Invalid';
@@ -461,14 +457,12 @@
              };
         }
 
-        // Get points
         let pointsUsed = 0;
         const pointsInputEl = document.getElementById('points-to-use');
         if(pointsInputEl) pointsUsed = parseInt(pointsInputEl.value) || 0;
 
         const data = {
             cart: cart,
-            // Send the NET total (after discount)
             total_amount: document.getElementById('total-amount').innerText.replace(/,/g, ''),
             points_used: pointsUsed,
             amount_paid: method === 'cash' ? document.getElementById('amount-paid').value : 0,

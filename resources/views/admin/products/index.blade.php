@@ -45,7 +45,10 @@
                     @forelse($products as $product)
                     <tr>
                         <td>{{ $product->sku ?? '-' }}</td>
-                        <td>{{ $product->name }}</td>
+                        <td>
+                            <div class="fw-bold">{{ $product->name }}</div>
+                            <small class="text-muted">{{ ucfirst($product->unit) }}</small>
+                        </td>
                         <td>
                             <span class="badge bg-secondary">{{ $product->category->name ?? 'None' }}</span>
                         </td>

@@ -26,9 +26,18 @@
 </head>
 <body onload="window.print()">
 
+    {{-- Fetch settings manually since not passed from controller --}}
+    @php
+        $storeName = \App\Models\Setting::where('key', 'store_name')->value('value') ?? 'Sari-Sari Store';
+        $storeAddr = \App\Models\Setting::where('key', 'store_address')->value('value');
+        $storeContact = \App\Models\Setting::where('key', 'store_contact')->value('value');
+    @endphp
+
     <div class="text-center">
-        <h3 style="margin: 0;">SARI-SARI STORE</h3>
-        <p style="margin: 2px 0;">Official Receipt</p>
+        <h3 style="margin: 0;">{{ $storeName }}</h3>
+        @if($storeAddr)<p style="margin: 2px 0;">{{ $storeAddr }}</p>@endif
+        @if($storeContact)<p style="margin: 2px 0;">{{ $storeContact }}</p>@endif
+        <p>Official Receipt</p>
         <p>{{ $sale->created_at->format('M d, Y h:i A') }}</p>
     </div>
 
@@ -54,7 +63,11 @@
             @foreach($sale->saleItems as $item)
             <tr>
                 <td>{{ $item->quantity }}</td>
-                <td>{{ $item->product->name }}</td>
+                <td>
+                    {{ $item->product->name }} 
+                    {{-- NEW: UNIT DISPLAY --}}
+                    <small>({{ $item->product->unit }})</small>
+                </td>
                 <td class="text-right">{{ number_format($item->price * $item->quantity, 2) }}</td>
             </tr>
             @endforeach
@@ -68,6 +81,12 @@
             <strong>TOTAL: ₱{{ number_format($sale->total_amount, 2) }}</strong>
         </p>
         
+        @if($sale->points_discount > 0)
+            <p style="margin: 2px 0;" class="text-success">
+                Points Discount: -₱{{ number_format($sale->points_discount, 2) }}
+            </p>
+        @endif
+
         @if($sale->payment_method == 'cash')
             <p style="margin: 2px 0;">Cash: ₱{{ number_format($sale->amount_paid, 2) }}</p>
             <p style="margin: 2px 0;">Change: ₱{{ number_format($sale->amount_paid - $sale->total_amount, 2) }}</p>

@@ -13,6 +13,20 @@
                     <label class="form-label">Product Name</label>
                     <input type="text" name="name" class="form-control" required>
                 </div>
+                <div class="col-md-4 mb-3">
+                        <label class="form-label">Unit</label>
+                        <select name="unit" class="form-select" required>
+                            <option value="pc">Piece (pc)</option>
+                            <option value="pack">Pack</option>
+                            <option value="kg">Kilogram (kg)</option>
+                            <option value="g">Gram (g)</option>
+                            <option value="l">Liter (L)</option>
+                            <option value="ml">Milliliter (ml)</option>
+                            <option value="box">Box</option>
+                            <option value="bottle">Bottle</option>
+                            <option value="can">Can</option>
+                        </select>
+                    </div>
                 
                 <div class="mb-3">
                     <label class="form-label">Category</label>
