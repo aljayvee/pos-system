@@ -20,6 +20,9 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->group(function () {
     // Management Routes
     Route::resource('categories', CategoryController::class);
     Route::resource('products', ProductController::class);
+
+    //Customer Contoller
+    Route::resource('customers', \App\Http\Controllers\Admin\CustomerController::class);
 });
 
 // CASHIER Routes (Protected)

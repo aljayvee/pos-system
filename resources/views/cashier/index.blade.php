@@ -43,13 +43,21 @@
                     <h4>Total:</h4>
                     <h4 class="text-success">$<span id="total-amount">0.00</span></h4>
                 </div>
-                
+                <div class="mb-3">
+                    <label>Customer (Optional / Required for Credit)</label>
+                    <select class="form-select" id="customer-id">
+                        <option value="">Walk-in Customer</option>
+                        @foreach($customers as $customer)
+                            <option value="{{ $customer->id }}">{{ $customer->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
                 <div class="mb-3">
                     <label>Payment Method</label>
                     <select class="form-select" id="payment-method">
                         <option value="cash">Cash</option>
                         <option value="digital">Digital Wallet</option>
-                    </select>
+                        <option value="credit">Credit (Utang)</option> </select>
                 </div>
 
                 <div class="d-grid">
@@ -169,7 +177,8 @@
             cart: cart,
             total_amount: totalAmount,
             amount_paid: totalAmount, // For now assuming exact payment
-            payment_method: paymentMethod
+            payment_method: paymentMethod,
+            customer_id: customerId // Add this line
         };
 
         // Fetch API request
