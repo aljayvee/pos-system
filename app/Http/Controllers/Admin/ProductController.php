@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Product;
 use App\Models\Category;
 use Illuminate\Http\Request;
+use App\Models\ActivityLog;
 
 class ProductController extends Controller
 {
@@ -185,6 +186,13 @@ class ProductController extends Controller
     // 6. Delete Product
     public function destroy(Product $product)
     {
+        // Log BEFORE deleting
+        ActivityLog::create([
+            'user_id' => auth()->id(),
+            'action' => 'Archived Product',
+            'description' => "Archived product: {$product->name}"
+        ]);
+
         $product->delete();
         return back()->with('success', 'Product deleted successfully.');
     }

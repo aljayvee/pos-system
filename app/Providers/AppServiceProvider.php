@@ -4,6 +4,10 @@ namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Pagination\Paginator;
+use Illuminate\Support\Facades\View; // <--- THIS WAS MISSING
+use App\Models\Product;
+use App\Models\CustomerCredit;
+use Carbon\Carbon;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -21,5 +25,25 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Paginator::useBootstrapFive();
+
+        // NEW: Share Notification Data with Admin Layout
+        View::composer('admin.layout', function ($view) {
+            // 1. Low Stock Count
+            $lowStockCount = Product::whereColumn('stock', '<=', 'reorder_point')
+                                    ->where('stock', '>', 0)
+                                    ->count();
+            
+            // 2. Out of Stock Count
+            $outOfStockCount = Product::where('stock', 0)->count();
+
+            // 3. Overdue Credit Count
+            $overdueCount = CustomerCredit::where('is_paid', false)
+                                          ->whereDate('due_date', '<', Carbon::now())
+                                          ->count();
+
+            $totalAlerts = $lowStockCount + $outOfStockCount + $overdueCount;
+
+            $view->with(compact('lowStockCount', 'outOfStockCount', 'overdueCount', 'totalAlerts'));
+        });
     }
 }

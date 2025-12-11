@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
+use App\Models\ActivityLog;
 use Illuminate\Support\Facades\Hash;
 
 class UserController extends Controller
@@ -43,6 +44,17 @@ class UserController extends Controller
 
     public function destroy(User $user)
     {
+        if(auth()->id() == $user->id) {
+            return back()->with('error', 'You cannot delete your own account.');
+        }
+
+        // LOG ACTION (Log before delete so we get the name)
+        ActivityLog::create([
+            'user_id' => auth()->id(),
+            'action' => 'Deleted User',
+            'description' => "Permanently deleted user: {$user->name} ({$user->email})"
+        ]);
+
         $user->delete();
         return back()->with('success', 'User deleted successfully.');
     }

@@ -31,7 +31,12 @@ class CreditController extends Controller
             $query->latest(); // Default: Newest first
         }
 
-        // 3. Get Total Receivables (Sum of remaining balances in this filtered view)
+        // 3. NEW: Filter by Overdue
+        if ($request->filter == 'overdue') {
+            $query->whereDate('due_date', '<', \Carbon\Carbon::now());
+        }
+
+        // 4. Get Total Receivables (Sum of remaining balances in this filtered view)
         $totalReceivables = $query->sum('remaining_balance');
 
         $credits = $query->paginate(15)->withQueryString();

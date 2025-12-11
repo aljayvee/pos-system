@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\ActivityLog; // <--- Add this at the top
 use Illuminate\Http\Request;
 use App\Models\Product;
 use App\Models\StockAdjustment;
@@ -107,6 +108,16 @@ class InventoryController extends Controller
             // B. Update Actual Product Stock
             $product->stock += $qty;
             $product->save();
+
+            // C. LOG ACTION (Activity Logs Table) -> NEW
+            $actionWord = $qty > 0 ? 'Added' : 'Removed';
+            $absQty = abs($qty);
+
+            ActivityLog::create([
+                'user_id' => auth()->id(),
+                'action' => 'Stock Adjustment',
+                'description' => "{$actionWord} {$absQty} stocks of '{$product->name}'. Reason: {$request->reason}"
+            ]);
         });
 
         return back()->with('success', 'Stock adjusted successfully.');

@@ -87,6 +87,9 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->group(function () {
     Route::get('/settings/backup', [\App\Http\Controllers\Admin\BackupController::class, 'download'])->name('settings.backup');
     Route::post('/settings/restore', [\App\Http\Controllers\Admin\BackupController::class, 'restore'])->name('settings.restore');
 
+    // Audit Logs
+    Route::get('/logs', [\App\Http\Controllers\Admin\ActivityLogController::class, 'index'])->name('logs.index');
+
 });
 
 // CASHIER Routes (Protected)

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
+use App\Models\ActivityLog; // <--- Add this at the top
 
 class BackupController extends Controller
 {
@@ -95,6 +96,16 @@ class BackupController extends Controller
 
             // Re-enable foreign key checks
             DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+
+            // LOG ACTION
+            // Note: Since we just wiped the database, this log entry will be the *first* entry
+            // in the newly restored 'activity_logs' table (or appended if you preserved logs).
+            // Usually, restore wipes everything, so this marks the "Start" of the new timeline.
+            ActivityLog::create([
+                'user_id' => auth()->id() ?? 1, // Fallback to ID 1 if session is weird after restore
+                'action' => 'System Restore',
+                'description' => 'Restored database from backup file: ' . $file->getClientOriginalName()
+            ]);
 
             return back()->with('success', 'Database restored successfully! Please log in again.');
 

@@ -149,6 +149,10 @@
                     <i class="fas fa-cogs"></i> Settings
                 </a>
                 
+                <a href="{{ route('logs.index') }}" class="list-group-item list-group-item-action {{ request()->routeIs('logs.*') ? 'active' : '' }}">
+                    <i class="fas fa-history"></i> Audit Logs
+                </a>
+                
                 <form action="{{ route('logout') }}" method="POST" class="mt-auto">
                     @csrf
                     <button class="list-group-item list-group-item-action text-danger bg-dark">
@@ -171,6 +175,70 @@
 
                     <div class="collapse navbar-collapse" id="navbarSupportedContent">
                         <ul class="navbar-nav ms-auto mt-2 mt-lg-0">
+                            {{-- NOTIFICATION BELL --}}
+                <li class="nav-item dropdown me-3">
+                    <a class="nav-link text-white position-relative" href="#" id="alertsDropdown" role="button" data-bs-toggle="dropdown">
+                        <i class="fas fa-bell fa-lg"></i>
+                        @if($totalAlerts > 0)
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                                {{ $totalAlerts }}
+                            </span>
+                        @endif
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end shadow border-0" aria-labelledby="alertsDropdown" style="width: 300px;">
+                        <li><h6 class="dropdown-header fw-bold">Notifications</h6></li>
+                        
+                        {{-- Out of Stock --}}
+                        @if($outOfStockCount > 0)
+                        <li>
+                            <a class="dropdown-item d-flex align-items-center text-danger" href="{{ route('products.index', ['filter' => 'low']) }}">
+                                <i class="fas fa-times-circle me-2"></i>
+                                <div>
+                                    <strong>{{ $outOfStockCount }} Items Out of Stock</strong>
+                                    <br><small class="text-muted">Restock immediately</small>
+                                </div>
+                            </a>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        @endif
+
+                        {{-- Low Stock --}}
+                        @if($lowStockCount > 0)
+                        <li>
+                            <a class="dropdown-item d-flex align-items-center text-warning" href="{{ route('products.index', ['filter' => 'low']) }}">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                <div>
+                                    <strong>{{ $lowStockCount }} Items Low Stock</strong>
+                                    <br><small class="text-muted">Below reorder point</small>
+                                </div>
+                            </a>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        @endif
+
+                        {{-- Overdue Credits --}}
+                        @if($overdueCount > 0)
+                        <li>
+                            <a class="dropdown-item d-flex align-items-center text-dark" href="{{ route('credits.index', ['filter' => 'overdue']) }}">
+                                <i class="fas fa-clock me-2"></i>
+                                <div>
+                                    <strong>{{ $overdueCount }} Overdue Credits</strong>
+                                    <br><small class="text-muted">Collect payments</small>
+                                </div>
+                            </a>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        @endif
+
+                        {{-- Empty State --}}
+                        @if($totalAlerts == 0)
+                        <li class="text-center py-3 text-muted">
+                            <i class="fas fa-check-circle fa-2x mb-2 text-success"></i><br>
+                            All good! No alerts.
+                        </li>
+                        @endif
+                    </ul>
+                </li>
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle fw-bold" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
                                     {{ Auth::user()->name }} ({{ ucfirst(Auth::user()->role) }})

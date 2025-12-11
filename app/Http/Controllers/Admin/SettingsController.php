@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Setting;
+use App\Models\ActivityLog; // <--- Import this
 
 class SettingsController extends Controller
 {
@@ -26,6 +27,13 @@ class SettingsController extends Controller
                 ['value' => $value]
             );
         }
+
+        // LOG ACTION
+        ActivityLog::create([
+            'user_id' => auth()->id(),
+            'action' => 'Settings Update',
+            'description' => 'Updated system configurations (Store Name, Policy, etc.)'
+        ]);
 
         return back()->with('success', 'Settings updated successfully!');
     }
