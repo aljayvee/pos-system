@@ -138,7 +138,9 @@
         </div>
     </div>
 </div>
+{{-- ... existing HTML content ... --}}
 
+{{-- REPLACE THE ENTIRE <script> SECTION AT THE BOTTOM WITH THIS: --}}
 <script>
     let cart = [];
 
@@ -189,6 +191,30 @@
         calculateChange();
     }
 
+    // --- ISSUE 2 FIX: AUTO-SELECT PAYMENT METHOD ---
+    document.getElementById('customer-id').addEventListener('change', function() {
+        const paymentSelect = document.getElementById('payment-method');
+        const cashOption = paymentSelect.querySelector('option[value="cash"]');
+        const digitalOption = paymentSelect.querySelector('option[value="digital"]');
+        const creditOption = paymentSelect.querySelector('option[value="credit"]');
+
+        if (this.value !== 'walk-in') {
+            // Logic: New/Existing Customer -> Force Credit, Disable others
+            paymentSelect.value = 'credit';
+            cashOption.disabled = true;
+            digitalOption.disabled = true;
+            creditOption.disabled = false;
+        } else {
+            // Logic: Walk-in -> Default to Cash, Enable others
+            paymentSelect.value = 'cash';
+            cashOption.disabled = false;
+            digitalOption.disabled = false;
+            // Optional: Disable credit for walk-ins if you want strict rules
+            // creditOption.disabled = true; 
+        }
+        toggleFlow(); // Update the UI inputs based on the new selection
+    });
+
     // --- FLOW LOGIC ---
     function toggleFlow() {
         const method = document.getElementById('payment-method').value;
@@ -213,7 +239,7 @@
         const customerId = customerSelect.value;
         const total = parseFloat(document.getElementById('total-amount').innerText);
 
-        // FLOW 3: CREDIT
+        // FLOW: CREDIT (Opens Form First)
         if (method === 'credit') {
             if (customerId === 'walk-in') {
                 alert("For Credit, please select a Customer or choose 'New Customer'.");
@@ -239,10 +265,10 @@
             
             document.getElementById('credit-due-date').value = ''; 
             new bootstrap.Modal(document.getElementById('creditModal')).show();
-            return; 
+            return; // Stop here, wait for modal confirmation
         }
 
-        // FLOW 1 & 2 VALIDATIONS
+        // FLOW: CASH & DIGITAL
         if (method === 'cash') {
             const paid = parseFloat(document.getElementById('amount-paid').value);
             if (!paid || paid < total) { alert("Insufficient Cash Amount!"); return; }
@@ -252,8 +278,9 @@
             if (!ref) { alert("Please enter Reference Number!"); return; }
         }
 
+        // Dialog: Process Confirmation
         if(confirm("Process this transaction?")) {
-            submitTransaction(method);
+            confirmTransaction(method); // ISSUE 1 FIX: Changed from submitTransaction to confirmTransaction
         }
     }
 
@@ -262,6 +289,7 @@
         let creditData = {};
         const customerVal = document.getElementById('customer-id').value;
 
+        // Credit Form Validation & Confirmation Dialog
         if (method === 'credit') {
             const name = document.getElementById('credit-name').value;
             const dueDate = document.getElementById('credit-due-date').value;
@@ -277,6 +305,7 @@
                 due_date: dueDate
             };
             
+            // Dialog: Confirm Credit [Name]
             if(!confirm("Confirm Credit Transaction for " + name + "?")) return;
         }
 
@@ -298,6 +327,7 @@
         .then(res => res.json())
         .then(data => {
             if (data.success) {
+                // Dialog: Transaction Accepted
                 alert("Transaction Accepted!");
                 location.reload();
             } else {
@@ -307,4 +337,5 @@
         .catch(err => console.error(err));
     }
 </script>
+
 @endsection
