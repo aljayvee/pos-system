@@ -4,6 +4,8 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Cashier\POSController;
+use App\Http\Controllers\Admin\ProductController;
+use App\Http\Controllers\Admin\CategoryController;
 
 // Public Routes
 Route::get('/', function () { return redirect('/login'); });
@@ -14,7 +16,10 @@ Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 // ADMIN Routes (Protected)
 Route::middleware(['auth', 'role:admin'])->prefix('admin')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('admin.dashboard');
-    // Add routes for inventory, users, reports here
+    
+    // Management Routes
+    Route::resource('categories', CategoryController::class);
+    Route::resource('products', ProductController::class);
 });
 
 // CASHIER Routes (Protected)
