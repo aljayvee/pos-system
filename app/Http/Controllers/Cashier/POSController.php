@@ -18,11 +18,18 @@ class POSController extends Controller
     {
         $products = Product::where('stock', '>', 0)->get();
         $customers = Customer::orderBy('name')->get();
-        return view('cashier.index', compact('products', 'customers'));
+       // Check if Loyalty is Enabled (Default to '0' / Off)
+        $loyaltyEnabled = \App\Models\Setting::where('key', 'enable_loyalty')->value('value') ?? '0';
+
+        return view('cashier.index', compact('products', 'customers', 'loyaltyEnabled'));
     }
 
     public function store(Request $request)
     {
+
+        // Check Setting
+            $loyaltyEnabled = \App\Models\Setting::where('key', 'enable_loyalty')->value('value') ?? '0';
+           
         // 1. VALIDATE FIRST
         $request->validate([
             'cart' => 'required|array',
@@ -38,6 +45,34 @@ class POSController extends Controller
         try {
             $customerId = $request->customer_id;
 
+            $loyaltyEnabled = \App\Models\Setting::where('key', 'enable_loyalty')->value('value') ?? '0';
+
+            // ... (Customer Logic) ...
+
+            // 1. LOYALTY REDEMPTION LOGIC (Wrap in Check)
+            $pointsUsed = $request->points_used ?? 0;
+            $pointsDiscount = 0;
+
+            if ($loyaltyEnabled == '1' && $pointsUsed > 0 && $customerId) {
+                // ... (Existing redemption logic) ...
+            } else {
+                // Force 0 if disabled
+                $pointsUsed = 0;
+                $pointsDiscount = 0;
+            }
+
+            // 3. LOYALTY ACCUMULATION LOGIC (Wrap in Check)
+            if ($loyaltyEnabled == '1' && $customerId) {
+                $pointsEarned = floor($request->total_amount / 100);
+                if ($pointsEarned > 0) {
+                    $customer = Customer::find($customerId);
+                    if ($customer) {
+                        $customer->increment('points', $pointsEarned);
+                    }
+                }
+            }
+
+            
             // 2. HANDLE CUSTOMER (Create New or Update Existing)
             if ($request->payment_method === 'credit') {
                 $details = $request->input('credit_details');

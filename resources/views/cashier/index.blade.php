@@ -169,6 +169,8 @@
 <script>
     let cart = [];
     let html5QrcodeScanner = null;
+    const pointsValue = {{ \App\Models\Setting::where('key', 'points_conversion')->value('value') ?? 1 }};
+    const loyaltyEnabled = {{ $loyaltyEnabled }}; // '1' or '0'
 
     // --- BARCODE SCANNER LOGIC (USB & KEYBOARD) ---
     // Focus search on load
@@ -177,12 +179,37 @@
         const type = this.value;
         const paySelect = document.getElementById('payment-method');
         const creditOpt = document.getElementById('opt-credit');
+
+        const selectedOption = this.options[this.selectedIndex];
+        const points = parseInt(selectedOption.getAttribute('data-points') || 0);
+
+        // --- UPDATED LOYALTY DISPLAY LOGIC ---
+        const badge = document.getElementById('loyalty-badge');
+        const redemptionBox = document.getElementById('redemption-section');
+        const pointsSpan = document.getElementById('customer-points');
         
         // --- NEW: Update Loyalty Points Display ---
         const selectedOption = this.options[this.selectedIndex];
         const points = selectedOption.getAttribute('data-points');
         const badge = document.getElementById('loyalty-badge');
         const pointsSpan = document.getElementById('customer-points');
+
+        // Only show if Feature is Enabled AND Valid Customer
+        if (loyaltyEnabled == 1 && type !== 'walk-in' && type !== 'new') {
+            pointsSpan.innerText = points;
+            badge.style.display = 'block';
+            redemptionBox.style.display = 'block';
+            document.getElementById('avail-points').innerText = points;
+        } else {
+            badge.style.display = 'none';
+            redemptionBox.style.display = 'none';
+        }
+        // -------------------------------------
+
+        // Reset points input
+        document.getElementById('points-to-use').value = '';
+        calculateTotalWithPoints();
+
 
         if (type !== 'walk-in' && type !== 'new' && points) {
             pointsSpan.innerText = points;

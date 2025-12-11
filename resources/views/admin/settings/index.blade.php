@@ -42,6 +42,31 @@
                                 <i class="fas fa-save"></i> Save Changes
                             </button>
                         </div>
+
+                        <hr class="my-4">
+
+                        <h5 class="text-warning"><i class="fas fa-star me-1"></i> Loyalty Program</h5>
+                        
+                        {{-- TOGGLE SWITCH (Off by default) --}}
+                        <div class="form-check form-switch mb-3">
+                            <input type="hidden" name="enable_loyalty" value="0">
+                            <input class="form-check-input" type="checkbox" id="loyaltySwitch" name="enable_loyalty" value="1" 
+                                {{ ($settings['enable_loyalty'] ?? '0') == '1' ? 'checked' : '' }}>
+                            <label class="form-check-label fw-bold" for="loyaltySwitch">Enable Points & Rewards</label>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label class="form-label">Points Value (in Pesos)</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">1 Point = ₱</span>
+                                    <input type="number" step="0.01" name="points_conversion" class="form-control" 
+                                           value="{{ $settings['points_conversion'] ?? '1.00' }}">
+                                </div>
+                                <div class="form-text">How much discount a customer gets per point.</div>
+                            </div>
+                        </div>
+
                     </form>
                 </div>
             </div>
