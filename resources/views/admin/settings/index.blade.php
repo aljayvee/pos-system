@@ -73,6 +73,23 @@
                             <div class="form-text">Allows generating printable barcode stickers for products.</div>
                         </div>
 
+                        <hr class="my-4">
+
+                        <h5 class="text-danger"><i class="fas fa-database me-1"></i> Data Management</h5>
+                        <p class="text-muted small">Download a full backup of your system to keep your data safe.</p>
+
+                        <div class="d-flex align-items-center bg-light p-3 border rounded">
+                            <div class="flex-grow-1">
+                                <h6 class="mb-1 fw-bold">Full Database Backup (.sql)</h6>
+                                <small class="text-muted">Includes Users, Products, Sales, Inventory, and Settings.</small>
+                            </div>
+                            <a href="{{ route('settings.backup') }}" class="btn btn-outline-danger">
+                                <i class="fas fa-download me-2"></i> Download Backup
+                            </a>
+                        </div>
+                        
+                        <hr class="my-4">
+
                         <div class="text-end">
                             <button type="submit" class="btn btn-primary px-4">
                                 <i class="fas fa-save"></i> Save Changes

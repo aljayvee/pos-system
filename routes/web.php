@@ -81,6 +81,11 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->group(function () {
     Route::get('/products/{product}/barcode', [\App\Http\Controllers\Admin\ProductController::class, 'printBarcode'])->name('products.barcode');
     Route::post('/products/{id}/restore', [\App\Http\Controllers\Admin\ProductController::class, 'restore'])->name('products.restore');
     Route::delete('/products/{id}/force-delete', [\App\Http\Controllers\Admin\ProductController::class, 'forceDelete'])->name('products.force_delete');
+
+
+    // Database Backup Route
+    Route::get('/settings/backup', [\App\Http\Controllers\Admin\BackupController::class, 'download'])->name('settings.backup');
+
 });
 
 // CASHIER Routes (Protected)
