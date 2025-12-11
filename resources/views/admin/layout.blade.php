@@ -79,6 +79,10 @@
                 <a href="{{ route('products.index') }}" class="list-group-item list-group-item-action {{ request()->routeIs('products.*') ? 'active' : '' }}">
                     <i class="fas fa-box-open"></i> Products
                 </a>
+                {{-- NEW: Purchases / Stock In Link --}}
+                <a href="{{ route('purchases.index') }}" class="list-group-item list-group-item-action {{ request()->routeIs('purchases.*') ? 'active' : '' }}">
+                    <i class="fas fa-truck-loading"></i> Stock In / Purchases
+                </a>
                 <a href="{{ route('customers.index') }}" class="list-group-item list-group-item-action {{ request()->routeIs('customers.*') ? 'active' : '' }}">
                     <i class="fas fa-users"></i> Customers
                 </a>
