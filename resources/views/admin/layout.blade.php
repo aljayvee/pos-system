@@ -150,6 +150,11 @@
                 <a href="{{ route('reports.index') }}" class="list-group-item list-group-item-action {{ request()->routeIs('reports.*') ? 'active' : '' }}">
                     <i class="fas fa-chart-line"></i> Sales Reports
                 </a>
+
+                {{-- NEW: Transaction History Link --}}
+                <a href="{{ route('transactions.index') }}" class="list-group-item list-group-item-action {{ request()->routeIs('transactions.*') ? 'active' : '' }}">
+                    <i class="fas fa-receipt"></i> Transaction History
+                </a>
                 
                 <a href="{{ route('users.index') }}" class="list-group-item list-group-item-action {{ request()->routeIs('users.*') ? 'active' : '' }}">
                     <i class="fas fa-user-cog"></i> User Management

@@ -65,6 +65,9 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->group(function () {
 
     // Supplier Management
     Route::resource('suppliers', \App\Http\Controllers\Admin\SupplierController::class)->except(['create', 'show', 'edit']);
+
+    // Transaction History & Management
+    Route::resource('transactions', \App\Http\Controllers\Admin\TransactionController::class)->only(['index', 'show', 'destroy']);
 });
 
 // CASHIER Routes (Protected)
