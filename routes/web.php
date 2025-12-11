@@ -28,6 +28,11 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->group(function () {
     // Credit Management
     Route::get('/credits', [CreditController::class, 'index'])->name('credits.index');
     Route::post('/credits/{credit}/pay', [CreditController::class, 'repay'])->name('credits.repay');
+
+    // User Management
+    Route::resource('users', UserController::class)->except(['show', 'edit', 'update']);
+    // Custom route for toggling status (optional)
+    Route::post('/users/{user}/toggle', [UserController::class, 'toggleStatus'])->name('users.toggle');
 });
 
 // CASHIER Routes (Protected)
