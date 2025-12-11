@@ -3,24 +3,44 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Product;
-use App\Models\Sale;
 use Illuminate\Http\Request;
+use App\Models\Sale;
+use App\Models\Product;
+use App\Models\CustomerCredit;
 use Carbon\Carbon;
 
 class DashboardController extends Controller
 {
     public function index()
     {
-        // 1. Calculate Today's Sales
-        $todays_sales = Sale::whereDate('created_at', Carbon::today())
-                            ->sum('total_amount');
+        // 1. Date Helpers
+        $today = Carbon::today();
+        $startOfMonth = Carbon::now()->startOfMonth();
 
-        // 2. Count Low Stock Items
-        // (Items where stock is less than or equal to their specific alert level)
-        $low_stock_count = Product::whereColumn('stock', '<=', 'alert_stock')->count();
+        // 2. Sales Stats
+        $salesToday = Sale::whereDate('created_at', $today)->sum('total_amount');
+        $salesMonth = Sale::where('created_at', '>=', $startOfMonth)->sum('total_amount');
+        $transactionCountToday = Sale::whereDate('created_at', $today)->count();
 
-        // 3. Return the view with data
-        return view('admin.dashboard', compact('todays_sales', 'low_stock_count'));
+        // 3. Credit Stats (Receivables)
+        $totalCredits = CustomerCredit::sum('remaining_balance'); // Total money people owe the store
+
+        // 4. Low Stock Alerts (Threshold: Less than 10 items)
+        $lowStockItems = Product::where('stock', '<=', 10)
+                                ->where('stock', '>', 0) // Exclude already out of stock if you want
+                                ->orderBy('stock', 'asc')
+                                ->take(5) // Show top 5 critical items
+                                ->get();
+        
+        $outOfStockItems = Product::where('stock', 0)->count();
+
+        return view('admin.dashboard', compact(
+            'salesToday', 
+            'salesMonth', 
+            'transactionCountToday', 
+            'totalCredits', 
+            'lowStockItems',
+            'outOfStockItems'
+        ));
     }
 }

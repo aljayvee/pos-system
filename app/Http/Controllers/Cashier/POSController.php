@@ -23,16 +23,13 @@ class POSController extends Controller
 
     public function store(Request $request)
     {
+        // ... (Keep existing validation logic) ...
         $request->validate([
             'cart' => 'required|array',
             'total_amount' => 'required|numeric',
             'payment_method' => 'required|in:cash,digital,credit',
-            
-            // Validations
             'amount_paid' => 'required_if:payment_method,cash|numeric',
             'reference_number' => 'required_if:payment_method,digital',
-            
-            // Credit Validations
             'credit_details.name' => 'required_if:payment_method,credit',
             'credit_details.due_date' => 'required_if:payment_method,credit|date'
         ]);
@@ -41,12 +38,10 @@ class POSController extends Controller
         try {
             $customerId = $request->customer_id;
 
-            // 1. Handle NEW Customer Creation or UPDATE Existing
+            // ... (Keep existing Customer Logic: New/Update) ...
             if ($request->payment_method === 'credit') {
                 $details = $request->input('credit_details');
-
                 if ($customerId === 'new') {
-                    // Create New Customer
                     $newCustomer = Customer::create([
                         'name' => $details['name'],
                         'address' => $details['address'],
@@ -54,7 +49,6 @@ class POSController extends Controller
                     ]);
                     $customerId = $newCustomer->id;
                 } else {
-                    // Update Existing Customer
                     $customer = Customer::find($customerId);
                     if ($customer) {
                         $customer->update([
@@ -64,21 +58,21 @@ class POSController extends Controller
                     }
                 }
             } else {
-                // For Cash/Digital, treat 'walk-in' as null
                 if ($customerId === 'walk-in') $customerId = null;
             }
 
-            // 2. Create Sale
+            // Create Sale
             $sale = Sale::create([
                 'user_id' => Auth::id(),
                 'customer_id' => $customerId,
                 'total_amount' => $request->total_amount,
                 'amount_paid' => $request->payment_method === 'credit' ? 0 : $request->amount_paid,
                 'payment_method' => $request->payment_method,
-                'reference_number' => $request->reference_number,
+                // Only save ref number if digital
+                'reference_number' => $request->payment_method === 'digital' ? $request->reference_number : null, 
             ]);
 
-            // 3. Create Credit Ledger
+            // ... (Keep existing Credit Ledger Logic) ...
             if ($request->payment_method === 'credit') {
                 CustomerCredit::create([
                     'customer_id' => $customerId,
@@ -89,7 +83,7 @@ class POSController extends Controller
                 ]);
             }
 
-            // 4. Update Inventory
+            // ... (Keep existing Inventory Update Logic) ...
             foreach ($request->cart as $item) {
                 $product = Product::lockForUpdate()->find($item['id']);
                 if ($product->stock < $item['qty']) {
@@ -105,11 +99,21 @@ class POSController extends Controller
             }
             
             DB::commit();
-            return response()->json(['success' => true]);
+            
+            // UPDATE RETURN: Send back the Sale ID
+            return response()->json(['success' => true, 'sale_id' => $sale->id]);
 
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }
+    }
+
+    // --- NEW METHOD: Show Receipt ---
+    public function showReceipt(Sale $sale)
+    {
+        // Eager load relationships for efficiency
+        $sale->load('saleItems.product', 'user', 'customer');
+        return view('cashier.receipt', compact('sale'));
     }
 }

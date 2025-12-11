@@ -319,6 +319,8 @@
             credit_details: creditData
         };
 
+        // ... (inside confirmTransaction function) ...
+
         fetch("{{ route('cashier.store') }}", {
             method: "POST",
             headers: { "Content-Type": "application/json", "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute('content') },
@@ -327,8 +329,15 @@
         .then(res => res.json())
         .then(data => {
             if (data.success) {
-                // Dialog: Transaction Accepted
-                alert("Transaction Accepted!");
+                // ASK TO PRINT RECEIPT
+                if (confirm("Transaction Successful! Do you want to print the receipt?")) {
+                    // Open Receipt in new popup window
+                    const receiptUrl = `/cashier/receipt/${data.sale_id}`;
+                    window.open(receiptUrl, '_blank', 'width=400,height=600');
+                } else {
+                    alert("Transaction Accepted.");
+                }
+                // Reload to clear cart and reset UI
                 location.reload();
             } else {
                 alert("Error: " + data.message);
