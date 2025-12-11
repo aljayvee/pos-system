@@ -87,3 +87,9 @@ Route::middleware(['auth', 'role:cashier'])->prefix('cashier')->group(function (
     // NEW RECEIPT ROUTE
     Route::get('/receipt/{sale}', [POSController::class, 'showReceipt'])->name('cashier.receipt');
 });
+
+// Authenticated User Routes (Profile)
+Route::middleware(['auth'])->group(function () {
+    Route::get('/profile', [App\Http\Controllers\ProfileController::class, 'edit'])->name('profile.edit');
+    Route::post('/profile', [App\Http\Controllers\ProfileController::class, 'update'])->name('profile.update');
+});
