@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use App\Models\Sale;
 use App\Models\SaleItem;
 use App\Models\Setting;
+use App\Models\Product;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -15,10 +16,13 @@ class ReportController extends Controller
 {
     public function index(Request $request)
     {
-        // 1. Get Filters (Default to Today)
+        // 1. Get Filters
         $type = $request->input('type', 'daily');
         $startDate = $request->input('start_date', Carbon::today()->toDateString());
         $endDate = $request->input('end_date', Carbon::today()->toDateString());
+        
+        // COMPATIBILITY FIX: Define $date for backward compatibility with the View
+        $date = $startDate; 
 
         // 2. Build Query
         $query = Sale::with('user', 'customer')->latest();
@@ -80,11 +84,23 @@ class ReportController extends Controller
             ->take(5)
             ->get();
 
+        // 7. Slow Moving Items
+        $soldProductIdsLast30Days = SaleItem::whereHas('sale', function($q) {
+                $q->where('created_at', '>=', Carbon::now()->subDays(30));
+            })
+            ->pluck('product_id')
+            ->unique();
+
+        $slowMovingItems = Product::whereNotIn('id', $soldProductIdsLast30Days)
+            ->where('stock', '>', 0)
+            ->take(10)
+            ->get();
+
         return view('admin.reports.index', compact(
             'sales', 'total_sales', 'total_transactions', 
             'cash_sales', 'credit_sales', 'digital_sales',
-            'type', 'startDate', 'endDate',
-            'topItems', 'topCustomers', 
+            'type', 'startDate', 'endDate', 'date', // <--- Added 'date' here
+            'topItems', 'topCustomers', 'slowMovingItems', 
             'tithesAmount', 'tithesEnabled', 'gross_profit'
         ));
     }
