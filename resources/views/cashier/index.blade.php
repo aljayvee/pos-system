@@ -167,121 +167,169 @@
 </style>
 
 <script>
+    // --- CONFIGURATION ---
+    // Safely fetch settings (defaults to 1 if not set)
+    const pointsValue = {{ \App\Models\Setting::where('key', 'points_conversion')->value('value') ?? 1 }};
+    const loyaltyEnabled = {{ \App\Models\Setting::where('key', 'enable_loyalty')->value('value') ?? 0 }};
+    
     let cart = [];
     let html5QrcodeScanner = null;
-    const pointsValue = {{ \App\Models\Setting::where('key', 'points_conversion')->value('value') ?? 1 }};
-    const loyaltyEnabled = {{ $loyaltyEnabled }}; // '1' or '0'
+    let currentCustomerPoints = 0; // Store points globally to avoid re-fetching
 
-    // --- BARCODE SCANNER LOGIC (USB & KEYBOARD) ---
-    // Focus search on load
-    window.onload = () => document.getElementById('product-search').focus();
+    // --- INITIALIZATION ---
+    window.onload = () => {
+        const searchInput = document.getElementById('product-search');
+        if(searchInput) searchInput.focus();
+    };
+
+    // --- CUSTOMER & LOYALTY LOGIC ---
     document.getElementById('customer-id').addEventListener('change', function() {
         const type = this.value;
-        const paySelect = document.getElementById('payment-method');
-        const creditOpt = document.getElementById('opt-credit');
-
         const selectedOption = this.options[this.selectedIndex];
-        const points = parseInt(selectedOption.getAttribute('data-points') || 0);
-
-        // --- UPDATED LOYALTY DISPLAY LOGIC ---
+        
+        // 1. Get Points safely
+        currentCustomerPoints = parseInt(selectedOption.getAttribute('data-points') || 0);
+        
+        // 2. UI Elements
         const badge = document.getElementById('loyalty-badge');
         const redemptionBox = document.getElementById('redemption-section');
         const pointsSpan = document.getElementById('customer-points');
-        
-        // --- NEW: Update Loyalty Points Display ---
-        const selectedOption = this.options[this.selectedIndex];
-        const points = selectedOption.getAttribute('data-points');
-        const badge = document.getElementById('loyalty-badge');
-        const pointsSpan = document.getElementById('customer-points');
+        const availPointsSpan = document.getElementById('avail-points');
 
-        // Only show if Feature is Enabled AND Valid Customer
+        // 3. Toggle Loyalty UI
+        // Only show if Loyalty is Enabled globally AND user is a valid registered customer
         if (loyaltyEnabled == 1 && type !== 'walk-in' && type !== 'new') {
-            pointsSpan.innerText = points;
-            badge.style.display = 'block';
-            redemptionBox.style.display = 'block';
-            document.getElementById('avail-points').innerText = points;
+            if(pointsSpan) pointsSpan.innerText = currentCustomerPoints;
+            if(availPointsSpan) availPointsSpan.innerText = currentCustomerPoints;
+            
+            if(badge) badge.style.display = 'block';
+            if(redemptionBox) redemptionBox.style.display = 'block';
         } else {
-            badge.style.display = 'none';
-            redemptionBox.style.display = 'none';
+            if(badge) badge.style.display = 'none';
+            if(redemptionBox) redemptionBox.style.display = 'none';
         }
-        // -------------------------------------
+        
+        // 4. Reset Redemption Inputs
+        const pointsInput = document.getElementById('points-to-use');
+        if(pointsInput) pointsInput.value = '';
+        calculateTotalWithPoints(); // Recalculate totals
 
-        // Reset points input
-        document.getElementById('points-to-use').value = '';
-        calculateTotalWithPoints();
-
-
-        if (type !== 'walk-in' && type !== 'new' && points) {
-            pointsSpan.innerText = points;
-            badge.style.display = 'block';
-        } else {
-            badge.style.display = 'none';
-        }
-        // ------------------------------------------
-
+        // 5. Toggle Payment Flow based on Customer Type
+        const paySelect = document.getElementById('payment-method');
+        const creditOpt = document.getElementById('opt-credit');
+        
         if (type !== 'walk-in') {
             paySelect.value = 'credit';
-            creditOpt.disabled = false;
+            if(creditOpt) creditOpt.disabled = false;
         } else {
             paySelect.value = 'cash';
-            creditOpt.disabled = true;
+            if(creditOpt) creditOpt.disabled = true;
         }
         toggleFlow();
     });
 
-    // Listen for "Enter" key in search box (USB Scanners hit Enter after scanning)
+    // --- LOYALTY CALCULATION ---
+    function calculateTotalWithPoints() {
+        let subtotal = 0;
+        cart.forEach(item => subtotal += item.price * item.qty);
+        
+        // Get input (if exists)
+        const pointsInputEl = document.getElementById('points-to-use');
+        let pointsInput = 0;
+        
+        if (pointsInputEl) {
+            pointsInput = parseInt(pointsInputEl.value) || 0;
+
+            // Validation 1: Cap at available points
+            if (pointsInput > currentCustomerPoints) {
+                pointsInput = currentCustomerPoints;
+                pointsInputEl.value = pointsInput;
+            }
+
+            // Calculate potential discount
+            let discount = pointsInput * pointsValue;
+            
+            // Validation 2: Cap at subtotal (cannot have negative total)
+            if (discount > subtotal) {
+                discount = subtotal;
+                // Reverse calculate points needed for this max discount
+                pointsInput = Math.ceil(discount / pointsValue);
+                pointsInputEl.value = pointsInput;
+            }
+
+            // Update Discount UI
+            const discDisplay = document.getElementById('discount-display');
+            if(discDisplay) discDisplay.innerText = discount.toFixed(2);
+        }
+
+        // Final Calculation
+        let discountAmount = pointsInput * pointsValue;
+        let finalTotal = subtotal - discountAmount;
+        if(finalTotal < 0) finalTotal = 0;
+
+        // Update Total UI
+        document.getElementById('total-amount').innerText = finalTotal.toFixed(2);
+        
+        // Recalculate Change if in cash mode
+        calculateChange();
+    }
+
+    // --- BARCODE SCANNER (USB/Keyboard) ---
     document.getElementById('product-search').addEventListener('keypress', function (e) {
         if (e.key === 'Enter') {
             const query = this.value.trim();
             if (query) {
-                // Try to find exact match by SKU first
                 const exactMatch = @json($products).find(p => p.sku === query);
                 if (exactMatch) {
                     addToCart(exactMatch);
-                    this.value = ''; // Clear after scan
-                    toastr.success("Item Added: " + exactMatch.name); // Optional: if you have toastr, else remove
+                    this.value = ''; 
+                    // toastr.success("Item Added"); // Uncomment if you have toastr
                 }
             }
         }
     });
 
-        // Function for Cashier or Admin
-        function openCameraModal() {
-                const modal = new bootstrap.Modal(document.getElementById('cameraModal'));
-                modal.show();
-                
-                // OPTIMIZED CONFIGURATION FOR 1D BARCODES
-                const config = { 
-                    fps: 10, 
-                    // Wider box for long barcodes
-                    qrbox: { width: 300, height: 150 }, 
-                    aspectRatio: 1.0,
-                    // Explicitly look for product barcodes
-                    formatsToSupport: [ 
-                        Html5QrcodeSupportedFormats.UPC_A, 
-                        Html5QrcodeSupportedFormats.UPC_E,
-                        Html5QrcodeSupportedFormats.EAN_13,
-                        Html5QrcodeSupportedFormats.EAN_8, 
-                        Html5QrcodeSupportedFormats.CODE_128,
-                        Html5QrcodeSupportedFormats.CODE_39
-                    ],
-                    // KEY FIX: Use Chrome/Edge native barcode detector (much faster)
-                    experimentalFeatures: {
-                        useBarCodeDetectorIfSupported: true
-                    }
-                };
+    // --- BARCODE SCANNER (Camera) ---
+    function openCameraModal() {
+        const modalEl = document.getElementById('cameraModal');
+        if(!modalEl) return;
+        const modal = new bootstrap.Modal(modalEl);
+        modal.show();
+        
+        const config = { 
+            fps: 10, 
+            qrbox: { width: 300, height: 150 }, 
+            aspectRatio: 1.0,
+            formatsToSupport: [ 
+                Html5QrcodeSupportedFormats.UPC_A, 
+                Html5QrcodeSupportedFormats.UPC_E,
+                Html5QrcodeSupportedFormats.EAN_13,
+                Html5QrcodeSupportedFormats.EAN_8, 
+                Html5QrcodeSupportedFormats.CODE_128,
+                Html5QrcodeSupportedFormats.CODE_39
+            ],
+            experimentalFeatures: { useBarCodeDetectorIfSupported: true }
+        };
 
-                if (!html5QrcodeScanner) {
-                    html5QrcodeScanner = new Html5QrcodeScanner("reader", config, /* verbose= */ false);
-                    html5QrcodeScanner.render(onScanSuccess, onScanFailure);
-                }
-            }
+        if (!html5QrcodeScanner) {
+            html5QrcodeScanner = new Html5QrcodeScanner("reader", config, false);
+            html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+        }
+    }
 
-// Optional: Add this function to see errors in console (F12)
-function onScanFailure(error) {
-    // console.warn(`Code scan error = ${error}`);
-} 
-    
+    function onScanSuccess(decodedText, decodedResult) {
+        const product = @json($products).find(p => p.sku === decodedText);
+        if (product) {
+            addToCart(product);
+            alert("Added: " + product.name); 
+        } else {
+            alert("Product not found: " + decodedText);
+        }
+    }
+
+    function onScanFailure(error) {
+        // console.warn(error);
+    }
 
     function stopCamera() {
         if (html5QrcodeScanner) {
@@ -290,26 +338,9 @@ function onScanFailure(error) {
         }
     }
 
-    function onScanSuccess(decodedText, decodedResult) {
-        // Find product by scanned text (SKU)
-        const product = @json($products).find(p => p.sku === decodedText);
-        
-        if (product) {
-            addToCart(product);
-            alert("Added: " + product.name); // Simple feedback
-            // Close modal automatically if you want, or keep open for continuous scanning
-            // stopCamera(); 
-            // document.getElementById('cameraModal').classList.remove('show');
-        } else {
-            alert("Product not found for barcode: " + decodedText);
-        }
-    }
-
     // --- SEARCH FILTER ---
     document.getElementById('product-search').addEventListener('keyup', function(e) {
-        // Ignore "Enter" because that is handled above
         if(e.key === 'Enter') return; 
-
         const val = this.value.toLowerCase();
         const cards = document.querySelectorAll('.product-card');
         let hasVisible = false;
@@ -317,7 +348,6 @@ function onScanFailure(error) {
         cards.forEach(card => {
             const name = card.getAttribute('data-name');
             const sku = card.getAttribute('data-sku') || '';
-            
             if (name.includes(val) || sku.includes(val)) {
                 card.style.display = 'block';
                 hasVisible = true;
@@ -328,15 +358,24 @@ function onScanFailure(error) {
         document.getElementById('no-products').style.display = hasVisible ? 'none' : 'block';
     });
 
-    // --- CART FUNCTIONS (Standard) ---
+    // --- CART FUNCTIONS ---
     function addToCart(product) {
         const existingItem = cart.find(item => item.id === product.id);
         if (existingItem) {
             if(existingItem.qty < product.stock) existingItem.qty++;
             else { alert('Not enough stock!'); return; }
         } else {
-            if(product.stock > 0) cart.push({ id: product.id, name: product.name, price: parseFloat(product.price), qty: 1, max_stock: product.stock });
-            else { alert('Out of stock!'); return; }
+            if(product.stock > 0) {
+                cart.push({ 
+                    id: product.id, 
+                    name: product.name, 
+                    price: parseFloat(product.price), 
+                    qty: 1, 
+                    max_stock: product.stock 
+                });
+            } else { 
+                alert('Out of stock!'); return; 
+            }
         }
         updateCartUI();
     }
@@ -353,12 +392,10 @@ function onScanFailure(error) {
     function updateCartUI() {
         const list = document.getElementById('cart-items');
         list.innerHTML = '';
-        let total = 0;
         
         if (cart.length === 0) list.innerHTML = '<li class="list-group-item text-center text-muted mt-5 border-0">Cart is empty</li>';
 
         cart.forEach(item => {
-            total += item.price * item.qty;
             list.innerHTML += `
                 <li class="list-group-item d-flex justify-content-between align-items-center bg-transparent">
                     <div><h6 class="m-0 fw-bold">${item.name}</h6><small>₱${item.price} x ${item.qty}</small></div>
@@ -371,70 +408,70 @@ function onScanFailure(error) {
                     </div>
                 </li>`;
         });
-        document.getElementById('total-amount').innerText = total.toFixed(2);
-        calculateChange();
-    }
-
-    // --- PAYMENT LOGIC (Standard) ---
-    function calculateChange() {
-        const total = parseFloat(document.getElementById('total-amount').innerText);
-        const paid = parseFloat(document.getElementById('amount-paid').value) || 0;
-        const change = paid - total;
-        document.getElementById('change-display').innerText = change >= 0 ? '₱' + change.toFixed(2) : 'Wait...';
-    }
-
-    document.getElementById('customer-id').addEventListener('change', function() {
-        const type = this.value;
-        const paySelect = document.getElementById('payment-method');
-        const creditOpt = document.getElementById('opt-credit');
         
-        if (type !== 'walk-in') {
-            paySelect.value = 'credit';
-            creditOpt.disabled = false;
-        } else {
-            paySelect.value = 'cash';
-            creditOpt.disabled = true;
-        }
-        toggleFlow();
-    });
+        // Use the new calculation logic instead of just summing items
+        calculateTotalWithPoints();
+    }
 
+    // --- PAYMENT FLOW & CALCULATIONS ---
     function toggleFlow() {
         const method = document.getElementById('payment-method').value;
         ['cash', 'digital', 'credit'].forEach(m => {
-            document.getElementById('flow-'+m).style.display = (method === m) ? 'block' : 'none';
+            const el = document.getElementById('flow-'+m);
+            if(el) el.style.display = (method === m) ? 'block' : 'none';
         });
     }
 
+    function calculateChange() {
+        const totalText = document.getElementById('total-amount').innerText;
+        const total = parseFloat(totalText.replace(/,/g, '')) || 0; // Remove commas if any
+        const paid = parseFloat(document.getElementById('amount-paid').value) || 0;
+        const change = paid - total;
+        document.getElementById('change-display').innerText = change >= 0 ? '₱' + change.toFixed(2) : 'Invalid';
+    }
+
+    // --- TRANSACTION HANDLING ---
     function handlePayNow() {
         if (cart.length === 0) { alert("Cart is empty!"); return; }
         const method = document.getElementById('payment-method').value;
 
         if (method === 'credit') {
-            new bootstrap.Modal(document.getElementById('creditModal')).show();
+            const creditModal = new bootstrap.Modal(document.getElementById('creditModal'));
+            creditModal.show();
         } else if (confirm("Process Payment?")) {
             confirmTransaction(method);
         }
     }
 
     function confirmTransaction(method) {
-        // [INSERT PREVIOUSLY CREATED FETCH LOGIC HERE - Reusing logic from previous steps]
-        // This part remains the same as the Receipt feature we just built.
-        // Let me know if you need me to paste the full Fetch block again.
-        
         let creditData = {};
         const customerVal = document.getElementById('customer-id').value;
 
         if (method === 'credit') {
              const name = document.getElementById('credit-name').value;
              const dueDate = document.getElementById('credit-due-date').value;
-             if(!name || !dueDate) { alert("Missing Credit Details"); return; }
-             creditData = { is_new: customerVal === 'new', name: name, address: document.getElementById('credit-address').value, contact: document.getElementById('credit-contact').value, due_date: dueDate };
+             if(!name || !dueDate) { alert("Missing Credit Details (Name & Date required)"); return; }
+             
+             creditData = { 
+                 is_new: customerVal === 'new', 
+                 name: name, 
+                 address: document.getElementById('credit-address').value, 
+                 contact: document.getElementById('credit-contact').value, 
+                 due_date: dueDate 
+             };
         }
+
+        // Get points
+        let pointsUsed = 0;
+        const pointsInputEl = document.getElementById('points-to-use');
+        if(pointsInputEl) pointsUsed = parseInt(pointsInputEl.value) || 0;
 
         const data = {
             cart: cart,
-            total_amount: document.getElementById('total-amount').innerText,
-            amount_paid: document.getElementById('amount-paid').value || 0,
+            // Send the NET total (after discount)
+            total_amount: document.getElementById('total-amount').innerText.replace(/,/g, ''),
+            points_used: pointsUsed,
+            amount_paid: method === 'cash' ? document.getElementById('amount-paid').value : 0,
             payment_method: method,
             customer_id: customerVal,
             reference_number: document.getElementById('reference-number').value,
@@ -443,7 +480,10 @@ function onScanFailure(error) {
 
         fetch("{{ route('cashier.store') }}", {
             method: "POST",
-            headers: { "Content-Type": "application/json", "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute('content') },
+            headers: { 
+                "Content-Type": "application/json", 
+                "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute('content') 
+            },
             body: JSON.stringify(data)
         })
         .then(res => res.json())
@@ -456,6 +496,10 @@ function onScanFailure(error) {
             } else {
                 alert("Error: " + data.message);
             }
+        })
+        .catch(err => {
+            console.error(err);
+            alert("Transaction failed. Check console.");
         });
     }
 </script>
