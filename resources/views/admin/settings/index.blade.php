@@ -6,6 +6,37 @@
 
     <div class="row">
         <div class="col-md-8">
+            <div class="col-md-4">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-danger text-white">
+                    <i class="fas fa-database me-1"></i> Data Management
+                </div>
+                <div class="card-body">
+                    <p class="small text-muted">Create a full backup of your store's data or restore from a previous file.</p>
+                    
+                    <div class="d-grid mb-3">
+                        <a href="{{ route('settings.backup') }}" class="btn btn-outline-dark">
+                            <i class="fas fa-download me-2"></i> Download Backup (.sql)
+                        </a>
+                    </div>
+
+                    <hr>
+
+                    <form action="{{ route('settings.restore') }}" method="POST" enctype="multipart/form-data" 
+                          onsubmit="return confirm('WARNING: This will WIPE all current data and replace it with the backup. Continue?');">
+                        @csrf
+                        <label class="form-label fw-bold text-danger small">Restore Data</label>
+                        <input type="file" name="backup_file" class="form-control form-control-sm mb-2" required accept=".sql">
+                        
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-danger btn-sm">
+                                <i class="fas fa-upload me-1"></i> Upload & Restore
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
             <div class="card shadow-sm">
                 <div class="card-header bg-primary text-white">
                     General Configuration
@@ -73,54 +104,7 @@
                             <div class="form-text">Allows generating printable barcode stickers for products.</div>
                         </div>
 
-                        <hr class="my-4">
-
-                        <h5 class="text-danger"><i class="fas fa-database me-1"></i> Data Management</h5>
-                        <p class="text-muted small">Download a full backup of your system to keep your data safe.</p>
-
-                        <div class="d-flex align-items-center bg-light p-3 border rounded">
-                            <div class="flex-grow-1">
-                                <h6 class="mb-1 fw-bold">Full Database Backup (.sql)</h6>
-                                <small class="text-muted">Includes Users, Products, Sales, Inventory, and Settings.</small>
-                            </div>
-                            <a href="{{ route('settings.backup') }}" class="btn btn-outline-danger">
-                                <i class="fas fa-download me-2"></i> Download Backup
-                            </a>
-                        </div>
                         
-                        <hr class="my-4">
-
-                        <h5 class="text-danger"><i class="fas fa-database me-1"></i> Data Management</h5>
-                        <p class="text-muted small">Manage your system data securely.</p>
-
-                        <div class="d-flex align-items-center bg-light p-3 border rounded mb-3">
-                            <div class="flex-grow-1">
-                                <h6 class="mb-1 fw-bold">Backup Database (.sql)</h6>
-                                <small class="text-muted">Download a full copy of your system data.</small>
-                            </div>
-                            <a href="{{ route('settings.backup') }}" class="btn btn-outline-primary">
-                                <i class="fas fa-download me-2"></i> Download
-                            </a>
-                        </div>
-
-                        <div class="bg-light p-3 border rounded border-danger border-start border-4">
-                            <h6 class="mb-2 fw-bold text-danger">Restore Database</h6>
-                            <p class="small text-muted mb-3">
-                                <i class="fas fa-exclamation-triangle"></i> 
-                                <strong>Warning:</strong> Restoring will replace all current data (Products, Sales, Users) with the data in the file. This cannot be undone.
-                            </p>
-                            
-                            <form action="{{ route('settings.restore') }}" method="POST" enctype="multipart/form-data" 
-                                  onsubmit="return confirm('CRITICAL WARNING: This will WIPE current data and replace it with the backup. Are you sure?');">
-                                @csrf
-                                <div class="input-group">
-                                    <input type="file" name="backup_file" class="form-control" required accept=".sql">
-                                    <button type="submit" class="btn btn-danger">
-                                        <i class="fas fa-upload me-1"></i> Upload & Restore
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
                         
                         <hr class="my-4">
 

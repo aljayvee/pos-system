@@ -4,10 +4,12 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Http\Request;
 use Carbon\Carbon;
 
 class BackupController extends Controller
 {
+    // 1. Download Backup (.sql file)
     public function download()
     {
         $dbName = env('DB_DATABASE', 'sari_sari_store');
@@ -21,30 +23,33 @@ class BackupController extends Controller
             "Expires"             => "0"
         ];
 
+        // Stream the response to avoid memory issues with large databases
         $callback = function() {
             $handle = fopen('php://output', 'w');
 
-            // 1. Get All Tables
+            // Disable Foreign Key Checks temporarily
+            fwrite($handle, "SET FOREIGN_KEY_CHECKS=0;\n\n");
+
+            // Get All Tables
             $tables = DB::select('SHOW TABLES');
             $tableKey = "Tables_in_" . env('DB_DATABASE');
 
             foreach ($tables as $table) {
                 $tableName = $table->$tableKey ?? current((array)$table);
 
-                // Skip migrations table to avoid conflicts on restore
-                if ($tableName == 'migrations') continue;
+                // Skip migrations table to prevent conflicts
+                if ($tableName == 'migrations' || $tableName == 'sessions') continue;
 
-                fwrite($handle, "\n\n" . "-- TABLE: $tableName" . "\n");
-                fwrite($handle, "DROP TABLE IF EXISTS `$tableName`;" . "\n");
+                fwrite($handle, "-- TABLE: $tableName\n");
+                fwrite($handle, "DROP TABLE IF EXISTS `$tableName`;\n");
 
-                // 2. Get Create Table Statement
+                // Get Create Table Statement
                 $createRow = DB::select("SHOW CREATE TABLE `$tableName`");
-                $createSql = $createRow[0]->{'Create Table'} . ";\n";
+                $createSql = $createRow[0]->{'Create Table'} . ";\n\n";
                 fwrite($handle, $createSql);
 
-                // 3. Get Table Data
+                // Get Table Data
                 $rows = DB::table($tableName)->get();
-                
                 foreach ($rows as $row) {
                     $values = array_map(function ($value) {
                         if (is_null($value)) return "NULL";
@@ -54,49 +59,48 @@ class BackupController extends Controller
                     $sql = "INSERT INTO `$tableName` VALUES (" . implode(", ", $values) . ");\n";
                     fwrite($handle, $sql);
                 }
+                fwrite($handle, "\n");
             }
 
+            // Re-enable Foreign Key Checks
+            fwrite($handle, "SET FOREIGN_KEY_CHECKS=1;\n");
             fclose($handle);
         };
 
         return response()->stream($callback, 200, $headers);
     }
 
-    // NEW: Restore Database Logic
+    // 2. Restore Database
     public function restore(Request $request)
     {
         $request->validate([
-            'backup_file' => 'required|file' // Allow sql/txt files
+            'backup_file' => 'required|file' 
         ]);
 
         $file = $request->file('backup_file');
         
-        // Basic check for .sql extension
+        // Basic extension check
         if ($file->getClientOriginalExtension() !== 'sql') {
-            return back()->with('error', 'Invalid file format. Please upload a .sql file.');
+            return back()->with('error', 'Invalid file. Please upload a .sql file.');
         }
 
         try {
-            // Read file content
             $sql = file_get_contents($file->getRealPath());
 
-            // Disable Foreign Key Checks to avoid errors during drop/create
+            // Disable foreign key checks to allow dropping tables
             DB::statement('SET FOREIGN_KEY_CHECKS=0;');
 
-            // Execute the raw SQL
-            // Note: DB::unprepared is used for multiple statements
+            // Execute the SQL commands
             DB::unprepared($sql);
 
-            // Re-enable Foreign Key Checks
+            // Re-enable foreign key checks
             DB::statement('SET FOREIGN_KEY_CHECKS=1;');
 
-            return back()->with('success', 'System restored successfully! Please log in again if session expired.');
+            return back()->with('success', 'Database restored successfully! Please log in again.');
 
         } catch (\Exception $e) {
-            // Re-enable checks just in case
             DB::statement('SET FOREIGN_KEY_CHECKS=1;');
-            return back()->with('error', 'Restore Failed: ' . $e->getMessage());
+            return back()->with('error', 'Restore failed: ' . $e->getMessage());
         }
     }
-
 }
