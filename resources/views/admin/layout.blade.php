@@ -80,40 +80,23 @@
                     <i class="fas fa-box-open"></i> Products
                 </a>
 
-                {{-- NEW: Inventory Link Added Here --}}
                 <a href="{{ route('inventory.index') }}" class="list-group-item list-group-item-action {{ request()->routeIs('inventory.*') ? 'active' : '' }}">
                     <i class="fas fa-warehouse"></i> Inventory
                 </a>
 
-                {{-- PURCHASES & SUPPLIERS MENU --}}
+                {{-- MERGED: Procurement (Stock In + Suppliers) --}}
                 <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" 
                    href="#purchasesSubmenu" data-bs-toggle="collapse" role="button" 
                    aria-expanded="{{ request()->routeIs('purchases.*') || request()->routeIs('suppliers.*') ? 'true' : 'false' }}">
                     <span><i class="fas fa-truck-loading"></i> Procurement</span>
                     <i class="fas fa-caret-down"></i>
                 </a>
-                
                 <div class="collapse {{ request()->routeIs('purchases.*') || request()->routeIs('suppliers.*') ? 'show' : '' }}" 
                      id="purchasesSubmenu" style="background-color: #1a1e21;">
-                    
-                    {{-- 1. Stock In History --}}
-                    <a href="{{ route('purchases.index') }}" 
-                       class="list-group-item list-group-item-action ps-5 {{ request()->routeIs('purchases.*') ? 'active' : '' }}" 
-                       style="background-color: transparent;">
+                    <a href="{{ route('purchases.index') }}" class="list-group-item list-group-item-action ps-5 {{ request()->routeIs('purchases.*') ? 'active' : '' }}" style="background-color: transparent;">
                         <i class="fas fa-history me-2"></i> Stock In History
                     </a>
-                    
-                    {{-- 2. New Purchase --}}
-                    <a href="{{ route('purchases.create') }}" 
-                       class="list-group-item list-group-item-action ps-5 {{ request()->routeIs('purchases.create') ? 'active' : '' }}" 
-                       style="background-color: transparent;">
-                        <i class="fas fa-plus-circle me-2"></i> New Stock In
-                    </a>
-
-                    {{-- 3. Suppliers --}}
-                    <a href="{{ route('suppliers.index') }}" 
-                       class="list-group-item list-group-item-action ps-5 {{ request()->routeIs('suppliers.*') ? 'active' : '' }}" 
-                       style="background-color: transparent;">
+                    <a href="{{ route('suppliers.index') }}" class="list-group-item list-group-item-action ps-5 {{ request()->routeIs('suppliers.*') ? 'active' : '' }}" style="background-color: transparent;">
                         <i class="fas fa-truck me-2"></i> Suppliers
                     </a>
                 </div>
@@ -122,31 +105,22 @@
                     <i class="fas fa-users"></i> Customers
                 </a>
 
-                {{-- MERGED CREDITS MENU --}}
+                {{-- MERGED: Credits (Outstanding + History) --}}
                 <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" 
                    href="#creditsSubmenu" data-bs-toggle="collapse" role="button" 
                    aria-expanded="{{ request()->routeIs('credits.*') ? 'true' : 'false' }}">
                     <span><i class="fas fa-file-invoice-dollar"></i> Credits (Utang)</span>
                     <i class="fas fa-caret-down"></i>
                 </a>
-                
                 <div class="collapse {{ request()->routeIs('credits.*') ? 'show' : '' }}" id="creditsSubmenu" style="background-color: #1a1e21;">
-                    {{-- 1. Outstanding List --}}
-                    <a href="{{ route('credits.index') }}" 
-                       class="list-group-item list-group-item-action ps-5 {{ request()->routeIs('credits.index') ? 'active' : '' }}" 
-                       style="background-color: transparent;">
+                    <a href="{{ route('credits.index') }}" class="list-group-item list-group-item-action ps-5 {{ request()->routeIs('credits.index') ? 'active' : '' }}" style="background-color: transparent;">
                         <i class="fas fa-list-ul me-2"></i> Outstanding
                     </a>
-                    
-                    {{-- 2. Payment History --}}
-                    <a href="{{ route('credits.logs') }}" 
-                       class="list-group-item list-group-item-action ps-5 {{ request()->routeIs('credits.logs') ? 'active' : '' }}" 
-                       style="background-color: transparent;">
-                        <i class="fas fa-history me-2"></i> Payment History
+                    <a href="{{ route('credits.logs') }}" class="list-group-item list-group-item-action ps-5 {{ request()->routeIs('credits.logs') ? 'active' : '' }}" style="background-color: transparent;">
+                        <i class="fas fa-history me-2"></i> Payment Logs
                     </a>
                 </div>
 
-                {{-- NEW REPORTS BUTTON ADDED HERE --}}
                 <a href="{{ route('reports.index') }}" class="list-group-item list-group-item-action {{ request()->routeIs('reports.*') ? 'active' : '' }}">
                     <i class="fas fa-chart-line"></i> Sales Reports
                 </a>
@@ -160,12 +134,9 @@
                     <i class="fas fa-user-cog"></i> User Management
                 </a>
 
-                {{-- NEW SETTINGS LINK --}}
                 <a href="{{ route('settings.index') }}" class="list-group-item list-group-item-action {{ request()->routeIs('settings.*') ? 'active' : '' }}">
                     <i class="fas fa-cogs"></i> Settings
                 </a>
-                
-                <form action="{{ route('logout') }}" method="POST" class="mt-auto">
                 
                 <form action="{{ route('logout') }}" method="POST" class="mt-auto">
                     @csrf
@@ -173,7 +144,6 @@
                         <i class="fas fa-sign-out-alt"></i> Logout
                     </button>
                 </form>
-                
             </div>
         </div>
 

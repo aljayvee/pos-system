@@ -80,4 +80,12 @@ class PurchaseController extends Controller
 
         return redirect()->route('purchases.index')->with('success', 'Stocks added successfully!');
     }
+
+    public function show(Purchase $purchase)
+    {
+        // Eager load items and products for performance
+        $purchase->load(['purchaseItems.product', 'supplier', 'user']);
+        
+        return view('admin.purchases.show', compact('purchase'));
+    }
 }

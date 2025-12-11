@@ -29,18 +29,19 @@
                 <tbody>
                     @forelse($purchases as $purchase)
                     <tr>
-                        <td>#{{ $purchase->id }}</td>
-                        <td>{{ \Carbon\Carbon::parse($purchase->purchase_date)->format('M d, Y') }}</td>
-                        <td class="fw-bold">{{ $purchase->supplier->name ?? 'Unknown' }}</td>
-                        <td>
-                            <span class="badge bg-secondary">{{ $purchase->items->count() }} items</span>
-                        </td>
+                        <td>{{ $purchase->created_at->format('M d, Y') }}</td>
+                        <td class="fw-bold">{{ $purchase->supplier->name ?? 'N/A' }}</td>
                         <td class="text-success fw-bold">₱{{ number_format($purchase->total_cost, 2) }}</td>
-                        <td class="text-muted small">{{ $purchase->created_at->format('M d, h:i A') }}</td>
+                        <td>
+                            {{-- NEW: View Button --}}
+                            <a href="{{ route('purchases.show', $purchase->id) }}" class="btn btn-sm btn-info text-white">
+                                <i class="fas fa-eye"></i> View Items
+                            </a>
+                        </td>
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="6" class="text-center py-4 text-muted">No purchase records found.</td>
+                        <td colspan="4" class="text-center py-4 text-muted">No purchase history found.</td>
                     </tr>
                     @endforelse
                 </tbody>
