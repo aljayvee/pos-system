@@ -71,7 +71,7 @@
                         <select id="customer-id" class="form-select form-select-lg">
                             <option value="walk-in" data-points="0">Walk-in Customer</option>
                             <option value="new" data-points="0">+ New Customer (Credit)</option>
-                            @foreach($customers as $customer)
+                           @foreach($customers as $customer) 
                                 <option value="{{ $customer->id }}" 
                                         data-name="{{ $customer->name }}"
                                         data-contact="{{ $customer->contact }}"

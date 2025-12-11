@@ -57,6 +57,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->group(function () {
     // Settings Routes
     Route::get('/settings', [\App\Http\Controllers\Admin\SettingsController::class, 'index'])->name('settings.index');
     Route::post('/settings', [\App\Http\Controllers\Admin\SettingsController::class, 'update'])->name('settings.update');
+    Route::get('/credits/{credit}/history', [CreditController::class, 'history'])->name('credits.history');
 });
 
 // CASHIER Routes (Protected)

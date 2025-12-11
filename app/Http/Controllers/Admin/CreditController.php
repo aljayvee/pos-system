@@ -4,15 +4,15 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\CustomerCredit;
+use App\Models\CreditPayment; // Import this
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 
 class CreditController extends Controller
 {
-    // 1. Show list of unpaid debts
     public function index()
     {
-        // Get credits that are not fully paid, sorted by newest
         $credits = CustomerCredit::with('customer', 'sale')
                     ->where('is_paid', false)
                     ->latest()
@@ -21,7 +21,7 @@ class CreditController extends Controller
         return view('admin.credits.index', compact('credits'));
     }
 
-    // 2. Process a repayment
+    // Updated Repay Function
     public function repay(Request $request, CustomerCredit $credit)
     {
         $request->validate([
@@ -30,23 +30,42 @@ class CreditController extends Controller
 
         $amount = $request->payment_amount;
 
-        // Check if payment exceeds balance
         if ($amount > $credit->remaining_balance) {
-            return back()->withErrors(['payment_amount' => 'Payment cannot exceed remaining balance (₱' . number_format($credit->remaining_balance, 2) . ')']);
+            return back()->withErrors(['payment_amount' => 'Payment cannot exceed balance.']);
         }
 
-        // Update the record
-        $credit->amount_paid += $amount;
-        $credit->remaining_balance -= $amount;
+        DB::transaction(function () use ($credit, $amount, $request) {
+            // 1. Update Credit Record
+            $credit->amount_paid += $amount;
+            $credit->remaining_balance -= $amount;
 
-        // Check if fully paid
-        if ($credit->remaining_balance <= 0) {
-            $credit->is_paid = true;
-            $credit->remaining_balance = 0;
-        }
+            if ($credit->remaining_balance <= 0) {
+                $credit->is_paid = true;
+                $credit->remaining_balance = 0;
+            }
+            $credit->save();
 
-        $credit->save();
+            // 2. Log the Payment History (NEW)
+            CreditPayment::create([
+                'customer_credit_id' => $credit->credit_id,
+                'amount' => $amount,
+                'payment_date' => now(),
+                'user_id' => Auth::id(),
+                'notes' => 'Partial Payment'
+            ]);
+        });
 
-        return back()->with('success', 'Payment of ₱' . number_format($amount, 2) . ' recorded successfully!');
+        return back()->with('success', 'Payment recorded successfully!');
+    }
+
+    // NEW: Show Payment History
+    public function history(CustomerCredit $credit)
+    {
+        $payments = CreditPayment::where('customer_credit_id', $credit->credit_id)
+                        ->with('user')
+                        ->latest()
+                        ->get();
+                        
+        return view('admin.credits.history', compact('credit', 'payments'));
     }
 }

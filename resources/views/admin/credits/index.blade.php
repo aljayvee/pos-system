@@ -44,6 +44,11 @@
                                 Pay
                             </button>
 
+                            {{-- NEW: History Button --}}
+                            <a href="{{ route('credits.history', $credit->credit_id) }}" class="btn btn-secondary btn-sm ms-1">
+                                <i class="fas fa-history"></i> History
+                            </a>
+
                             {{-- USE credit_id HERE FOR ID --}}
                             <div class="modal fade" id="repayModal-{{ $credit->credit_id }}" tabindex="-1" aria-hidden="true">
                                 <div class="modal-dialog">
