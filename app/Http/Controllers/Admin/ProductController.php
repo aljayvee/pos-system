@@ -66,6 +66,11 @@ class ProductController extends Controller
     {
         $query = Product::with('category')->latest();
 
+        // 0. Filter: Show Archived (Trash)
+        if ($request->has('archived')) {
+            $query->onlyTrashed(); // Query ONLY deleted items
+        }
+
         // 1. Search Filter (Name or SKU)
         if ($request->filled('search')) {
             $search = $request->search;
@@ -91,6 +96,24 @@ class ProductController extends Controller
         $categories = \App\Models\Category::orderBy('name')->get();
 
         return view('admin.products.index', compact('products', 'categories'));
+    }
+
+    // NEW: Restore Archived Product
+    public function restore($id)
+    {
+        $product = Product::onlyTrashed()->findOrFail($id);
+        $product->restore();
+
+        return back()->with('success', 'Product restored successfully.');
+    }
+
+    // NEW: Force Delete (Permanent)
+    public function forceDelete($id)
+    {
+        $product = Product::onlyTrashed()->findOrFail($id);
+        $product->forceDelete(); // Permanently remove from DB
+
+        return back()->with('success', 'Product permanently deleted.');
     }
 
     // 2. Show Create Form

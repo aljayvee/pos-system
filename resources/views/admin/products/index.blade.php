@@ -1,13 +1,15 @@
 @extends('admin.layout')
+
 @php
-    // Fetch Setting
+    // Fetch Setting for Barcode Feature
     $barcodeEnabled = \App\Models\Setting::where('key', 'enable_barcode')->value('value') ?? '0';
 @endphp
-@section('content')
 
+@section('content')
 <div class="container-fluid px-4">
-    <div class="d-flex justify-content-between align-items-center mt-4 mb-4">
-        <h1>Products</h1>
+    
+    <div class="d-flex justify-content-between align-items-center mt-4 mb-3">
+        <h1><i class="fas fa-box-open text-primary"></i> Product Management</h1>
         <div>
             <button class="btn btn-success me-2" data-bs-toggle="modal" data-bs-target="#importModal">
                 <i class="fas fa-file-csv"></i> Import CSV
@@ -45,16 +47,27 @@
                 </div>
 
                 {{-- Quick Filter --}}
-                <div class="col-md-3">
+                <div class="col-md-2">
                     <select name="filter" class="form-select" onchange="this.form.submit()">
                         <option value="">-- All Status --</option>
                         <option value="low" {{ request('filter') == 'low' ? 'selected' : '' }}>Low Stock Only</option>
                     </select>
                 </div>
 
-                {{-- Buttons --}}
-                <div class="col-md-2 d-flex gap-2">
-                    <button type="submit" class="btn btn-dark w-100">Filter</button>
+                {{-- Buttons (Filter & Archive Toggle) --}}
+                <div class="col-md-3 d-flex gap-2">
+                    <button type="submit" class="btn btn-dark flex-grow-1">Filter</button>
+                    
+                    @if(request('archived'))
+                        <a href="{{ route('products.index') }}" class="btn btn-warning flex-grow-1">
+                            <i class="fas fa-box-open"></i> Active
+                        </a>
+                    @else
+                        <a href="{{ route('products.index', ['archived' => 1]) }}" class="btn btn-secondary flex-grow-1" title="View Deleted">
+                            <i class="fas fa-trash-alt"></i> Trash
+                        </a>
+                    @endif
+
                     @if(request()->anyFilled(['search', 'category', 'filter']))
                         <a href="{{ route('products.index') }}" class="btn btn-outline-secondary" title="Reset">
                             <i class="fas fa-undo"></i>
@@ -66,90 +79,105 @@
         </div>
     </div>
 
-<div class="container py-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2>Product Inventory</h2>
-        <a href="{{ route('products.create') }}" class="btn btn-primary">
-            <i class="fa fa-plus"></i> Add New Product
-        </a>
-    </div>
-
-    @if(session('success')) 
-        <div class="alert alert-success">{{ session('success') }}</div> 
+    {{-- VISUAL INDICATOR FOR ARCHIVED ITEMS --}}
+    @if(request('archived'))
+        <div class="alert alert-warning border-start border-warning border-4">
+            <i class="fas fa-trash-alt me-2"></i> 
+            <strong>Archived Items</strong> — These products are hidden from the POS and Reports. Restore them to make them active again.
+        </div>
     @endif
 
     <div class="card shadow-sm">
         <div class="card-body p-0">
             <table class="table table-striped table-hover mb-0">
-                <thead class="table-dark">
+                <thead class="table-light">
                     <tr>
-                        <th>SKU</th>
-                        <th>Name</th>
+                        <th>Product Name</th>
                         <th>Category</th>
                         <th>Price</th>
-                        <th>Cost</th>
-                        <th>Stock</th>
+                        <th>Stock Level</th>
+                        <th>Status</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     @forelse($products as $product)
                     <tr>
-                        <td>{{ $product->sku ?? '-' }}</td>
                         <td>
                             <div class="fw-bold">{{ $product->name }}</div>
                             <small class="text-muted">{{ ucfirst($product->unit) }}</small>
                         </td>
-                        <td>
-                            <span class="badge bg-secondary">{{ $product->category->name ?? 'None' }}</span>
-                        </td>
+                        <td>{{ $product->category->name ?? 'Uncategorized' }}</td>
                         <td>₱{{ number_format($product->price, 2) }}</td>
-                        <td>{{ $product->cost ? '₱'.number_format($product->cost, 2) : '-' }}</td>
+                        <td class="fw-bold {{ $product->stock <= $product->reorder_point ? 'text-danger' : 'text-success' }}">
+                            {{ $product->stock }}
+                        </td>
                         <td>
-                            @if($product->stock <= $product->alert_stock)
-                                <span class="text-danger fw-bold">{{ $product->stock }} (Low)</span>
+                            @if($product->stock == 0)
+                                <span class="badge bg-danger">Out of Stock</span>
+                            @elseif($product->stock <= $product->reorder_point)
+                                <span class="badge bg-warning text-dark">Low Stock</span>
                             @else
-                                <span class="text-success">{{ $product->stock }}</span>
+                                <span class="badge bg-success">Good</span>
                             @endif
                         </td>
                         <td>
-                            {{-- ... Edit Button ... --}}
+                            @if(request('archived'))
+                                {{-- ARCHIVED MODE: Show Restore & Force Delete --}}
+                                <form action="{{ route('products.restore', $product->id) }}" method="POST" class="d-inline">
+                                    @csrf
+                                    <button class="btn btn-sm btn-success" title="Restore Product">
+                                        <i class="fas fa-trash-restore"></i> Restore
+                                    </button>
+                                </form>
 
-                            {{-- BARCODE BUTTON (Condition: Feature ON + Product has SKU) --}}
-                            @if($barcodeEnabled == '1' && $product->sku)
-                                <a href="{{ route('products.barcode', $product->id) }}" 
-                                   target="_blank" 
-                                   class="btn btn-sm btn-outline-dark" 
-                                   title="Print Barcode">
-                                    <i class="fas fa-barcode"></i>
+                                <form action="{{ route('products.force_delete', $product->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Permanently delete this item? This cannot be undone.');">
+                                    @csrf @method('DELETE')
+                                    <button class="btn btn-sm btn-danger" title="Delete Permanently">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </form>
+                            @else
+                                {{-- ACTIVE MODE: Show Edit, Barcode, & Archive --}}
+                                <a href="{{ route('products.edit', $product->id) }}" class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-edit"></i>
                                 </a>
-                            @endif
 
-                            {{-- ... Delete Button ... --}}
-                        </td>
-                        <td>
-                            <a href="{{ route('products.edit', $product) }}" class="btn btn-sm btn-warning">Edit</a>
-                            <form action="{{ route('products.destroy', $product) }}" method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this product?');">
-                                @csrf @method('DELETE')
-                                <button class="btn btn-sm btn-danger">Delete</button>
-                            </form>
+                                {{-- BARCODE BUTTON (Condition: Feature ON + Product has SKU) --}}
+                                @if($barcodeEnabled == '1' && $product->sku)
+                                    <a href="{{ route('products.barcode', $product->id) }}" 
+                                       target="_blank" 
+                                       class="btn btn-sm btn-outline-dark" 
+                                       title="Print Barcode">
+                                        <i class="fas fa-barcode"></i>
+                                    </a>
+                                @endif
+
+                                <form action="{{ route('products.destroy', $product->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Archive this product?');">
+                                    @csrf @method('DELETE')
+                                    <button class="btn btn-sm btn-outline-danger" title="Archive">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </form>
+                            @endif
                         </td>
                     </tr>
                     @empty
                     <tr>
-                            <td colspan="7" class="text-center py-5 text-muted">
-                                <i class="fas fa-box-open fa-3x mb-3 opacity-25"></i><br>
-                                No products found matching your filters.
-                            </td>
-                        </tr>
+                        <td colspan="6" class="text-center py-5 text-muted">
+                            <i class="fas fa-box-open fa-3x mb-3 opacity-25"></i><br>
+                            No products found matching your filters.
+                        </td>
+                    </tr>
                     @endforelse
                 </tbody>
             </table>
         </div>
+        <div class="card-footer">
+            {{ $products->links() }}
+        </div>
     </div>
-</div>
 
-{{-- INSERT THIS MODAL AT THE BOTTOM OF THE FILE --}}
     <div class="modal fade" id="importModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -160,7 +188,10 @@
                 <form action="{{ route('products.import') }}" method="POST" enctype="multipart/form-data">
                     @csrf
                     <div class="modal-body">
-                        
+                        <p class="text-muted small">
+                            Format: <strong>Name, Category, Price, Stock, Barcode/SKU</strong><br>
+                            Example: <em>"Coke 1.5L", "Drinks", 75, 100, "12345678"</em>
+                        </p>
                         <div class="mb-3">
                             <label class="form-label">Select CSV File</label>
                             <input type="file" name="csv_file" class="form-control" required accept=".csv">
@@ -176,5 +207,4 @@
     </div>
 
 </div>
-
 @endsection
