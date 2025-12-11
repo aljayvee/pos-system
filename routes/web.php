@@ -83,8 +83,9 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->group(function () {
     Route::delete('/products/{id}/force-delete', [\App\Http\Controllers\Admin\ProductController::class, 'forceDelete'])->name('products.force_delete');
 
 
-    // Database Backup Route
+    // Database Backup & Restore
     Route::get('/settings/backup', [\App\Http\Controllers\Admin\BackupController::class, 'download'])->name('settings.backup');
+    Route::post('/settings/restore', [\App\Http\Controllers\Admin\BackupController::class, 'restore'])->name('settings.restore');
 
 });
 

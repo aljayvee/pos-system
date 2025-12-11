@@ -90,6 +90,40 @@
                         
                         <hr class="my-4">
 
+                        <h5 class="text-danger"><i class="fas fa-database me-1"></i> Data Management</h5>
+                        <p class="text-muted small">Manage your system data securely.</p>
+
+                        <div class="d-flex align-items-center bg-light p-3 border rounded mb-3">
+                            <div class="flex-grow-1">
+                                <h6 class="mb-1 fw-bold">Backup Database (.sql)</h6>
+                                <small class="text-muted">Download a full copy of your system data.</small>
+                            </div>
+                            <a href="{{ route('settings.backup') }}" class="btn btn-outline-primary">
+                                <i class="fas fa-download me-2"></i> Download
+                            </a>
+                        </div>
+
+                        <div class="bg-light p-3 border rounded border-danger border-start border-4">
+                            <h6 class="mb-2 fw-bold text-danger">Restore Database</h6>
+                            <p class="small text-muted mb-3">
+                                <i class="fas fa-exclamation-triangle"></i> 
+                                <strong>Warning:</strong> Restoring will replace all current data (Products, Sales, Users) with the data in the file. This cannot be undone.
+                            </p>
+                            
+                            <form action="{{ route('settings.restore') }}" method="POST" enctype="multipart/form-data" 
+                                  onsubmit="return confirm('CRITICAL WARNING: This will WIPE current data and replace it with the backup. Are you sure?');">
+                                @csrf
+                                <div class="input-group">
+                                    <input type="file" name="backup_file" class="form-control" required accept=".sql">
+                                    <button type="submit" class="btn btn-danger">
+                                        <i class="fas fa-upload me-1"></i> Upload & Restore
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                        
+                        <hr class="my-4">
+
                         <div class="text-end">
                             <button type="submit" class="btn btn-primary px-4">
                                 <i class="fas fa-save"></i> Save Changes

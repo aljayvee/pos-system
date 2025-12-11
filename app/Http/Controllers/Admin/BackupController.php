@@ -61,4 +61,42 @@ class BackupController extends Controller
 
         return response()->stream($callback, 200, $headers);
     }
+
+    // NEW: Restore Database Logic
+    public function restore(Request $request)
+    {
+        $request->validate([
+            'backup_file' => 'required|file' // Allow sql/txt files
+        ]);
+
+        $file = $request->file('backup_file');
+        
+        // Basic check for .sql extension
+        if ($file->getClientOriginalExtension() !== 'sql') {
+            return back()->with('error', 'Invalid file format. Please upload a .sql file.');
+        }
+
+        try {
+            // Read file content
+            $sql = file_get_contents($file->getRealPath());
+
+            // Disable Foreign Key Checks to avoid errors during drop/create
+            DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+
+            // Execute the raw SQL
+            // Note: DB::unprepared is used for multiple statements
+            DB::unprepared($sql);
+
+            // Re-enable Foreign Key Checks
+            DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+
+            return back()->with('success', 'System restored successfully! Please log in again if session expired.');
+
+        } catch (\Exception $e) {
+            // Re-enable checks just in case
+            DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+            return back()->with('error', 'Restore Failed: ' . $e->getMessage());
+        }
+    }
+
 }
