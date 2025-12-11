@@ -2,14 +2,29 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Customer extends Model
 {
-    protected $fillable = ['name', 'contact', 'address', 'points'];
-    
-    // Optional: Helper to check if they are a VIP (e.g., > 100 points)
-    public function isVip() {
-        return $this->points >= 100;
+    use HasFactory;
+
+    protected $fillable = [
+        'name',
+        'contact',
+        'address',
+        'points'
+    ];
+
+    // Relationship to Sales
+    public function sales()
+    {
+        return $this->hasMany(Sale::class);
+    }
+
+    // Relationship to Credits (This was missing)
+    public function credits()
+    {
+        return $this->hasMany(CustomerCredit::class);
     }
 }
