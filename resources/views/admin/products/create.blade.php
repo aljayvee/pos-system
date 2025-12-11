@@ -33,6 +33,18 @@
                     <input type="number" name="stock" class="form-control" value="0">
                 </div>
 
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Initial Stock</label>
+                        <input type="number" name="stock" class="form-control" value="0">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Reorder Point (Low Stock Alert)</label>
+                        <input type="number" name="reorder_point" class="form-control" value="10" placeholder="Default: 10">
+                        <div class="form-text">Alert when stock falls below this number.</div>
+                    </div>
+                </div>
+
                 <div class="mb-3">
                     <label class="form-label">Barcode / SKU (Optional)</label>
                     <div class="input-group">

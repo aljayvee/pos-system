@@ -83,7 +83,8 @@ class ProductController extends Controller
             'price' => 'required|numeric',
             'category_id' => 'required|exists:categories,id',
             'sku' => 'nullable|unique:products,sku',
-            'stock' => 'integer|min:0'
+            'stock' => 'integer|min:0',
+            'reorder_point' => 'nullable|integer|min:0'
         ]);
 
         Product::create($request->all());
@@ -106,6 +107,7 @@ class ProductController extends Controller
             'price' => 'required|numeric',
             'category_id' => 'required|exists:categories,id',
             'sku' => 'nullable|unique:products,sku,' . $product->id,
+            'reorder_point' => 'nullable|integer|min:0'
         ]);
 
         $product->update($request->all());

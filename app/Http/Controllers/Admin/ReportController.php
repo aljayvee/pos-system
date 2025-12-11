@@ -70,10 +70,25 @@ class ReportController extends Controller
             ->take(10) // Get top 10
             ->get();
 
+       // 6. Slow Moving Items (Zero sales in last 30 days)
+        // Get IDs of products sold in the last 30 days
+        $soldProductIds = SaleItem::whereHas('sale', function($q) {
+                $q->where('created_at', '>=', Carbon::now()->subDays(30));
+            })
+            ->pluck('product_id')
+            ->unique();
+
+        // Find products NOT in that list, but have stock > 0
+        $slowMovingItems = \App\Models\Product::whereNotIn('id', $soldProductIds)
+            ->where('stock', '>', 0)
+            ->take(10)
+            ->get();
+
         return view('admin.reports.index', compact(
             'sales', 'total_sales', 'total_transactions', 
             'cash_sales', 'credit_sales', 'date', 'type',
-            'topItems', 'tithesAmount', 'tithesEnabled', 'gross_profit' // Pass the new variable
+            'topItems', 'tithesAmount', 'tithesEnabled', 'gross_profit',
+            'slowMovingItems' // <--- Pass this
         ));
     }
 

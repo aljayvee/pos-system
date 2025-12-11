@@ -8,14 +8,14 @@
    {{-- ... Statistics Cards are above here ... --}}
 
     <div class="row">
+        <div class="row">
         <div class="col-xl-6">
             <div class="card mb-4">
                 <div class="card-header bg-primary text-white">
-                    <i class="fas fa-trophy me-1"></i>
-                    Top Selling Items ({{ ucfirst($type) }})
+                    <i class="fas fa-trophy me-1"></i> Top Selling Items ({{ ucfirst($type) }})
                 </div>
                 <div class="card-body p-0">
-                    <table class="table table-sm table-striped mb-0">
+                   <table class="table table-sm table-striped mb-0">
                         <thead>
                             <tr>
                                 <th class="ps-3">Item Name</th>
@@ -40,6 +40,43 @@
                 </div>
             </div>
         </div>
+
+        <div class="col-xl-6">
+            <div class="card mb-4">
+                <div class="card-header bg-warning text-dark">
+                    <i class="fas fa-hourglass-half me-1"></i> Slow Moving (Last 30 Days)
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-sm table-striped mb-0">
+                        <thead>
+                            <tr>
+                                <th class="ps-3">Item Name</th>
+                                <th class="text-center">Stock</th>
+                                <th class="text-end pe-3">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse($slowMovingItems as $item)
+                            <tr>
+                                <td class="ps-3">{{ $item->name }}</td>
+                                <td class="text-center fw-bold">{{ $item->stock }}</td>
+                                <td class="text-end pe-3">
+                                    <a href="{{ route('products.edit', $item->id) }}" class="btn btn-xs btn-outline-dark" title="Edit/Discount">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            @empty
+                            <tr>
+                                <td colspan="3" class="text-center p-3 text-muted">All items are selling well!</td>
+                            </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
 
         <div class="col-xl-6">
             <div class="card mb-4">

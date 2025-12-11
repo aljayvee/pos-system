@@ -23,11 +23,12 @@ class DashboardController extends Controller
         $transactionCountToday = Sale::whereDate('created_at', $today)->count();
         $totalCredits = CustomerCredit::where('is_paid', false)->sum('remaining_balance'); // Only count unpaid
 
-        // 2. Low Stock Alerts
-        $lowStockItems = Product::where('stock', '<=', 10)
+        // 2. Low Stock Alerts (Dynamic Threshold)
+        // We compare stock column directly against reorder_point column
+        $lowStockItems = Product::whereColumn('stock', '<=', 'reorder_point')
                                 ->where('stock', '>', 0)
                                 ->orderBy('stock', 'asc')
-                                ->take(5)
+                                ->take(10)
                                 ->get();
         
         $outOfStockItems = Product::where('stock', 0)->count();
@@ -59,6 +60,8 @@ class DashboardController extends Controller
             $chartValues[] = $sale ? $sale->total : 0;
         }
         // ---------------------------------------------
+
+        
 
         return view('admin.dashboard', compact(
             'salesToday', 

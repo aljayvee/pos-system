@@ -56,6 +56,10 @@
                                 <label class="form-label">Current Stock</label>
                                 <input type="number" name="stock" class="form-control" value="{{ $product->stock }}">
                             </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Reorder Point</label>
+                                <input type="number" name="reorder_point" class="form-control" value="{{ $product->reorder_point }}">
+                            </div>
                             <div class="col-md-6">
                                 <label class="form-label">Low Stock Alert Level</label>
                                 <input type="number" name="alert_stock" class="form-control" value="{{ $product->alert_stock }}">
