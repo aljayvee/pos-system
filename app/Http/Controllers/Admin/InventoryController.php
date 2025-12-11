@@ -100,7 +100,7 @@ class InventoryController extends Controller
                 'user_id'    => \Illuminate\Support\Facades\Auth::id(),
                 'product_id' => $product->id,
                 'quantity'   => $qty,
-                'reason'     => $request->reason,
+                'type'     => $request->type,
                 'remarks'    => $request->remarks
             ]);
 
