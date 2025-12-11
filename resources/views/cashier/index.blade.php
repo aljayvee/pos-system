@@ -48,6 +48,7 @@
                     <label class="form-label fw-bold small">1. Customer</label>
                     <select class="form-select" id="customer-id">
                         <option value="walk-in">Walk-in Customer</option>
+                        <option value="new" class="fw-bold text-primary">+ New Customer (Credit)</option>
                         @foreach($customers as $customer)
                             <option value="{{ $customer->id }}" 
                                     data-name="{{ $customer->name }}" 
@@ -109,13 +110,13 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header bg-warning text-dark">
-                <h5 class="modal-title fw-bold"><i class="fas fa-file-invoice"></i> Credit Application Form</h5>
+                <h5 class="modal-title fw-bold"><i class="fas fa-user-plus"></i> Credit Customer Form</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
                 <div class="mb-3">
-                    <label class="form-label fw-bold">Full Name</label>
-                    <input type="text" id="credit-name" class="form-control bg-light" readonly>
+                    <label class="form-label fw-bold">Full Name <span class="text-danger">*</span></label>
+                    <input type="text" id="credit-name" class="form-control" placeholder="Customer Name">
                 </div>
                 <div class="mb-3">
                     <label class="form-label fw-bold">Address</label>
@@ -126,7 +127,7 @@
                     <input type="text" id="credit-contact" class="form-control" placeholder="09xxxxxxxxx">
                 </div>
                 <div class="mb-3">
-                    <label class="form-label fw-bold text-danger">Exact Date of Pay</label>
+                    <label class="form-label fw-bold text-danger">Exact Date of Pay <span class="text-danger">*</span></label>
                     <input type="date" id="credit-due-date" class="form-control" required>
                 </div>
             </div>
@@ -212,57 +213,71 @@
         const customerId = customerSelect.value;
         const total = parseFloat(document.getElementById('total-amount').innerText);
 
-        // FLOW 3: CREDIT (Specific Form Logic)
+        // FLOW 3: CREDIT
         if (method === 'credit') {
             if (customerId === 'walk-in') {
-                alert("Walk-in customers cannot avail Credit. Please select a registered customer.");
+                alert("For Credit, please select a Customer or choose 'New Customer'.");
                 return;
             }
-            // Populate Modal
-            const option = customerSelect.options[customerSelect.selectedIndex];
-            document.getElementById('credit-name').value = option.getAttribute('data-name');
-            document.getElementById('credit-contact').value = option.getAttribute('data-contact') || '';
-            document.getElementById('credit-address').value = option.getAttribute('data-address') || '';
-            document.getElementById('credit-due-date').value = ''; 
+
+            // Setup Modal Logic
+            const nameInput = document.getElementById('credit-name');
+            if (customerId === 'new') {
+                // New Customer: Enable editing, clear fields
+                nameInput.value = '';
+                nameInput.removeAttribute('readonly');
+                document.getElementById('credit-contact').value = '';
+                document.getElementById('credit-address').value = '';
+            } else {
+                // Existing Customer: Read-only name, pre-fill others
+                const option = customerSelect.options[customerSelect.selectedIndex];
+                nameInput.value = option.getAttribute('data-name');
+                nameInput.setAttribute('readonly', true);
+                document.getElementById('credit-contact').value = option.getAttribute('data-contact') || '';
+                document.getElementById('credit-address').value = option.getAttribute('data-address') || '';
+            }
             
-            // Show Modal
+            document.getElementById('credit-due-date').value = ''; 
             new bootstrap.Modal(document.getElementById('creditModal')).show();
             return; 
         }
 
-        // FLOW 1: CASH VALIDATION
+        // FLOW 1 & 2 VALIDATIONS
         if (method === 'cash') {
             const paid = parseFloat(document.getElementById('amount-paid').value);
             if (!paid || paid < total) { alert("Insufficient Cash Amount!"); return; }
         }
-
-        // FLOW 2: DIGITAL VALIDATION
         if (method === 'digital') {
             const ref = document.getElementById('reference-number').value;
             if (!ref) { alert("Please enter Reference Number!"); return; }
         }
 
-        // Confirmation Dialog for Cash/Digital
         if(confirm("Process this transaction?")) {
             submitTransaction(method);
         }
     }
 
-    // --- SUBMIT TO BACKEND ---
+    // --- SUBMIT ---
     function confirmTransaction(method) {
-        // If coming from Credit Modal, validate modal fields first
         let creditData = {};
+        const customerVal = document.getElementById('customer-id').value;
+
         if (method === 'credit') {
+            const name = document.getElementById('credit-name').value;
             const dueDate = document.getElementById('credit-due-date').value;
+            
+            if (!name) { alert("Customer Name is required."); return; }
             if (!dueDate) { alert("Please enter Exact Date of Pay."); return; }
             
             creditData = {
-                due_date: dueDate,
+                is_new: customerVal === 'new',
+                name: name,
                 address: document.getElementById('credit-address').value,
-                contact: document.getElementById('credit-contact').value
+                contact: document.getElementById('credit-contact').value,
+                due_date: dueDate
             };
             
-            if(!confirm("Process Credit Transaction?")) return;
+            if(!confirm("Confirm Credit Transaction for " + name + "?")) return;
         }
 
         const data = {
@@ -270,7 +285,7 @@
             total_amount: document.getElementById('total-amount').innerText,
             amount_paid: method === 'cash' ? document.getElementById('amount-paid').value : 0,
             payment_method: method,
-            customer_id: document.getElementById('customer-id').value === 'walk-in' ? null : document.getElementById('customer-id').value,
+            customer_id: customerVal,
             reference_number: document.getElementById('reference-number').value,
             credit_details: creditData
         };
@@ -283,7 +298,7 @@
         .then(res => res.json())
         .then(data => {
             if (data.success) {
-                alert("Transaction Complete!");
+                alert("Transaction Accepted!");
                 location.reload();
             } else {
                 alert("Error: " + data.message);
