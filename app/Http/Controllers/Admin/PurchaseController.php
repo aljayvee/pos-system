@@ -88,4 +88,31 @@ class PurchaseController extends Controller
         
         return view('admin.purchases.show', compact('purchase'));
     }
+
+    // NEW: Void / Delete Purchase (Reverse Stock)
+    public function destroy(\App\Models\Purchase $purchase)
+    {
+        \Illuminate\Support\Facades\DB::transaction(function () use ($purchase) {
+            // 1. Restore/Revert Stock Levels
+            foreach ($purchase->purchaseItems as $item) {
+                $product = \App\Models\Product::find($item->product_id);
+                if ($product) {
+                    // Deduct the quantity that was added
+                    $product->decrement('stock', $item->quantity);
+                }
+            }
+
+            // 2. Log the Action (Audit Trail)
+            \App\Models\ActivityLog::create([
+                'user_id' => auth()->id(),
+                'action' => 'Void Purchase',
+                'description' => "Voided Stock-In #{$purchase->id} from {$purchase->supplier->name}. Total: ₱{$purchase->total_cost}"
+            ]);
+
+            // 3. Delete Record (Cascading delete will remove purchase_items)
+            $purchase->delete();
+        });
+
+        return redirect()->route('purchases.index')->with('success', 'Purchase record voided and stock levels reversed.');
+    }
 }

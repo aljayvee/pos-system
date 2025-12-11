@@ -62,6 +62,16 @@
                         <small class="text-muted">Transaction ID: {{ $purchase->id }}</small>
                     </div>
 
+                    {{-- NEW: VOID BUTTON --}}
+                        <form action="{{ route('purchases.destroy', $purchase->id) }}" method="POST" 
+                              onsubmit="return confirm('CRITICAL WARNING: This will DEDUCT the stock quantities added in this purchase. \n\nAre you sure you want to void this transaction?');">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="btn btn-outline-danger btn-sm">
+                                <i class="fas fa-trash-alt me-1"></i> Void Transaction
+                            </button>
+                        </form>
+
                 </div>
             </div>
         </div>
