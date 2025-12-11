@@ -68,4 +68,15 @@ class CreditController extends Controller
                         
         return view('admin.credits.history', compact('credit', 'payments'));
     }
+
+    // NEW: Global Payment Logs (Sidebar Feature)
+    public function paymentLogs()
+    {
+        // Fetch all payments with related Credit/Customer info
+        $payments = \App\Models\CreditPayment::with(['credit.customer', 'user'])
+                        ->latest('payment_date')
+                        ->get();
+
+        return view('admin.credits.logs', compact('payments'));
+    }
 }

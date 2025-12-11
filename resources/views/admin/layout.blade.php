@@ -93,9 +93,30 @@
                 <a href="{{ route('customers.index') }}" class="list-group-item list-group-item-action {{ request()->routeIs('customers.*') ? 'active' : '' }}">
                     <i class="fas fa-users"></i> Customers
                 </a>
-                <a href="{{ route('credits.index') }}" class="list-group-item list-group-item-action {{ request()->routeIs('credits.*') ? 'active' : '' }}">
-                    <i class="fas fa-file-invoice-dollar"></i> Credits (Utang)
+
+                {{-- MERGED CREDITS MENU --}}
+                <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" 
+                   href="#creditsSubmenu" data-bs-toggle="collapse" role="button" 
+                   aria-expanded="{{ request()->routeIs('credits.*') ? 'true' : 'false' }}">
+                    <span><i class="fas fa-file-invoice-dollar"></i> Credits (Utang)</span>
+                    <i class="fas fa-caret-down"></i>
                 </a>
+                
+                <div class="collapse {{ request()->routeIs('credits.*') ? 'show' : '' }}" id="creditsSubmenu" style="background-color: #1a1e21;">
+                    {{-- 1. Outstanding List --}}
+                    <a href="{{ route('credits.index') }}" 
+                       class="list-group-item list-group-item-action ps-5 {{ request()->routeIs('credits.index') ? 'active' : '' }}" 
+                       style="background-color: transparent;">
+                        <i class="fas fa-list-ul me-2"></i> Outstanding
+                    </a>
+                    
+                    {{-- 2. Payment History --}}
+                    <a href="{{ route('credits.logs') }}" 
+                       class="list-group-item list-group-item-action ps-5 {{ request()->routeIs('credits.logs') ? 'active' : '' }}" 
+                       style="background-color: transparent;">
+                        <i class="fas fa-history me-2"></i> Payment History
+                    </a>
+                </div>
 
                 {{-- NEW REPORTS BUTTON ADDED HERE --}}
                 <a href="{{ route('reports.index') }}" class="list-group-item list-group-item-action {{ request()->routeIs('reports.*') ? 'active' : '' }}">

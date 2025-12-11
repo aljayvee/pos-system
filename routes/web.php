@@ -58,6 +58,8 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->group(function () {
     Route::get('/settings', [\App\Http\Controllers\Admin\SettingsController::class, 'index'])->name('settings.index');
     Route::post('/settings', [\App\Http\Controllers\Admin\SettingsController::class, 'update'])->name('settings.update');
     Route::get('/credits/{credit}/history', [CreditController::class, 'history'])->name('credits.history');
+    // NEW SIDEBAR ROUTE
+    Route::get('/credits/payment-logs', [CreditController::class, 'paymentLogs'])->name('credits.logs');
 });
 
 // CASHIER Routes (Protected)
