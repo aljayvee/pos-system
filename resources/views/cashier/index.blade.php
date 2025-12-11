@@ -189,11 +189,26 @@
         const modal = new bootstrap.Modal(document.getElementById('cameraModal'));
         modal.show();
         
-        // Initialize Scanner
+        // Define standard barcode formats (UPC, EAN, Code 128)
+        const config = { 
+            fps: 10, 
+            qrbox: { width: 250, height: 150 }, // Wider box is better for barcodes
+            aspectRatio: 1.0,
+            formatsToSupport: [ 
+                Html5QrcodeSupportedFormats.UPC_A, 
+                Html5QrcodeSupportedFormats.UPC_E,
+                Html5QrcodeSupportedFormats.EAN_13,
+                Html5QrcodeSupportedFormats.EAN_8, 
+                Html5QrcodeSupportedFormats.CODE_128,
+                Html5QrcodeSupportedFormats.CODE_39
+            ]
+        };
+
         if (!html5QrcodeScanner) {
-            html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 });
+            html5QrcodeScanner = new Html5QrcodeScanner("reader", config, /* verbose= */ false);
             html5QrcodeScanner.render(onScanSuccess);
         }
+    }  }
     }
 
     function stopCamera() {
