@@ -52,33 +52,31 @@
                                 Pay
                             </button>
 
-                            <div class="modal fade" id="payModal{{ $credit->id }}" tabindex="-1">
-                                <div class="modal-dialog">
-                                    <div class="modal-content">
-                                        <div class="modal-header">
-                                            <h5 class="modal-title">Record Payment: {{ $credit->customer->name }}</h5>
-                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <div class="modal fade" id="repayModal" tabindex="-1" aria-hidden="true">
+                        <div class="modal-dialog">
+                            <form id="repayForm" action="#" method="POST">
+                                @csrf
+                                @method('POST') <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title">Repay Credit</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    
+                                    <div class="modal-body">
+                                        <div class="mb-3">
+                                            <label for="amount" class="form-label">Amount</label>
+                                            <input type="number" class="form-control" name="amount" required>
                                         </div>
-                                        <form id="repayForm" action="#" method="POST">
-                                            @csrf
-                                            @method('POST')
-                                            <div class="modal-body">
-                                                <div class="mb-3">
-                                                    <label>Remaining Balance</label>
-                                                    <input type="text" class="form-control" value="₱{{ number_format($credit->remaining_balance, 2) }}" readonly>
-                                                </div>
-                                                <div class="mb-3">
-                                                    <label>Enter Payment Amount</label>
-                                                    <input type="number" name="payment_amount" class="form-control" step="0.01" max="{{ $credit->remaining_balance }}" required>
-                                                </div>
-                                            </div>
-                                            <div class="modal-footer">
-                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                                                <button type="submit" class="btn btn-success">Confirm Payment</button>
-                                            </div>
-                                        </form>
+                                    </div>
+                                    
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                        <button type="submit" class="btn btn-primary">Confirm Payment</button>
                                     </div>
                                 </div>
+                            </form>
+                            </div>
+                    </div>
                             </div>
                             </td>
                     </tr>
@@ -95,12 +93,16 @@
 @endsection
 <script>
     function setRepayRoute(id) {
-        // 1. Get the form element
         var form = document.getElementById('repayForm');
         
-        // 2. Generate the correct URL
-        // We use a placeholder '000' and replace it with the actual ID
+        // This generates: http://127.0.0.1:8000/admin/credits/000/pay
         var url = "{{ route('credits.repay', '000') }}";
-        form.action = url.replace('000', id);
+        
+        // Replace '000' with the actual ID
+        var finalUrl = url.replace('000', id);
+        
+        form.action = finalUrl;
+        
+        console.log('Form action updated to: ' + finalUrl); // Check your browser console
     }
 </script>
