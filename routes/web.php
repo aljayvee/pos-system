@@ -32,8 +32,10 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->group(function () {
     Route::get('/credits/export', [\App\Http\Controllers\Admin\CreditController::class, 'export'])->name('credits.export');
 
     // User Management
-    Route::resource('users', UserController::class)->except(['show', 'edit', 'update']);
+    
     Route::post('/users/{user}/toggle', [UserController::class, 'toggleStatus'])->name('users.toggle');
+    // Removed 'update' from the exception list
+    Route::resource('users', UserController::class)->except(['show', 'edit']);
 
     // Add this new route:
     Route::get('/reports', [\App\Http\Controllers\Admin\ReportController::class, 'index'])->name('reports.index');

@@ -54,4 +54,32 @@ class UserController extends Controller
         $status = $user->is_active ? 'activated' : 'deactivated';
         return back()->with('success', "User has been $status.");
     }
+
+    // ... inside UserController ...
+
+    // NEW: Update User (Name, Email, Role, Password)
+    public function update(Request $request, User $user)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email,' . $user->id,
+            'role' => 'required|in:admin,cashier',
+            'password' => 'nullable|min:6|confirmed' // Password is optional here
+        ]);
+
+        $data = [
+            'name' => $request->name,
+            'email' => $request->email,
+            'role' => $request->role,
+        ];
+
+        // Only hash and update password if a new one is provided
+        if ($request->filled('password')) {
+            $data['password'] = Hash::make($request->password);
+        }
+
+        $user->update($data);
+
+        return back()->with('success', 'User account updated successfully.');
+    }
 }
