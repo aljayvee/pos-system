@@ -17,9 +17,13 @@
                                 <label class="form-label">Product Name <span class="text-danger">*</span></label>
                                 <input type="text" name="name" class="form-control" required>
                             </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Barcode / SKU</label>
-                                <input type="text" name="sku" class="form-control" placeholder="Scan or type code">
+                            <div class="mb-3">
+                                <label class="form-label">Barcode / SKU (Optional)</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-barcode"></i></span>
+                                    <input type="text" name="sku" class="form-control" placeholder="Scan or type barcode here...">
+                                </div>
+                                <div class="form-text">Scan a product now to auto-fill this field.</div>
                             </div>
                         </div>
 

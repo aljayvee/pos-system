@@ -10,12 +10,14 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
     )
-    ->withMiddleware(function (Middleware $middleware): void {
-       // REGISTER THE ALIAS HERE
-        $middleware->alias([
-            'role' => \App\Http\Middleware\RoleMiddleware::class,
+    ->withMiddleware(function (Middleware $middleware) {
+        // --- ADD THIS BLOCK ---
+        $middleware->validateCsrfTokens(except: [
+            'logout', // Exclude the logout route from CSRF checks
         ]);
+        // ---------------------
     })
-    ->withExceptions(function (Exceptions $exceptions): void {
+    ->withExceptions(function (Exceptions $exceptions) {
         //
-    })->create();
+    })
+    ->create();
