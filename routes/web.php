@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Cashier\POSController;
 use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\CategoryController;
+use App\Http\Controllers\Admin\CreditController;
 
 // Public Routes
 Route::get('/', function () { return redirect('/login'); });
@@ -23,6 +24,10 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->group(function () {
 
     //Customer Contoller
     Route::resource('customers', \App\Http\Controllers\Admin\CustomerController::class);
+
+    // Credit Management
+    Route::get('/credits', [CreditController::class, 'index'])->name('credits.index');
+    Route::post('/credits/{credit}/pay', [CreditController::class, 'repay'])->name('credits.repay');
 });
 
 // CASHIER Routes (Protected)
