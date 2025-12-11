@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Sale;
+use App\Models\Setting;
 use App\Models\SaleItem;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
