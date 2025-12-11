@@ -85,10 +85,38 @@
                     <i class="fas fa-warehouse"></i> Inventory
                 </a>
 
-                {{-- NEW: Purchases / Stock In Link --}}
-                <a href="{{ route('purchases.index') }}" class="list-group-item list-group-item-action {{ request()->routeIs('purchases.*') ? 'active' : '' }}">
-                    <i class="fas fa-truck-loading"></i> Stock In / Purchases
+                {{-- PURCHASES & SUPPLIERS MENU --}}
+                <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" 
+                   href="#purchasesSubmenu" data-bs-toggle="collapse" role="button" 
+                   aria-expanded="{{ request()->routeIs('purchases.*') || request()->routeIs('suppliers.*') ? 'true' : 'false' }}">
+                    <span><i class="fas fa-truck-loading"></i> Procurement</span>
+                    <i class="fas fa-caret-down"></i>
                 </a>
+                
+                <div class="collapse {{ request()->routeIs('purchases.*') || request()->routeIs('suppliers.*') ? 'show' : '' }}" 
+                     id="purchasesSubmenu" style="background-color: #1a1e21;">
+                    
+                    {{-- 1. Stock In History --}}
+                    <a href="{{ route('purchases.index') }}" 
+                       class="list-group-item list-group-item-action ps-5 {{ request()->routeIs('purchases.*') ? 'active' : '' }}" 
+                       style="background-color: transparent;">
+                        <i class="fas fa-history me-2"></i> Stock In History
+                    </a>
+                    
+                    {{-- 2. New Purchase --}}
+                    <a href="{{ route('purchases.create') }}" 
+                       class="list-group-item list-group-item-action ps-5 {{ request()->routeIs('purchases.create') ? 'active' : '' }}" 
+                       style="background-color: transparent;">
+                        <i class="fas fa-plus-circle me-2"></i> New Stock In
+                    </a>
+
+                    {{-- 3. Suppliers --}}
+                    <a href="{{ route('suppliers.index') }}" 
+                       class="list-group-item list-group-item-action ps-5 {{ request()->routeIs('suppliers.*') ? 'active' : '' }}" 
+                       style="background-color: transparent;">
+                        <i class="fas fa-truck me-2"></i> Suppliers
+                    </a>
+                </div>
                 
                 <a href="{{ route('customers.index') }}" class="list-group-item list-group-item-action {{ request()->routeIs('customers.*') ? 'active' : '' }}">
                     <i class="fas fa-users"></i> Customers

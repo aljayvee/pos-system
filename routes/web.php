@@ -60,6 +60,9 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->group(function () {
     Route::get('/credits/{credit}/history', [CreditController::class, 'history'])->name('credits.history');
     // NEW SIDEBAR ROUTE
     Route::get('/credits/payment-logs', [CreditController::class, 'paymentLogs'])->name('credits.logs');
+
+    // Supplier Management
+    Route::resource('suppliers', \App\Http\Controllers\Admin\SupplierController::class)->except(['create', 'show', 'edit']);
 });
 
 // CASHIER Routes (Protected)
