@@ -9,9 +9,7 @@
     @endif
 
     @if($errors->any())
-        <div class="alert alert-danger">
-            {{ $errors->first() }}
-        </div>
+        <div class="alert alert-danger">{{ $errors->first() }}</div>
     @endif
 
     <div class="card shadow-sm">
@@ -36,49 +34,47 @@
                         <td>₱{{ number_format($credit->total_amount, 2) }}</td>
                         <td class="text-success">₱{{ number_format($credit->amount_paid, 2) }}</td>
                         <td class="text-danger fw-bold">₱{{ number_format($credit->remaining_balance, 2) }}</td>
+                        <td>{{ $credit->due_date ? \Carbon\Carbon::parse($credit->due_date)->format('M d') : '-' }}</td>
                         <td>
-                            @if($credit->due_date)
-                                {{ \Carbon\Carbon::parse($credit->due_date)->format('M d') }}
-                            @else
-                                -
-                            @endif
-                        </td>
-                        <td>
+                            {{-- 1. Pass the unique ID to the modal target --}}
                             <button type="button" 
                                     class="btn btn-primary btn-sm" 
                                     data-bs-toggle="modal" 
-                                    data-bs-target="#repayModal"
-                                    onclick="setRepayRoute({{ $credit->id }})">
+                                    data-bs-target="#repayModal-{{ $credit->id }}">
                                 Pay
                             </button>
 
-                    <div class="modal fade" id="repayModal" tabindex="-1" aria-hidden="true">
-                        <div class="modal-dialog">
-                            <form id="repayForm" action="#" method="POST">
-                                @csrf
-                                @method('POST') <div class="modal-content">
-                                    <div class="modal-header">
-                                        <h5 class="modal-title">Repay Credit</h5>
-                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                    </div>
-                                    
-                                    <div class="modal-body">
-                                        <div class="mb-3">
-                                            <label for="amount" class="form-label">Amount</label>
-                                            <input type="number" class="form-control" name="amount" required>
+                            {{-- 2. Create a unique Modal ID for each row --}}
+                            <div class="modal fade" id="repayModal-{{ $credit->id }}" tabindex="-1" aria-hidden="true">
+                                <div class="modal-dialog">
+                                    {{-- 3. Set the action DIRECTLY here (No JS needed) --}}
+                                    <form action="{{ route('credits.repay', $credit->id) }}" method="POST">
+                                        @csrf
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title">Repay Credit</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                            </div>
+                                            
+                                            <div class="modal-body">
+                                                <div class="mb-3">
+                                                    <label class="form-label">Amount</label>
+                                                    {{-- Suggested amount: remaining balance --}}
+                                                    <input type="number" class="form-control" name="payment_amount" 
+                                                           max="{{ $credit->remaining_balance }}" 
+                                                           value="{{ $credit->remaining_balance }}" required>
+                                                </div>
+                                            </div>
+                                            
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                                <button type="submit" class="btn btn-primary">Confirm Payment</button>
+                                            </div>
                                         </div>
-                                    </div>
-                                    
-                                    <div class="modal-footer">
-                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                                        <button type="submit" class="btn btn-primary">Confirm Payment</button>
-                                    </div>
+                                    </form>
                                 </div>
-                            </form>
                             </div>
-                    </div>
-                            </div>
-                            </td>
+                        </td>
                     </tr>
                     @empty
                     <tr>
@@ -90,19 +86,5 @@
         </div>
     </div>
 </div>
+{{-- Script removed because we handled the URL directly in Blade above --}}
 @endsection
-<script>
-    function setRepayRoute(id) {
-        var form = document.getElementById('repayForm');
-        
-        // This generates: http://127.0.0.1:8000/admin/credits/000/pay
-        var url = "{{ route('credits.repay', '000') }}";
-        
-        // Replace '000' with the actual ID
-        var finalUrl = url.replace('000', id);
-        
-        form.action = finalUrl;
-        
-        console.log('Form action updated to: ' + finalUrl); // Check your browser console
-    }
-</script>
