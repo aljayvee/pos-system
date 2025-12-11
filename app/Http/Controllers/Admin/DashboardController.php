@@ -22,12 +22,12 @@ class DashboardController extends Controller
         $salesMonth = Sale::where('created_at', '>=', $startOfMonth)->sum('total_amount');
         $transactionCountToday = Sale::whereDate('created_at', $today)->count();
 
-        // 3. Credit Stats (Receivables)
-        $totalCredits = CustomerCredit::sum('remaining_balance'); // Total money people owe the store
+        // 3. Credit Stats (Receivables - Money people owe)
+        $totalCredits = CustomerCredit::sum('remaining_balance'); 
 
         // 4. Low Stock Alerts (Threshold: Less than 10 items)
         $lowStockItems = Product::where('stock', '<=', 10)
-                                ->where('stock', '>', 0) // Exclude already out of stock if you want
+                                ->where('stock', '>', 0) // Exclude 0 (handled separately)
                                 ->orderBy('stock', 'asc')
                                 ->take(5) // Show top 5 critical items
                                 ->get();
