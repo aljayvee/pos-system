@@ -60,7 +60,6 @@
 
                         <h5 class="text-warning"><i class="fas fa-star me-1"></i> Loyalty Program</h5>
                         
-                        {{-- TOGGLE SWITCH (Off by default) --}}
                         <div class="form-check form-switch mb-3">
                             <input type="hidden" name="enable_loyalty" value="0">
                             <input class="form-check-input" type="checkbox" id="loyaltySwitch" name="enable_loyalty" value="1" 
@@ -68,15 +67,27 @@
                             <label class="form-check-label fw-bold" for="loyaltySwitch">Enable Points & Rewards</label>
                         </div>
 
-                        <div class="row">
+                        {{-- NEW: Earning Ratio --}}
+                        <div class="row mb-3">
                             <div class="col-md-6">
-                                <label class="form-label">Points Value (in Pesos)</label>
+                                <label class="form-label fw-bold small text-muted">Earning Rule</label>
                                 <div class="input-group">
-                                    <span class="input-group-text">1 Point = ₱</span>
+                                    <span class="input-group-text bg-white">Customer earns 1 Point for every ₱</span>
+                                    <input type="number" name="loyalty_ratio" class="form-control" min="1" 
+                                           value="{{ $settings['loyalty_ratio'] ?? '100' }}">
+                                </div>
+                                <div class="form-text">Example: Enter 100 to give 1 point per ₱100 spent.</div>
+                            </div>
+                            
+                            {{-- Existing: Points Value --}}
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold small text-muted">Redemption Value</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-white">1 Point = ₱</span>
                                     <input type="number" step="0.01" name="points_conversion" class="form-control" 
                                            value="{{ $settings['points_conversion'] ?? '1.00' }}">
                                 </div>
-                                <div class="form-text">How much discount a customer gets per point.</div>
+                                <div class="form-text">Discount value when redeeming points.</div>
                             </div>
                         </div>
                          <hr class="my-4">

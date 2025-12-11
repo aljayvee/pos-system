@@ -55,7 +55,8 @@ class TransactionController extends Controller
                 $customer = Customer::find($sale->customer_id);
                 if ($customer) {
                     // 1. Remove points earned from this purchase
-                    $pointsEarned = floor($sale->total_amount / 100); // Assuming 100 = 1 point rule
+                    $loyaltyRatio = \App\Models\Setting::where('key', 'loyalty_ratio')->value('value') ?? 100;
+                    $pointsEarned = floor($sale->total_amount / $loyaltyRatio);
                     if ($pointsEarned > 0) {
                         $customer->decrement('points', $pointsEarned);
                     }
