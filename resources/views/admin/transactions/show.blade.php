@@ -7,7 +7,13 @@
             <div class="card shadow-sm border-0">
                 <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
                     <span>Transaction Details #{{ $sale->id }}</span>
-                    <a href="{{ route('transactions.index') }}" class="btn btn-sm btn-light">Back</a>
+                    <div>
+                        {{-- NEW: Print Button --}}
+                        <a href="{{ route('transactions.print', $sale->id) }}" target="_blank" class="btn btn-sm btn-warning fw-bold me-2">
+                            <i class="fas fa-print"></i> Print Receipt
+                        </a>
+                        <a href="{{ route('transactions.index') }}" class="btn btn-sm btn-light">Back</a>
+                    </div>
                 </div>
                 
                 <div class="card-body">

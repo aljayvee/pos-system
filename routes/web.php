@@ -90,6 +90,8 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->group(function () {
     // Audit Logs
     Route::get('/logs', [\App\Http\Controllers\Admin\ActivityLogController::class, 'index'])->name('logs.index');
 
+    Route::get('/transactions/{sale}/print', [\App\Http\Controllers\Admin\TransactionController::class, 'printReceipt'])->name('transactions.print');
+
 });
 
 // CASHIER Routes (Protected)

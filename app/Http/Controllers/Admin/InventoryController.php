@@ -13,11 +13,46 @@ use Illuminate\Support\Facades\DB;
 class InventoryController extends Controller
 {
     // 1. Show Current Inventory Levels
-    public function index()
+    // 1. Show Current Inventory Levels & Financial Summary
+    public function index(Request $request)
     {
-        // Fetch products with their category
-        $products = Product::with('category')->orderBy('stock', 'asc')->get();
-        return view('admin.inventory.index', compact('products'));
+        $query = \App\Models\Product::with('category')->where('stock', '>', 0);
+
+        // Filters (Search/Category)
+        if ($request->filled('search')) {
+            $query->where('name', 'like', '%' . $request->search . '%');
+        }
+        if ($request->filled('category')) {
+            $query->where('category_id', $request->category);
+        }
+
+        // Clone query for totals calculation before pagination
+        $allProducts = $query->get();
+
+        // STATISTICS: Calculate Financial Value
+        $totalItems = $allProducts->sum('stock');
+        
+        // Calculate Total Cost Value (Capital)
+        $totalCostValue = $allProducts->sum(function($p) { 
+            return $p->stock * ($p->cost ?? 0); 
+        });
+        
+        // Calculate Total Sales Value (Potential Revenue)
+        $totalSalesValue = $allProducts->sum(function($p) { 
+            return $p->stock * $p->price; 
+        });
+        
+        // Calculate Potential Profit
+        $potentialProfit = $totalSalesValue - $totalCostValue;
+
+        // Fetch Data for Table
+        $products = $query->latest()->paginate(15)->withQueryString();
+        $categories = \App\Models\Category::orderBy('name')->get();
+
+        return view('admin.inventory.index', compact(
+            'products', 'categories', 
+            'totalItems', 'totalCostValue', 'totalSalesValue', 'potentialProfit'
+        ));
     }
 
    // 1. Show Adjustment Form

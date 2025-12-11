@@ -19,8 +19,43 @@
             <a href="{{ route('purchases.create') }}" class="btn btn-primary"><i class="fas fa-plus"></i> Restock (Purchase)</a>
         </div>
 
-        
 
+    </div>
+
+    {{-- INVENTORY SUMMARY CARDS --}}
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white h-100">
+                <div class="card-body">
+                    <small class="text-white-50">Total Stock Count</small>
+                    <h3 class="fw-bold mb-0">{{ number_format($totalItems) }} <small class="fs-6">units</small></h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-danger text-white h-100">
+                <div class="card-body">
+                    <small class="text-white-50">Total Inventory Cost (Capital)</small>
+                    <h3 class="fw-bold mb-0">₱{{ number_format($totalCostValue, 2) }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white h-100">
+                <div class="card-body">
+                    <small class="text-white-50">Total Sales Value</small>
+                    <h3 class="fw-bold mb-0">₱{{ number_format($totalSalesValue, 2) }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white h-100">
+                <div class="card-body">
+                    <small class="text-white-50">Potential Profit</small>
+                    <h3 class="fw-bold mb-0">₱{{ number_format($potentialProfit, 2) }}</h3>
+                </div>
+            </div>
+        </div>
     </div>
 
     <div class="card mb-4">

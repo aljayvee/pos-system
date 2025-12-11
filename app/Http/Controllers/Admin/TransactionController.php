@@ -80,4 +80,11 @@ class TransactionController extends Controller
 
         return redirect()->route('transactions.index')->with('success', 'Transaction #' . $id . ' has been voided and inventory restored.');
     }
+
+    // NEW: Print Receipt from Admin
+    public function printReceipt(\App\Models\Sale $sale)
+    {
+        $sale->load('saleItems.product', 'user', 'customer');
+        return view('cashier.receipt', compact('sale'));
+    }
 }

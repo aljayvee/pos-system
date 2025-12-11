@@ -106,6 +106,7 @@ class BackupController extends Controller
                 'action' => 'System Restore',
                 'description' => 'Restored database from backup file: ' . $file->getClientOriginalName()
             ]);
+            
 
             return back()->with('success', 'Database restored successfully! Please log in again.');
 

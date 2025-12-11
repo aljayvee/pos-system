@@ -28,6 +28,7 @@ class PurchaseController extends Controller
     }
 
     // 3. Save Restocking
+    // 3. Save Restocking
     public function store(Request $request)
     {
         $request->validate([
@@ -42,7 +43,7 @@ class PurchaseController extends Controller
             // Handle Supplier (Create new if name provided, or select existing)
             $supplierId = $request->supplier_id;
             if ($request->filled('new_supplier_name')) {
-                $supplier = Supplier::create(['name' => $request->new_supplier_name]);
+                $supplier = \App\Models\Supplier::create(['name' => $request->new_supplier_name]);
                 $supplierId = $supplier->id;
             }
 
@@ -64,12 +65,14 @@ class PurchaseController extends Controller
                     'unit_cost' => $itemData['unit_cost']
                 ]);
 
-                // UPDATE INVENTORY (Core Requirement)
+                // UPDATE INVENTORY & COST
                 $product = Product::find($itemData['product_id']);
-                $product->increment('stock', $itemData['quantity']);
-                
-                // Optional: Update product "Cost Price" to the latest buying price
-                $product->update(['cost' => $itemData['unit_cost']]);
+                if ($product) {
+                    $product->increment('stock', $itemData['quantity']);
+                    
+                    // NEW: Update Master Cost Price to latest buying price
+                    $product->update(['cost' => $itemData['unit_cost']]);
+                }
 
                 $totalCost += ($itemData['quantity'] * $itemData['unit_cost']);
             }
