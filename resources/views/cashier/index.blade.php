@@ -70,6 +70,9 @@
             <div class="card shadow-sm h-100 border-0 d-flex flex-column">
                 <div class="card-header bg-primary text-white py-3">
                     <h5 class="m-0"><i class="fas fa-shopping-cart me-2"></i> Current Order</h5>
+                    <button class="btn btn-sm btn-danger border-white" onclick="clearCart()">
+                        <i class="fas fa-trash"></i> Clear
+                    </button>
                 </div>
                 
                 <div class="card-body p-0 overflow-auto flex-grow-1" style="max-height: 40vh;">
@@ -201,7 +204,9 @@
     const pointsValue = {{ \App\Models\Setting::where('key', 'points_conversion')->value('value') ?? 1 }};
     const loyaltyEnabled = {{ \App\Models\Setting::where('key', 'enable_loyalty')->value('value') ?? 0 }};
     
-    let cart = [];
+    // NEW: Load cart from LocalStorage if available, otherwise empty array
+    let cart = JSON.parse(localStorage.getItem('pos_cart')) || [];
+
     let html5QrcodeScanner = null;
     let currentCustomerPoints = 0; 
 
@@ -209,6 +214,13 @@
     window.onload = () => {
         const searchInput = document.getElementById('product-search');
         if(searchInput) searchInput.focus();
+
+        // NEW: Render the saved cart immediately on load
+        if(cart.length > 0) {
+            updateCartUI();
+            console.log("Restored " + cart.length + " items from local storage.");
+        }
+
     };
 
     // --- CUSTOMER & LOYALTY LOGIC ---
@@ -401,6 +413,9 @@
     }
 
     function updateCartUI() {
+        // 1. Save to Storage (NEW)
+        localStorage.setItem('pos_cart', JSON.stringify(cart));
+
         const list = document.getElementById('cart-items');
         list.innerHTML = '';
         
@@ -409,7 +424,13 @@
         cart.forEach(item => {
             list.innerHTML += `
                 <li class="list-group-item d-flex justify-content-between align-items-center bg-transparent">
-                    <div><h6 class="m-0 fw-bold">${item.name}</h6><small>₱${item.price} x ${item.qty}</small></div>
+                    <div>
+                        <h6 class="m-0 fw-bold">${item.name}</h6>
+                        <small class="text-muted">
+                            ${item.unit ? '(' + item.unit + ')' : ''} 
+                            ₱${item.price} x ${item.qty}
+                        </small>
+                    </div>
                     <div class="d-flex align-items-center">
                         <span class="text-success fw-bold me-3">₱${(item.price * item.qty).toFixed(2)}</span>
                         <div class="btn-group btn-group-sm">
@@ -497,6 +518,11 @@
         .then(res => res.json())
         .then(data => {
             if (data.success) {
+
+                // NEW: Clear Local Storage on Success
+                localStorage.removeItem('pos_cart'); 
+                cart = []; // Clear memory
+
                 if (confirm("Success! Print Receipt?")) {
                     window.open(`/cashier/receipt/${data.sale_id}`, '_blank', 'width=400,height=600');
                 }
@@ -540,6 +566,13 @@
 
         // 3. Show/Hide Empty State
         noProductsMsg.style.display = hasVisible ? 'none' : 'block';
+    }
+
+    function clearCart() {
+        if(confirm("Are you sure you want to clear the cart?")) {
+            cart = [];
+            updateCartUI(); // This will also update localStorage via the function above
+        }
     }
 </script>
 @endsection
