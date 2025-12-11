@@ -23,6 +23,18 @@ class POSController extends Controller
 
     public function store(Request $request)
     {
+
+        // Create Sale
+            $sale = Sale::create([
+                'user_id' => Auth::id(),
+                'customer_id' => $customerId,
+                'total_amount' => $request->total_amount,
+                'amount_paid' => $request->payment_method === 'credit' ? 0 : $request->amount_paid,
+                'payment_method' => $request->payment_method,
+                'reference_number' => $request->payment_method === 'digital' ? $request->reference_number : null, 
+            ]);
+
+
         // ... (Keep existing validation logic) ...
         $request->validate([
             'cart' => 'required|array',
@@ -37,6 +49,21 @@ class POSController extends Controller
         DB::beginTransaction();
         try {
             $customerId = $request->customer_id;
+
+
+            // --- NEW: LOYALTY POINTS LOGIC ---
+            // Only award points to registered customers (not walk-ins)
+            if ($customerId) {
+                // Rule: 1 Point per ₱100 spent
+                $pointsEarned = floor($request->total_amount / 100);
+                
+                if ($pointsEarned > 0) {
+                    $customer = Customer::find($customerId);
+                    if ($customer) {
+                        $customer->increment('points', $pointsEarned);
+                    }
+                }
+            }
 
             // ... (Keep existing Customer Logic: New/Update) ...
             if ($request->payment_method === 'credit') {

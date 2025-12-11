@@ -69,17 +69,23 @@
                     <div class="mb-3">
                         <label class="small fw-bold text-muted">CUSTOMER TYPE</label>
                         <select id="customer-id" class="form-select form-select-lg">
-                            <option value="walk-in">Walk-in Customer</option>
-                            <option value="new">+ New Customer (Credit)</option>
+                            <option value="walk-in" data-points="0">Walk-in Customer</option>
+                            <option value="new" data-points="0">+ New Customer (Credit)</option>
                             @foreach($customers as $customer)
                                 <option value="{{ $customer->id }}" 
                                         data-name="{{ $customer->name }}"
                                         data-contact="{{ $customer->contact }}"
-                                        data-address="{{ $customer->address }}">
-                                    {{ $customer->name }} (Existing)
+                                        data-address="{{ $customer->address }}"
+                                        data-points="{{ $customer->points }}"> {{-- NEW ATTRIBUTE --}}
+                                    {{ $customer->name }}
                                 </option>
                             @endforeach
                         </select>
+                        <div id="loyalty-badge" class="mt-2" style="display: none;">
+                            <span class="badge bg-warning text-dark border border-dark">
+                                <i class="fas fa-star"></i> Loyalty Points: <span id="customer-points" class="fw-bold">0</span>
+                            </span>
+                        </div>
                     </div>
 
                     <div class="mb-3">
@@ -167,6 +173,34 @@
     // --- BARCODE SCANNER LOGIC (USB & KEYBOARD) ---
     // Focus search on load
     window.onload = () => document.getElementById('product-search').focus();
+    document.getElementById('customer-id').addEventListener('change', function() {
+        const type = this.value;
+        const paySelect = document.getElementById('payment-method');
+        const creditOpt = document.getElementById('opt-credit');
+        
+        // --- NEW: Update Loyalty Points Display ---
+        const selectedOption = this.options[this.selectedIndex];
+        const points = selectedOption.getAttribute('data-points');
+        const badge = document.getElementById('loyalty-badge');
+        const pointsSpan = document.getElementById('customer-points');
+
+        if (type !== 'walk-in' && type !== 'new' && points) {
+            pointsSpan.innerText = points;
+            badge.style.display = 'block';
+        } else {
+            badge.style.display = 'none';
+        }
+        // ------------------------------------------
+
+        if (type !== 'walk-in') {
+            paySelect.value = 'credit';
+            creditOpt.disabled = false;
+        } else {
+            paySelect.value = 'cash';
+            creditOpt.disabled = true;
+        }
+        toggleFlow();
+    });
 
     // Listen for "Enter" key in search box (USB Scanners hit Enter after scanning)
     document.getElementById('product-search').addEventListener('keypress', function (e) {
