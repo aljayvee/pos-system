@@ -39,6 +39,11 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->group(function () {
 
     // Inventory / Restocking Routes
     Route::resource('purchases', \App\Http\Controllers\Admin\PurchaseController::class)->only(['index', 'create', 'store']);
+
+    // Report Routes
+    Route::get('/reports', [\App\Http\Controllers\Admin\ReportController::class, 'index'])->name('reports.index');
+    // ADD THIS NEW ROUTE:
+    Route::get('/reports/export', [\App\Http\Controllers\Admin\ReportController::class, 'export'])->name('reports.export');
 });
 
 // CASHIER Routes (Protected)

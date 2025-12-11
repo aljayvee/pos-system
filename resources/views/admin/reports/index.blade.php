@@ -4,9 +4,11 @@
 <div class="container py-4">
     <h2 class="mb-4"><i class="fas fa-chart-line text-primary"></i> Sales Report</h2>
 
+   {{-- ... existing code ... --}}
     <div class="card shadow-sm mb-4">
         <div class="card-body">
-            <form action="{{ route('reports.index') }}" method="GET" class="row g-3 align-items-end">
+            {{-- REMOVE action="..." from the form tag so buttons can decide where to go --}}
+            <form method="GET" class="row g-3 align-items-end">
                 <div class="col-md-3">
                     <label class="form-label">Report Type</label>
                     <select name="type" class="form-select">
@@ -18,12 +20,27 @@
                     <label class="form-label">Date</label>
                     <input type="date" name="date" class="form-control" value="{{ $date }}">
                 </div>
-                <div class="col-md-2">
-                    <button type="submit" class="btn btn-primary w-100">Filter</button>
+                
+                {{-- UPDATED BUTTONS AREA --}}
+                <div class="col-md-4 d-flex gap-2">
+                    {{-- Filter Button --}}
+                    <button type="submit" 
+                            formaction="{{ route('reports.index') }}" 
+                            class="btn btn-primary flex-fill">
+                        <i class="fas fa-filter"></i> Filter
+                    </button>
+
+                    {{-- Export Button --}}
+                    <button type="submit" 
+                            formaction="{{ route('reports.export') }}" 
+                            class="btn btn-success flex-fill">
+                        <i class="fas fa-file-csv"></i> Export CSV
+                    </button>
                 </div>
             </form>
         </div>
     </div>
+{{-- ... existing code ... --}}
 
     <div class="row mb-4 text-center">
         <div class="col-md-3">
