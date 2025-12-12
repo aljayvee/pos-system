@@ -136,6 +136,21 @@
                         <a href="{{ route('settings.index') }}" class="list-group-item list-group-item-action ps-4 {{ request()->routeIs('settings.*') ? 'active' : '' }}">
                             <i class="fas fa-cogs"></i> Settings
                         </a>
+                        
+                        <li class="nav-item">
+                            <a href="{{ route('admin.transaction_history') }}" class="list-group-item list-group-item-action ps-4 {{ request()->routeIs('transaction_history.*') ? 'active' : '' }}">
+                                <i class="nav-icon fas fa-history"></i>
+                                <p>Transaction History</p>
+                            </a>
+                        </li>
+
+                        <li class="nav-item">
+                            <a href="{{ route('admin.audit_logs') }}" class="list-group-item list-group-item-action ps-4 {{ request()->routeIs('audit_logs.*') ? 'active' : '' }}">
+                                <i class="nav-icon fas fa-file-alt"></i>
+                                <p>Audit Logs</p>
+                            </a>
+                        </li>
+
                     </div>
 
                 @endif
