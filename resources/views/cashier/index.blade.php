@@ -299,7 +299,7 @@
     let cart = JSON.parse(localStorage.getItem('pos_cart')) || [];
     let html5QrcodeScanner = null;
     let currentCustomerPoints = 0; 
-    let paymentCheckInterval = null;
+    let paymentCheckInterval = null; // Important global variable
 
     window.onload = () => {
         if(document.getElementById('product-search')) document.getElementById('product-search').focus();
@@ -352,7 +352,6 @@
             if(statusDiv) statusDiv.innerText = "Click to generate payment link";
 
             if(data.success) {
-                // Check if elements exist before accessing
                 const qrAmt = document.getElementById('qr-amount');
                 const qrDiv = document.getElementById('qrcode');
                 
@@ -383,12 +382,16 @@
 
     function startPolling(id) {
         if(paymentCheckInterval) clearInterval(paymentCheckInterval);
+        
         paymentCheckInterval = setInterval(() => {
             fetch(`/cashier/payment/check/${id}`)
             .then(r => r.json())
             .then(d => {
                 if(d.status === 'paid') {
+                    // STOP POLLING IMMEDIATELY
                     clearInterval(paymentCheckInterval);
+                    paymentCheckInterval = null; 
+
                     const statusEl = document.getElementById('payment-status');
                     const spinner = document.getElementById('payment-spinner');
                     
@@ -399,8 +402,12 @@
                     if(spinner) spinner.style.display = 'none';
 
                     setTimeout(() => {
+                        // Close QR Modal
                         bootstrap.Modal.getInstance(document.getElementById('qrPaymentModal')).hide();
-                        handlePayNow(); 
+                        
+                        // FIX: Call confirmTransaction directly for digital payments
+                        // Do NOT call handlePayNow() because it triggers confirm() dialog
+                        confirmTransaction('digital'); 
                     }, 1500);
                 }
             });
@@ -414,10 +421,8 @@
         const creditOpt = document.getElementById('opt-credit');
         const selectedOption = this.options[this.selectedIndex];
 
-        // 1. Reset
         Array.from(paySelect.options).forEach(opt => opt.disabled = false);
 
-        // 2. Logic
         if (type === 'new') {
             creditOpt.disabled = false; 
             paySelect.value = 'credit';
@@ -428,7 +433,6 @@
             if(paySelect.value === 'credit') paySelect.value = 'cash';
         }
 
-        // 3. Loyalty & Debt UI
         currentCustomerPoints = parseInt(selectedOption.getAttribute('data-points') || 0);
         const badge = document.getElementById('redemption-section');
         const availPoints = document.getElementById('avail-points');
@@ -457,7 +461,6 @@
         const select = document.getElementById('customer-id');
         const name = select.options[select.selectedIndex].text;
         const balance = document.getElementById('customer-balance').innerText;
-        // Fix Modal Focus Issue
         openDebtPaymentModal(select.value, name, balance.replace(/,/g,'')); 
     }
 
@@ -471,7 +474,6 @@
     }
     
     function openDebtPaymentModal(id, name, balance) {
-        // Close list modal if open
         const listEl = document.getElementById('debtorListModal');
         const listModal = bootstrap.Modal.getInstance(listEl);
         if(listModal) {
@@ -596,6 +598,7 @@
         else if (confirm("Process Payment?")) { confirmTransaction(method); }
     }
 
+    // UPDATED: Now accepts method argument explicitly
     function confirmTransaction(method) {
         let creditData = {};
         const customerVal = document.getElementById('customer-id').value;
