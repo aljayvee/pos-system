@@ -685,6 +685,14 @@
 
     function generatePaymentLink() {
         const amount = document.getElementById('total-amount').innerText.replace(/,/g, '');
+        const amountStr = document.getElementById('total-amount').innerText.replace(/,/g, '');
+        const amount = parseFloat(amountStr);
+
+        // --- NEW: Check Minimum Amount for PayMongo ---
+        if(amount < 100) {
+            alert("Minimum amount for online payment is ₱100.00. Please add more items or use cash.");
+            return;
+        }
         if(parseFloat(amount) <= 0) { alert("Invalid amount"); return; }
 
         // UI Loading State
