@@ -145,7 +145,7 @@
                        
 
                         
-                            <a href="#" class="list-group-item list-group-item-action ps-4 {{ request()->routeIs('audit_logs.*') ? 'active' : '' }}">
+                            <a href="{{ route('logs.index') }}" class="list-group-item list-group-item-action ps-4 {{ request()->routeIs('audit_logs.*') ? 'active' : '' }}">
                                 <i class="fas fa-file-alt"></i>
                                 Audit Logs
                             </a>

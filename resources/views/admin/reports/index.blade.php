@@ -3,6 +3,24 @@
 {{-- Import Chart.js --}}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
+@section('styles')
+<style>
+    @media print {
+        /* Hide everything we don't need in the report */
+        #sidebar-wrapper, .navbar, .card-header button, form, .btn, .breadcrumb {
+            display: none !important;
+        }
+        /* Make the main content full width */
+        #page-content-wrapper { margin: 0 !important; padding: 0 !important; width: 100% !important; }
+        .container-fluid { padding: 0 !important; }
+        .card { border: none !important; shadow: none !important; }
+        
+        /* Adjust charts for printing */
+        canvas { max-height: 400px !important; }
+    }
+</style>
+@endsection
+
 @section('content')
 <div class="container-fluid px-4 py-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
@@ -50,6 +68,10 @@
                     <a href="{{ route('reports.export', request()->all()) }}" class="btn btn-success w-100 fw-bold">
                         <i class="fas fa-file-csv me-1"></i> Export
                     </a>
+                    {{-- Add this button next to the Export button --}}
+                        <button type="button" onclick="window.print()" class="btn btn-secondary w-100 fw-bold">
+                            <i class="fas fa-print me-1"></i> Print / PDF
+                        </button>
                 </div>
             </form>
         </div>
