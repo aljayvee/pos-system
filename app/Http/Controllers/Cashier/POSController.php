@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Product;
 use App\Models\Sale;
 use App\Models\SaleItem;
+use App\Models\CreditPayment;
 use App\Models\Customer;
 use App\Models\CustomerCredit;
 use Illuminate\Http\Request;
