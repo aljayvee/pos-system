@@ -26,13 +26,21 @@ class POSController extends Controller
 
         // NEW: Fetch Categories for the filter buttons
         $categories = \App\Models\Category::has('products')->orderBy('name')->get();
+        // 1. Fetch Customers with their TOTAL UNPAID DEBT
+        $customers = Customer::withSum(['credits as balance' => function($q) {
+            $q->where('is_paid', false);
+        }], 'remaining_balance')
+        ->orderBy('name')
+        ->get();
+
        // Check if Loyalty is Enabled (Default to '0' / Off)
         $loyaltyEnabled = \App\Models\Setting::where('key', 'enable_loyalty')->value('value') ?? '0';
+        $categories = \App\Models\Category::has('products')->orderBy('name')->get();
 
         return view('cashier.index', compact('products', 'customers', 'categories', 'loyaltyEnabled'));
     }
 
-    // NEW: Process Debt Payment (Cashier)
+    // --- NEW: Process Debt Payment (Cashier) ---
     public function payCredit(Request $request)
     {
         $request->validate([
@@ -46,6 +54,7 @@ class POSController extends Controller
         DB::beginTransaction();
         try {
             // 1. Get Unpaid Credits (Oldest First)
+            // We use 'lockForUpdate' to prevent double-payments if two cashiers click at the same time
             $credits = CustomerCredit::where('customer_id', $customerId)
                         ->where('is_paid', false)
                         ->orderBy('created_at', 'asc')
@@ -57,8 +66,11 @@ class POSController extends Controller
             }
 
             $totalDebt = $credits->sum('remaining_balance');
-            if ($paymentAmount > $totalDebt) {
-                throw new \Exception("Payment exceeds total debt of ₱" . number_format($totalDebt, 2));
+            
+            // Allow overpayment? Ideally no, but let's strict check for now.
+            // Floating point comparison can be tricky, so we use a small epsilon or strict compare
+            if ($paymentAmount > $totalDebt + 0.01) { 
+                throw new \Exception("Payment (₱".number_format($paymentAmount,2).") exceeds total debt of ₱" . number_format($totalDebt, 2));
             }
 
             $remainingPayment = $paymentAmount;
@@ -67,9 +79,9 @@ class POSController extends Controller
             foreach ($credits as $credit) {
                 if ($remainingPayment <= 0) break;
 
+                // Pay off this specific credit record
                 $toPay = min($remainingPayment, $credit->remaining_balance);
 
-                // Update Credit
                 $credit->amount_paid += $toPay;
                 $credit->remaining_balance -= $toPay;
                 
@@ -79,7 +91,8 @@ class POSController extends Controller
                 }
                 $credit->save();
 
-                // Create Log Entry for this specific credit
+                // 3. Create Log Entry for this payment
+                // Ensure CreditPayment model is imported at top: use App\Models\CreditPayment;
                 \App\Models\CreditPayment::create([
                     'customer_credit_id' => $credit->id,
                     'user_id' => Auth::id(),
@@ -96,6 +109,7 @@ class POSController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
+            // This is the message that will show in your alert() if something goes wrong
             return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }
     }
