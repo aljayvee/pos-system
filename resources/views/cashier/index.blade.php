@@ -294,12 +294,16 @@
 </style>
 
 <script>
+    // --- CONFIGURATION ---
     const pointsValue = {{ \App\Models\Setting::where('key', 'points_conversion')->value('value') ?? 1 }};
     const loyaltyEnabled = {{ \App\Models\Setting::where('key', 'enable_loyalty')->value('value') ?? 0 }};
+    
     let cart = JSON.parse(localStorage.getItem('pos_cart')) || [];
     let html5QrcodeScanner = null;
     let currentCustomerPoints = 0; 
-    let paymentCheckInterval = null; // Important global variable
+    
+    // PERFORMANCE FIX: Use a flag instead of Interval ID
+    let isPolling = false; 
 
     window.onload = () => {
         if(document.getElementById('product-search')) document.getElementById('product-search').focus();
@@ -308,7 +312,7 @@
         toggleFlow();
     };
 
-    // --- PAYMONGO LOGIC ---
+    // --- PAYMONGO LOGIC (OPTIMIZED) ---
     function generatePaymentLink() {
         const amountStr = document.getElementById('total-amount').innerText.replace(/,/g, '');
         const amount = parseFloat(amountStr);
@@ -336,14 +340,7 @@
             body: JSON.stringify({ amount: amount })
         })
         .then(async res => {
-            if (!res.ok) {
-                const text = await res.text();
-                try {
-                    const jsonErr = JSON.parse(text);
-                    if(jsonErr.errors && jsonErr.errors[0] && jsonErr.errors[0].detail) throw new Error(jsonErr.errors[0].detail);
-                } catch(e) {}
-                throw new Error(`API Error (${res.status})`); 
-            }
+            if (!res.ok) throw new Error(`API Error (${res.status})`); 
             return res.json();
         })
         .then(data => {
@@ -352,20 +349,24 @@
             if(statusDiv) statusDiv.innerText = "Click to generate payment link";
 
             if(data.success) {
+                // Show QR
                 const qrAmt = document.getElementById('qr-amount');
                 const qrDiv = document.getElementById('qrcode');
-                
                 if(qrAmt) qrAmt.innerText = amountStr;
                 if(qrDiv) {
                     qrDiv.innerHTML = "";
                     new QRCode(qrDiv, { text: data.checkout_url, width: 180, height: 180 });
                 }
 
-                new bootstrap.Modal(document.getElementById('qrPaymentModal')).show();
-                
-                document.getElementById('paymongo-id').value = data.id;
-                document.getElementById('reference-number').value = data.reference_number;
-                
+                // Show Modal
+                const modalEl = document.getElementById('qrPaymentModal');
+                const modal = new bootstrap.Modal(modalEl);
+                modal.show();
+
+                // Stop polling when modal closes
+                modalEl.addEventListener('hidden.bs.modal', () => { isPolling = false; });
+
+                // Start Smart Polling
                 startPolling(data.id);
             } else {
                 alert("Payment Error: " + data.message);
@@ -375,43 +376,48 @@
             console.error(err);
             btn.innerHTML = origText;
             btn.disabled = false;
-            if(statusDiv) statusDiv.innerText = "Connection Failed";
             alert(err.message);
         });
     }
 
+    // NEW: Smart Recursive Polling (Prevents Lag)
     function startPolling(id) {
-        if(paymentCheckInterval) clearInterval(paymentCheckInterval);
-        
-        paymentCheckInterval = setInterval(() => {
-            fetch(`/cashier/payment/check/${id}`)
-            .then(r => r.json())
-            .then(d => {
-                if(d.status === 'paid') {
-                    // STOP POLLING IMMEDIATELY
-                    clearInterval(paymentCheckInterval);
-                    paymentCheckInterval = null; 
+        isPolling = true;
+        checkPaymentStatus(id);
+    }
 
-                    const statusEl = document.getElementById('payment-status');
-                    const spinner = document.getElementById('payment-spinner');
-                    
-                    if(statusEl) {
-                        statusEl.className = 'text-success fw-bold';
-                        statusEl.innerText = 'PAYMENT RECEIVED!';
-                    }
-                    if(spinner) spinner.style.display = 'none';
+    function checkPaymentStatus(id) {
+        if (!isPolling) return; // Stop if modal closed
 
-                    setTimeout(() => {
-                        // Close QR Modal
-                        bootstrap.Modal.getInstance(document.getElementById('qrPaymentModal')).hide();
-                        
-                        // FIX: Call confirmTransaction directly for digital payments
-                        // Do NOT call handlePayNow() because it triggers confirm() dialog
-                        confirmTransaction('digital'); 
-                    }, 1500);
+        fetch(`/cashier/payment/check/${id}`)
+        .then(r => r.json())
+        .then(d => {
+            if(d.status === 'paid') {
+                isPolling = false; // Stop looping
+                
+                const statusEl = document.getElementById('payment-status');
+                const spinner = document.getElementById('payment-spinner');
+                
+                if(statusEl) {
+                    statusEl.className = 'text-success fw-bold';
+                    statusEl.innerText = 'PAYMENT RECEIVED!';
                 }
-            });
-        }, 3000);
+                if(spinner) spinner.style.display = 'none';
+
+                setTimeout(() => {
+                    bootstrap.Modal.getInstance(document.getElementById('qrPaymentModal')).hide();
+                    confirmTransaction('digital'); // Save sale
+                }, 1500);
+            } else {
+                // Wait 5 seconds BEFORE asking again (Reduces server load)
+                if(isPolling) setTimeout(() => checkPaymentStatus(id), 5000);
+            }
+        })
+        .catch(err => {
+            console.warn("Polling error (retrying in 10s):", err);
+            // If error, wait longer (10s) to let server recover
+            if(isPolling) setTimeout(() => checkPaymentStatus(id), 10000);
+        });
     }
 
     // --- CUSTOMER & DEBT LOGIC ---
@@ -598,7 +604,6 @@
         else if (confirm("Process Payment?")) { confirmTransaction(method); }
     }
 
-    // UPDATED: Now accepts method argument explicitly
     function confirmTransaction(method) {
         let creditData = {};
         const customerVal = document.getElementById('customer-id').value;
