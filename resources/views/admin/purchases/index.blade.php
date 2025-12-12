@@ -31,7 +31,9 @@
                     @foreach($purchases as $purchase)
                     <tr>
                         <td>{{ $purchase->id }}</td>
-                        <td>{{ $purchase->formatted_date }}</td> 
+                        <td>
+                            {{ \Carbon\Carbon::parse($purchase->purchase_date)->format('M d, Y') }}
+                        </td>
                         <td>{{ $purchase->supplier->name ?? 'N/A' }}</td>
                         
                         <td>{{ $purchase->items->count() }}</td> 
