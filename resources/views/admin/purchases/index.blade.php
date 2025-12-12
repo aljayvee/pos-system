@@ -24,13 +24,15 @@
                         <th>Items Count</th>
                         <th>Total Cost</th>
                         <th>Recorded At</th>
+                        <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     @foreach($purchases as $purchase)
                     <tr>
                         <td>{{ $purchase->id }}</td>
-                        <td>{{ $purchase->formatted_date }}</td> <td>{{ $purchase->supplier->name ?? 'N/A' }}</td>
+                        <td>{{ $purchase->formatted_date }}</td> 
+                        <td>{{ $purchase->supplier->name ?? 'N/A' }}</td>
                         
                         <td>{{ $purchase->items->count() }}</td> 
                         <td>₱{{ number_format($purchase->total_cost, 2) }}</td>
@@ -38,7 +40,7 @@
                         <td>{{ $purchase->created_at->format('M d, Y h:i A') }}</td>
                         
                         <td>
-                            <a href="{{ route('admin.purchases.show', $purchase->id) }}" class="btn btn-primary">
+                            <a href="{{ route('purchases.show', $purchase->id) }}" class="btn btn-primary">
                                 View Items
                             </a>
                         </td>
