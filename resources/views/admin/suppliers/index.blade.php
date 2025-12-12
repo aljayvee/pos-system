@@ -31,7 +31,7 @@
                         <th>Name</th>
                         <th>Contact Info</th>
                         <th>Purchases History</th>
-                        <th>Actions</th>
+                        <th class="text-center">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -42,13 +42,20 @@
                         <td>
                             <span class="badge bg-secondary">{{ $supplier->purchases_count }} Transactions</span>
                         </td>
-                        <td>
-                            <button class="btn btn-sm btn-outline-primary" 
+                        <td class="text-center">
+                            {{-- NEW: VIEW BUTTON --}}
+                            <a href="{{ route('suppliers.show', $supplier->id) }}" class="btn btn-sm btn-outline-info me-1" title="View Profile">
+                                <i class="fas fa-eye"></i>
+                            </a>
+
+                            {{-- EDIT BUTTON --}}
+                            <button class="btn btn-sm btn-outline-primary me-1" 
                                     data-bs-toggle="modal" 
                                     data-bs-target="#editSupplierModal-{{ $supplier->id }}">
                                 <i class="fas fa-edit"></i>
                             </button>
 
+                            {{-- DELETE BUTTON --}}
                             <form action="{{ route('suppliers.destroy', $supplier->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Delete this supplier?');">
                                 @csrf @method('DELETE')
                                 <button class="btn btn-sm btn-outline-danger" {{ $supplier->purchases_count > 0 ? 'disabled' : '' }}>
@@ -56,11 +63,12 @@
                                 </button>
                             </form>
 
+                            {{-- EDIT MODAL --}}
                             <div class="modal fade" id="editSupplierModal-{{ $supplier->id }}" tabindex="-1">
                                 <div class="modal-dialog">
                                     <form action="{{ route('suppliers.update', $supplier->id) }}" method="POST">
                                         @csrf @method('PUT')
-                                        <div class="modal-content">
+                                        <div class="modal-content text-start">
                                             <div class="modal-header">
                                                 <h5 class="modal-title">Edit Supplier</h5>
                                                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
@@ -96,6 +104,7 @@
     </div>
 </div>
 
+{{-- ADD MODAL --}}
 <div class="modal fade" id="addSupplierModal" tabindex="-1">
     <div class="modal-dialog">
         <form action="{{ route('suppliers.store') }}" method="POST">

@@ -33,7 +33,8 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->group(function () {
     Route::resource('categories', CategoryController::class);
     Route::resource('products', ProductController::class);
     Route::resource('customers', \App\Http\Controllers\Admin\CustomerController::class);
-    Route::resource('suppliers', SupplierController::class)->except(['create', 'show', 'edit']);
+    // Removed 'show' from except array
+    Route::resource('suppliers', \App\Http\Controllers\Admin\SupplierController::class)->except(['create', 'edit']);
     
     // User Management (With Toggle)
     Route::post('/users/{user}/toggle', [UserController::class, 'toggleStatus'])->name('users.toggle');
@@ -78,6 +79,9 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->group(function () {
 
     // Logs
     Route::get('/logs', [ActivityLogController::class, 'index'])->name('logs.index');
+
+    
+    
 });
 
 // CASHIER Routes (Protected)

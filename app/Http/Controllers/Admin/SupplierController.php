@@ -48,4 +48,23 @@ class SupplierController extends Controller
         $supplier->delete();
         return back()->with('success', 'Supplier deleted successfully.');
     }
+
+    public function show(\App\Models\Supplier $supplier)
+    {
+        // 1. Get Purchase History
+        $purchases = $supplier->purchases()
+                              ->with('user')
+                              ->latest('purchase_date')
+                              ->paginate(10);
+
+        // 2. Calculate Stats
+        $totalSpent = $supplier->purchases()->sum('total_cost');
+        $totalTransactions = $supplier->purchases()->count();
+        
+        // Get Last Purchase Date
+        $lastPurchase = $supplier->purchases()->latest('purchase_date')->first();
+        $lastPurchaseDate = $lastPurchase ? $lastPurchase->purchase_date->format('M d, Y') : 'Never';
+
+        return view('admin.suppliers.show', compact('supplier', 'purchases', 'totalSpent', 'totalTransactions', 'lastPurchaseDate'));
+    }
 }
