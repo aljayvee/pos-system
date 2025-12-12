@@ -307,40 +307,48 @@
         const creditOpt = document.getElementById('opt-credit');
         const selectedOption = this.options[this.selectedIndex];
 
-        // 1. Logic for "New Customer"
+        // STEP 1: Reset all options to enabled first (to avoid getting stuck)
+        Array.from(paySelect.options).forEach(opt => opt.disabled = false);
+
+        // STEP 2: Apply Logic based on Type
         if (type === 'new') {
-            paySelect.value = 'credit'; // Force Credit
-            creditOpt.disabled = false; // Enable Credit
-            // Disable other options visually (handled in toggleFlow mostly, but here strictly)
+            // Logic for "New Customer" -> MUST use Credit
+            creditOpt.disabled = false; // 1. Enable Credit First
+            paySelect.value = 'credit'; // 2. Select Credit
+            
+            // 3. Disable Cash & Digital
             Array.from(paySelect.options).forEach(opt => {
-                if(opt.value !== 'credit') opt.disabled = true;
+                if (opt.value !== 'credit') opt.disabled = true;
             });
         } 
-        // 2. Logic for "Walk-in"
         else if (type === 'walk-in') {
-            paySelect.value = 'cash'; // Force Cash
+            // Logic for "Walk-in" -> NO Credit allowed
             creditOpt.disabled = true; // Disable Credit
-            Array.from(paySelect.options).forEach(opt => {
-                if(opt.value !== 'credit') opt.disabled = false;
-            });
+            
+            // If currently on Credit, switch to Cash automatically
+            if (paySelect.value === 'credit') {
+                paySelect.value = 'cash';
+            }
         }
-        // 3. Logic for Existing Customers
         else {
-            creditOpt.disabled = false; // Enable Credit
-            Array.from(paySelect.options).forEach(opt => opt.disabled = false);
-            // Don't force change value, let user choose
+            // Logic for Existing Customers -> All methods allowed
+            // (Already reset to enabled in Step 1)
         }
 
-        // 4. Update Loyalty Display
+        // STEP 3: Update Loyalty Display (Existing Logic)
         currentCustomerPoints = parseInt(selectedOption.getAttribute('data-points') || 0);
         const badge = document.getElementById('redemption-section');
+        
         if (loyaltyEnabled == 1 && type !== 'walk-in' && type !== 'new') {
-            document.getElementById('avail-points').innerText = currentCustomerPoints;
-            badge.style.display = 'block';
+            if(document.getElementById('avail-points')) {
+                document.getElementById('avail-points').innerText = currentCustomerPoints;
+            }
+            if(badge) badge.style.display = 'block';
         } else {
-            badge.style.display = 'none';
+            if(badge) badge.style.display = 'none';
         }
 
+        // STEP 4: Update UI Inputs
         toggleFlow();
     });
 
@@ -366,18 +374,25 @@
     }
 
     function openDebtPaymentModal(id, name, balance) {
-        // Close List Modal
-        bootstrap.Modal.getInstance(document.getElementById('debtorListModal')).hide();
+        // 1. Get the list modal instance
+        const listModalEl = document.getElementById('debtorListModal');
+        const listModal = bootstrap.Modal.getInstance(listModalEl);
         
-        // Open Payment Modal
-        document.getElementById('pay-debt-customer-id').value = id;
-        document.getElementById('pay-debt-name').innerText = name;
-        document.getElementById('pay-debt-balance').innerText = parseFloat(balance).toFixed(2);
-        document.getElementById('pay-debt-amount').value = '';
-        document.getElementById('pay-debt-tendered').value = '';
-        document.getElementById('pay-debt-change').innerText = '0.00';
+        // 2. Hide it first
+        listModal.hide();
         
-        new bootstrap.Modal(document.getElementById('debtPaymentModal')).show();
+        // 3. Wait for it to fully close before opening the payment modal
+        // This prevents the "aria-hidden" focus error
+        listModalEl.addEventListener('hidden.bs.modal', function () {
+            document.getElementById('pay-debt-customer-id').value = id;
+            document.getElementById('pay-debt-name').innerText = name;
+            document.getElementById('pay-debt-balance').innerText = parseFloat(balance).toFixed(2);
+            document.getElementById('pay-debt-amount').value = '';
+            document.getElementById('pay-debt-tendered').value = '';
+            document.getElementById('pay-debt-change').innerText = '0.00';
+            
+            new bootstrap.Modal(document.getElementById('debtPaymentModal')).show();
+        }, { once: true });
     }
 
     function calcDebtChange() {

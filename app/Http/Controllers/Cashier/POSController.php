@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Product;
 use App\Models\Sale;
 use App\Models\SaleItem;
-use App\Models\CreditPayment;
+use App\Models\CreditPayment; 
 use App\Models\Customer;
 use App\Models\CustomerCredit;
 use Illuminate\Http\Request;
@@ -41,7 +41,9 @@ class POSController extends Controller
         return view('cashier.index', compact('products', 'customers', 'categories', 'loyaltyEnabled'));
     }
 
-    // --- NEW: Process Debt Payment (Cashier) ---
+    // ... existing showReceipt method ...
+
+    // NEW: Process Debt Payment (Cashier)
     public function payCredit(Request $request)
     {
         $request->validate([
@@ -55,7 +57,6 @@ class POSController extends Controller
         DB::beginTransaction();
         try {
             // 1. Get Unpaid Credits (Oldest First)
-            // We use 'lockForUpdate' to prevent double-payments if two cashiers click at the same time
             $credits = CustomerCredit::where('customer_id', $customerId)
                         ->where('is_paid', false)
                         ->orderBy('created_at', 'asc')
@@ -68,15 +69,13 @@ class POSController extends Controller
 
             $totalDebt = $credits->sum('remaining_balance');
             
-            // Allow overpayment? Ideally no, but let's strict check for now.
-            // Floating point comparison can be tricky, so we use a small epsilon or strict compare
+            // Allow small buffer for float precision issues
             if ($paymentAmount > $totalDebt + 0.01) { 
-                throw new \Exception("Payment (₱".number_format($paymentAmount,2).") exceeds total debt of ₱" . number_format($totalDebt, 2));
+                throw new \Exception("Payment exceeds total debt of ₱" . number_format($totalDebt, 2));
             }
 
             $remainingPayment = $paymentAmount;
 
-            // 2. Distribute Payment (Waterfall Method)
             foreach ($credits as $credit) {
                 if ($remainingPayment <= 0) break;
 
@@ -85,6 +84,9 @@ class POSController extends Controller
 
                 $credit->amount_paid += $toPay;
                 $credit->remaining_balance -= $toPay;
+
+
+
                 
                 if ($credit->remaining_balance <= 0) {
                     $credit->remaining_balance = 0;
@@ -92,10 +94,9 @@ class POSController extends Controller
                 }
                 $credit->save();
 
-                // 3. Create Log Entry for this payment
-                // Ensure CreditPayment model is imported at top: use App\Models\CreditPayment;
+                // Create Log Entry
                 \App\Models\CreditPayment::create([
-                    'customer_credit_id' => $credit->id,
+                    'customer_credit_id' => $credit->credit_id, // <--- CHANGED from $credit->id to $credit->credit_id
                     'user_id' => Auth::id(),
                     'amount' => $toPay,
                     'payment_date' => now(),
@@ -110,10 +111,10 @@ class POSController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-            // This is the message that will show in your alert() if something goes wrong
             return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }
     }
+
 
     public function store(Request $request)
     {

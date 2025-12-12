@@ -33,4 +33,14 @@ class CustomerCredit extends Model
     public function sale() {
         return $this->belongsTo(Sale::class);
     }
+
+    public function credit()
+    {
+        return $this->belongsTo(CustomerCredit::class, 'customer_credit_id', 'credit_id');
+    }
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
 }
