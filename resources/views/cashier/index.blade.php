@@ -297,12 +297,12 @@
     // --- CONFIGURATION ---
     const pointsValue = {{ \App\Models\Setting::where('key', 'points_conversion')->value('value') ?? 1 }};
     const loyaltyEnabled = {{ \App\Models\Setting::where('key', 'enable_loyalty')->value('value') ?? 0 }};
+    const paymongoEnabled = {{ \App\Models\Setting::where('key', 'enable_paymongo')->value('value') ?? 0 }}; //
     
     let cart = JSON.parse(localStorage.getItem('pos_cart')) || [];
     let html5QrcodeScanner = null;
     let currentCustomerPoints = 0; 
-    
-    // PERFORMANCE FIX: Use a flag instead of Interval ID
+    let paymentCheckInterval = null;
     let isPolling = false; 
 
     window.onload = () => {
@@ -312,7 +312,7 @@
         toggleFlow();
     };
 
-    // --- PAYMONGO LOGIC (OPTIMIZED) ---
+    // --- PAYMONGO LOGIC ---
     function generatePaymentLink() {
         const amountStr = document.getElementById('total-amount').innerText.replace(/,/g, '');
         const amount = parseFloat(amountStr);
@@ -349,7 +349,6 @@
             if(statusDiv) statusDiv.innerText = "Click to generate payment link";
 
             if(data.success) {
-                // Show QR
                 const qrAmt = document.getElementById('qr-amount');
                 const qrDiv = document.getElementById('qrcode');
                 if(qrAmt) qrAmt.innerText = amountStr;
@@ -358,15 +357,15 @@
                     new QRCode(qrDiv, { text: data.checkout_url, width: 180, height: 180 });
                 }
 
-                // Show Modal
                 const modalEl = document.getElementById('qrPaymentModal');
                 const modal = new bootstrap.Modal(modalEl);
                 modal.show();
 
-                // Stop polling when modal closes
                 modalEl.addEventListener('hidden.bs.modal', () => { isPolling = false; });
 
-                // Start Smart Polling
+                document.getElementById('paymongo-id').value = data.id;
+                document.getElementById('reference-number').value = data.reference_number;
+
                 startPolling(data.id);
             } else {
                 alert("Payment Error: " + data.message);
@@ -380,20 +379,19 @@
         });
     }
 
-    // NEW: Smart Recursive Polling (Prevents Lag)
     function startPolling(id) {
         isPolling = true;
         checkPaymentStatus(id);
     }
 
     function checkPaymentStatus(id) {
-        if (!isPolling) return; // Stop if modal closed
+        if (!isPolling) return; 
 
         fetch(`/cashier/payment/check/${id}`)
         .then(r => r.json())
         .then(d => {
             if(d.status === 'paid') {
-                isPolling = false; // Stop looping
+                isPolling = false; 
                 
                 const statusEl = document.getElementById('payment-status');
                 const spinner = document.getElementById('payment-spinner');
@@ -406,21 +404,38 @@
 
                 setTimeout(() => {
                     bootstrap.Modal.getInstance(document.getElementById('qrPaymentModal')).hide();
-                    confirmTransaction('digital'); // Save sale
+                    confirmTransaction('digital'); // Auto-save on success
                 }, 1500);
             } else {
-                // Wait 5 seconds BEFORE asking again (Reduces server load)
                 if(isPolling) setTimeout(() => checkPaymentStatus(id), 5000);
             }
         })
         .catch(err => {
-            console.warn("Polling error (retrying in 10s):", err);
-            // If error, wait longer (10s) to let server recover
             if(isPolling) setTimeout(() => checkPaymentStatus(id), 10000);
         });
     }
 
-    // --- CUSTOMER & DEBT LOGIC ---
+    // --- POS CORE LOGIC ---
+    function handlePayNow() {
+        if (cart.length === 0) { alert("Cart is empty!"); return; }
+        
+        const method = document.getElementById('payment-method').value;
+
+        // --- FIX: Block Digital Payment if Manual Click ---
+        if (method === 'digital' && paymongoEnabled == 1) {
+            alert("Digital Payment is active. Please click 'Generate QR' and wait for the customer to pay.\n\nThe system will automatically complete the sale once payment is detected.");
+            return; // STOP HERE
+        }
+        // -------------------------------------------------
+
+        if (method === 'credit') {
+            new bootstrap.Modal(document.getElementById('creditModal')).show();
+        } else if (confirm("Process Payment?")) {
+            confirmTransaction(method);
+        }
+    }
+
+    // --- EXISTING LOGIC (Unchanged) ---
     document.getElementById('customer-id').addEventListener('change', function() {
         const type = this.value;
         const paySelect = document.getElementById('payment-method');
@@ -430,8 +445,7 @@
         Array.from(paySelect.options).forEach(opt => opt.disabled = false);
 
         if (type === 'new') {
-            creditOpt.disabled = false; 
-            paySelect.value = 'credit';
+            creditOpt.disabled = false; paySelect.value = 'credit';
             Array.from(paySelect.options).forEach(opt => { if(opt.value !== 'credit') opt.disabled = true; });
         } 
         else if (type === 'walk-in') {
@@ -470,7 +484,6 @@
         openDebtPaymentModal(select.value, name, balance.replace(/,/g,'')); 
     }
 
-    // --- DEBT LIST LOGIC ---
     function openDebtorList() { new bootstrap.Modal(document.getElementById('debtorListModal')).show(); }
     function filterDebtors() {
         const query = document.getElementById('debtor-search').value.toLowerCase();
@@ -525,7 +538,6 @@
         .catch(err => alert("Error: " + err));
     }
 
-    // --- POS CORE LOGIC ---
     function addToCart(product) {
         const item = cart.find(i => i.id === product.id);
         if (item) {
@@ -595,13 +607,6 @@
         const paid = parseFloat(document.getElementById('amount-paid').value) || 0;
         const change = paid - total;
         document.getElementById('change-display').innerText = change >= 0 ? '₱' + change.toFixed(2) : 'Invalid';
-    }
-
-    function handlePayNow() {
-        if (cart.length === 0) { alert("Cart is empty!"); return; }
-        const method = document.getElementById('payment-method').value;
-        if (method === 'credit') { new bootstrap.Modal(document.getElementById('creditModal')).show(); } 
-        else if (confirm("Process Payment?")) { confirmTransaction(method); }
     }
 
     function confirmTransaction(method) {

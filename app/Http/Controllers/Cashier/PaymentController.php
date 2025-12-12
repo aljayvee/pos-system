@@ -9,7 +9,6 @@ use App\Models\Setting;
 
 class PaymentController extends Controller
 {
-    // Helper to get the secret key
     private function getSecretKey()
     {
         return Setting::where('key', 'paymongo_secret_key')->value('value');
@@ -17,10 +16,9 @@ class PaymentController extends Controller
 
     public function createSource(Request $request)
     {
-        // 1. Validation
         $request->validate(['amount' => 'required|numeric|min:1']);
 
-        // 2. Convert to Centavos (PayMongo format: 100.00 -> 10000)
+        // PayMongo requires amount in centavos (100.00 -> 10000)
         $amount = (int) ($request->amount * 100); 
         $secretKey = $this->getSecretKey();
 
@@ -29,11 +27,9 @@ class PaymentController extends Controller
         }
         
         try {
-            // 3. Call PayMongo API
-            // Added 'withoutVerifying()' to bypass local SSL issues
-            // Added 'timeout(60)' to prevent early timeouts
+            // FIX: Added 'withoutVerifying' and 'timeout' to solve cURL 28 error
             $response = Http::withoutVerifying()
-                ->timeout(60)
+                ->timeout(60) // Wait up to 60 seconds
                 ->withBasicAuth($secretKey, '')
                 ->withHeaders([
                     'Content-Type' => 'application/json',
@@ -49,19 +45,15 @@ class PaymentController extends Controller
                     ]
                 ]);
 
-            // 4. Handle API Errors
             if ($response->failed()) {
-                // Log the error for debugging
-                \Illuminate\Support\Facades\Log::error('PayMongo Error: ' . $response->body());
+                // Log error for debugging
+                \Illuminate\Support\Facades\Log::error('PayMongo API Error: ' . $response->body());
                 
-                // Return readable error message
                 $errorBody = $response->json();
                 $errorMsg = $errorBody['errors'][0]['detail'] ?? 'Unknown API Error';
-                
                 return response()->json(['success' => false, 'message' => 'API: ' . $errorMsg]);
             }
 
-            // 5. Success
             $data = $response->json()['data'];
             
             return response()->json([
@@ -81,7 +73,7 @@ class PaymentController extends Controller
         $secretKey = $this->getSecretKey();
 
         try {
-            // Also apply SSL bypass here
+            // Also apply fixes here
             $response = Http::withoutVerifying()
                 ->timeout(30)
                 ->withBasicAuth($secretKey, '')
@@ -91,8 +83,7 @@ class PaymentController extends Controller
             if ($response->failed()) return response()->json(['status' => 'error']);
 
             $data = $response->json()['data'];
-            // Possible statuses: unpaid, paid, archived
-            return response()->json(['status' => $data['attributes']['status']]);
+            return response()->json(['status' => $data['attributes']['status']]); // unpaid, paid
 
         } catch (\Exception $e) {
             return response()->json(['status' => 'error']);
