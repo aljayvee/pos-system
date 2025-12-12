@@ -138,7 +138,7 @@
                         </a>
                         
                         <li class="nav-item">
-                            <a href="{{ route('admin.transaction_history') }}" class="list-group-item list-group-item-action ps-4 {{ request()->routeIs('transaction_history.*') ? 'active' : '' }}">
+                            <a href="{{ route('transactions.index') }}" class="list-group-item list-group-item-action ps-4 {{ request()->routeIs('transaction_history.*') ? 'active' : '' }}">
                                 <i class="nav-icon fas fa-history"></i>
                                 <p>Transaction History</p>
                             </a>
