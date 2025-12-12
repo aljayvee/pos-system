@@ -680,32 +680,44 @@
         });
     }
 
-
-    // --- PAYMONGO LOGIC ---
+// --- PAYMONGO LOGIC ---
     let paymentCheckInterval = null;
 
     function generatePaymentLink() {
         const amount = document.getElementById('total-amount').innerText.replace(/,/g, '');
         if(parseFloat(amount) <= 0) { alert("Invalid amount"); return; }
 
-        // Show loading state
+        // UI Loading State
         const btn = document.querySelector('#flow-digital button');
+        const statusDiv = document.getElementById('digital-status');
         const origText = btn.innerHTML;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+        
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Connecting...';
         btn.disabled = true;
+        if(statusDiv) statusDiv.innerText = "Contacting PayMongo...";
 
         fetch("{{ route('payment.create') }}", {
             method: "POST",
             headers: { 
                 "Content-Type": "application/json", 
+                "Accept": "application/json", // Important: Force JSON response
                 "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute('content') 
             },
             body: JSON.stringify({ amount: amount })
         })
-        .then(res => res.json())
+        .then(async res => {
+            // Check for HTTP errors (404, 500, etc)
+            if (!res.ok) {
+                const text = await res.text();
+                throw new Error(`Server Error (${res.status}): ${text.substring(0, 50)}...`); 
+            }
+            return res.json();
+        })
         .then(data => {
+            // Restore Button
             btn.innerHTML = origText;
             btn.disabled = false;
+            if(statusDiv) statusDiv.innerText = "Click to generate payment link.";
 
             if(data.success) {
                 // 1. Show Modal
@@ -714,7 +726,7 @@
                 modal.show();
 
                 // 2. Generate QR
-                document.getElementById('qrcode').innerHTML = ""; // Clear prev
+                document.getElementById('qrcode').innerHTML = ""; 
                 new QRCode(document.getElementById("qrcode"), {
                     text: data.checkout_url,
                     width: 180,
@@ -727,42 +739,16 @@
                 
                 startPolling(data.id);
             } else {
-                alert("Error: " + data.message);
+                alert("Payment Error: " + data.message);
             }
         })
         .catch(err => {
+            // Handle Network/Server Errors
+            console.error(err);
             btn.innerHTML = origText;
             btn.disabled = false;
-            alert("Network Error");
-        });
-    }
-
-    function startPolling(id) {
-        if(paymentCheckInterval) clearInterval(paymentCheckInterval);
-        
-        paymentCheckInterval = setInterval(() => {
-            checkPaymentStatus(id);
-        }, 3000); // Check every 3 seconds
-    }
-
-    function checkPaymentStatus(manualId = null) {
-        const id = manualId || document.getElementById('paymongo-id').value;
-        if(!id) return;
-
-        fetch(`/cashier/payment/check/${id}`)
-        .then(res => res.json())
-        .then(data => {
-            if(data.status === 'paid') {
-                clearInterval(paymentCheckInterval);
-                document.getElementById('payment-msg').className = 'text-success fw-bold';
-                document.getElementById('payment-msg').innerText = 'PAYMENT RECEIVED!';
-                document.getElementById('payment-spinner').style.display = 'none';
-                
-                setTimeout(() => {
-                    bootstrap.Modal.getInstance(document.getElementById('qrPaymentModal')).hide();
-                    handlePayNow(); // Auto-submit the sale
-                }, 1500);
-            }
+            if(statusDiv) statusDiv.innerText = "Connection Failed.";
+            alert("Failed to generate QR: " + err.message);
         });
     }
 

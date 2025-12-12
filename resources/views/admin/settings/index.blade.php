@@ -4,13 +4,13 @@
 <div class="container py-4">
     <h2 class="mb-4"><i class="fas fa-cogs text-secondary"></i> System Settings</h2>
 
-    <form action="{{ route('settings.update') }}" method="POST">
-        @csrf
-        <div class="row">
-            {{-- LEFT COLUMN: Configuration Forms --}}
-            <div class="col-md-8">
+    <div class="row">
+        {{-- LEFT COLUMN: Configuration Forms (Store & PayMongo) --}}
+        <div class="col-md-8">
+            <form action="{{ route('settings.update') }}" method="POST">
+                @csrf
                 
-                {{-- 1. STORE PROFILE (Receipt Details) --}}
+                {{-- 1. STORE PROFILE --}}
                 <div class="card shadow-sm mb-4">
                     <div class="card-header bg-primary text-white">
                         <i class="fas fa-store me-2"></i> Store Profile (Receipt Header)
@@ -37,7 +37,7 @@
                             <label class="form-label fw-bold">Receipt Footer Message</label>
                             <input type="text" name="receipt_footer" class="form-control" 
                                    value="{{ $settings['receipt_footer'] ?? 'Thank you for your purchase!' }}">
-                            <div class="form-text">Shown at the bottom of the receipt (e.g., "No Return, No Exchange").</div>
+                            <div class="form-text">Shown at the bottom of the receipt.</div>
                         </div>
                     </div>
                 </div>
@@ -76,7 +76,7 @@
                     </div>
                 </div>
 
-                {{-- 3. SYSTEM FEATURES --}}
+                {{-- 3. FEATURES & TOGGLES (Includes PayMongo) --}}
                 <div class="card shadow-sm mb-4">
                     <div class="card-header bg-dark text-white">
                         <i class="fas fa-toggle-on me-2"></i> Features & Toggles
@@ -95,18 +95,17 @@
                                 {{ ($settings['enable_tithes'] ?? '0') == '1' ? 'checked' : '' }}>
                             <label class="form-check-label" for="tithesSwitch">Enable Tithes Calculation (10%)</label>
                         </div>
-                    </div>
-                </div>
 
-                <hr>
-                        {{-- ONLINE PAYMENT GATEWAY --}}
+                        <hr>
+
+                        {{-- PAYMONGO INTEGRATION --}}
                         <div class="form-check form-switch mb-3">
                             <input type="hidden" name="enable_paymongo" value="0">
                             <input class="form-check-input" type="checkbox" id="paymongoSwitch" name="enable_paymongo" value="1" 
                                 {{ ($settings['enable_paymongo'] ?? '0') == '1' ? 'checked' : '' }} 
                                 onchange="togglePaymongoFields()">
                             <label class="form-check-label fw-bold text-success" for="paymongoSwitch">
-                                <i class="fas fa-wallet me-1"></i> Enable Online Payment Gateway (PayMongo)
+                                <i class="fas fa-wallet me-1"></i> Enable Online Payment (PayMongo)
                             </label>
                         </div>
 
@@ -122,58 +121,60 @@
                                        value="{{ $settings['paymongo_public_key'] ?? '' }}" placeholder="pk_test_...">
                             </div>
                             <div class="alert alert-info small py-2">
-                                <i class="fas fa-info-circle"></i> Don't have keys? <a href="https://paymongo.com/" target="_blank">Sign up for free</a>. Use "Test Mode" keys for development.
+                                <i class="fas fa-info-circle"></i> Use "Test Keys" (sk_test, pk_test) for development.
                             </div>
                         </div>
+                    </div>
+                </div>
 
-                        <script>
-                            function togglePaymongoFields() {
-                                const isChecked = document.getElementById('paymongoSwitch').checked;
-                                document.getElementById('paymongo-fields').style.display = isChecked ? 'block' : 'none';
-                            }
-                        </script>
-
-                {{-- SAVE BUTTON --}}
+                {{-- SAVE BUTTON (Now only submits the settings form) --}}
                 <div class="d-grid mb-5">
                     <button type="submit" class="btn btn-primary btn-lg fw-bold">
                         <i class="fas fa-save me-2"></i> Save All Settings
                     </button>
                 </div>
-            </div>
+            </form>
+        </div>
 
-            {{-- RIGHT COLUMN: Data Management --}}
-            <div class="col-md-4">
-                <div class="card shadow-sm mb-4">
-                    <div class="card-header bg-danger text-white">
-                        <i class="fas fa-database me-1"></i> Data Management
+        {{-- RIGHT COLUMN: Data Management (Separate Form) --}}
+        <div class="col-md-4">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-danger text-white">
+                    <i class="fas fa-database me-1"></i> Data Management
+                </div>
+                <div class="card-body">
+                    <p class="small text-muted">Create a backup or restore data.</p>
+                    
+                    <div class="d-grid mb-3">
+                        <a href="{{ route('settings.backup') }}" class="btn btn-outline-dark">
+                            <i class="fas fa-download me-2"></i> Download Backup (.sql)
+                        </a>
                     </div>
-                    <div class="card-body">
-                        <p class="small text-muted">Create a full backup of your store's data or restore from a previous file.</p>
+
+                    <hr>
+
+                    <form action="{{ route('settings.restore') }}" method="POST" enctype="multipart/form-data" 
+                          onsubmit="return confirm('WARNING: This will WIPE all current data. Continue?');">
+                        @csrf
+                        <label class="form-label fw-bold text-danger small">Restore Database</label>
+                        <input type="file" name="backup_file" class="form-control form-control-sm mb-2" required accept=".sql">
                         
-                        <div class="d-grid mb-3">
-                            <a href="{{ route('settings.backup') }}" class="btn btn-outline-dark">
-                                <i class="fas fa-download me-2"></i> Download Backup (.sql)
-                            </a>
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-danger btn-sm">
+                                <i class="fas fa-upload me-1"></i> Upload & Restore
+                            </button>
                         </div>
-
-                        <hr>
-
-                        <form action="{{ route('settings.restore') }}" method="POST" enctype="multipart/form-data" 
-                              onsubmit="return confirm('WARNING: This will WIPE all current data and replace it with the backup. Continue?');">
-                            @csrf
-                            <label class="form-label fw-bold text-danger small">Restore Data</label>
-                            <input type="file" name="backup_file" class="form-control form-control-sm mb-2" required accept=".sql">
-                            
-                            <div class="d-grid">
-                                <button type="submit" class="btn btn-danger btn-sm">
-                                    <i class="fas fa-upload me-1"></i> Upload & Restore
-                                </button>
-                            </div>
-                        </form>
-                    </div>
+                    </form>
                 </div>
             </div>
         </div>
-    </form>
+    </div>
 </div>
+
+<script>
+    function togglePaymongoFields() {
+        const isChecked = document.getElementById('paymongoSwitch').checked;
+        document.getElementById('paymongo-fields').style.display = isChecked ? 'block' : 'none';
+    }
+</script>
 @endsection
