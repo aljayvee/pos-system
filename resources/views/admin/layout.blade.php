@@ -3,30 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>POS Admin</title>
+    <title>POS System</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    {{-- PWA Manifest & Icons --}}
     <link rel="manifest" href="{{ asset('manifest.json') }}">
     <meta name="theme-color" content="#212529">
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3081/3081559.png">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black">
-    
-    <script>
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/sw.js');
-        }
-    </script>
     
     <style>
         body { overflow-x: hidden; background-color: #f8f9fa; }
         
-        /* Sidebar Styles */
         #sidebar-wrapper {
             min-height: 100vh;
             margin-left: -15rem;
             transition: margin 0.25s ease-out;
-            background-color: #212529; /* Dark Sidebar */
+            background-color: #212529; 
             color: white;
         }
         
@@ -34,43 +27,30 @@
             padding: 0.875rem 1.25rem;
             font-size: 1.2rem;
             font-weight: bold;
-            background-color: #1a1e21; /* Slightly darker header */
+            background-color: #1a1e21; 
             border-bottom: 1px solid #495057;
         }
         
         #sidebar-wrapper .list-group { width: 15rem; }
-        
         #page-content-wrapper { min-width: 100vw; transition: margin 0.25s ease-out; }
-        
-        /* Sidebar Toggled State */
         body.sb-sidenav-toggled #sidebar-wrapper { margin-left: 0; }
         
-        /* Links */
         .list-group-item {
             border: none;
             padding: 15px 20px;
             background-color: #212529;
             color: #d1d5db;
         }
-        .list-group-item:hover {
-            background-color: #343a40;
-            color: #fff;
-        }
-        .list-group-item.active {
-            background-color: #0d6efd;
-            color: white;
-            font-weight: bold;
-        }
+        .list-group-item:hover { background-color: #343a40; color: #fff; }
+        .list-group-item.active { background-color: #0d6efd; color: white; font-weight: bold; }
         .list-group-item i { width: 25px; }
 
-        /* Responsive Adjustments */
         @media (min-width: 768px) {
             #sidebar-wrapper { margin-left: 0; }
             #page-content-wrapper { min-width: 0; width: 100%; }
             body.sb-sidenav-toggled #sidebar-wrapper { margin-left: -15rem; }
         }
     </style>
-    
     <meta name="csrf-token" content="{{ csrf_token() }}">
 </head>
 <body>
@@ -81,81 +61,65 @@
                 <i class="fas fa-store me-2"></i> Sari-Sari POS
             </div>
             <div class="list-group list-group-flush">
-                <a href="{{ route('admin.dashboard') }}" class="list-group-item list-group-item-action {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">
-                    <i class="fas fa-tachometer-alt"></i> Dashboard
-                </a>
-                <a href="{{ route('categories.index') }}" class="list-group-item list-group-item-action {{ request()->routeIs('categories.*') ? 'active' : '' }}">
-                    <i class="fas fa-tags"></i> Categories
-                </a>
-                <a href="{{ route('products.index') }}" class="list-group-item list-group-item-action {{ request()->routeIs('products.*') ? 'active' : '' }}">
-                    <i class="fas fa-box-open"></i> Products
-                </a>
-
-                <a href="{{ route('inventory.index') }}" class="list-group-item list-group-item-action {{ request()->routeIs('inventory.*') ? 'active' : '' }}">
-                    <i class="fas fa-warehouse"></i> Inventory
-                </a>
-
-                {{-- MERGED: Procurement (Stock In + Suppliers) --}}
-                <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" 
-                   href="#purchasesSubmenu" data-bs-toggle="collapse" role="button" 
-                   aria-expanded="{{ request()->routeIs('purchases.*') || request()->routeIs('suppliers.*') ? 'true' : 'false' }}">
-                    <span><i class="fas fa-truck-loading"></i> Procurement</span>
-                    <i class="fas fa-caret-down"></i>
-                </a>
-                <div class="collapse {{ request()->routeIs('purchases.*') || request()->routeIs('suppliers.*') ? 'show' : '' }}" 
-                     id="purchasesSubmenu" style="background-color: #1a1e21;">
-                    <a href="{{ route('purchases.index') }}" class="list-group-item list-group-item-action ps-5 {{ request()->routeIs('purchases.*') ? 'active' : '' }}" style="background-color: transparent;">
-                        <i class="fas fa-history me-2"></i> Stock In History
-                    </a>
-                    <a href="{{ route('suppliers.index') }}" class="list-group-item list-group-item-action ps-5 {{ request()->routeIs('suppliers.*') ? 'active' : '' }}" style="background-color: transparent;">
-                        <i class="fas fa-truck me-2"></i> Suppliers
-                    </a>
-                </div>
                 
-                <a href="{{ route('customers.index') }}" class="list-group-item list-group-item-action {{ request()->routeIs('customers.*') ? 'active' : '' }}">
-                    <i class="fas fa-users"></i> Customers
+                {{-- COMMON LINKS (Accessible to All) --}}
+                <a href="{{ route('cashier.pos') }}" class="list-group-item list-group-item-action {{ request()->routeIs('cashier.pos') ? 'active' : '' }}">
+                    <i class="fas fa-cash-register text-success"></i> Go to POS
                 </a>
 
-                {{-- MERGED: Credits (Outstanding + History) --}}
-                <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" 
-                   href="#creditsSubmenu" data-bs-toggle="collapse" role="button" 
-                   aria-expanded="{{ request()->routeIs('credits.*') ? 'true' : 'false' }}">
-                    <span><i class="fas fa-file-invoice-dollar"></i> Credits (Utang)</span>
-                    <i class="fas fa-caret-down"></i>
-                </a>
-                <div class="collapse {{ request()->routeIs('credits.*') ? 'show' : '' }}" id="creditsSubmenu" style="background-color: #1a1e21;">
-                    <a href="{{ route('credits.index') }}" class="list-group-item list-group-item-action ps-5 {{ request()->routeIs('credits.index') ? 'active' : '' }}" style="background-color: transparent;">
-                        <i class="fas fa-list-ul me-2"></i> Outstanding
+                {{-- ADMIN ONLY LINKS --}}
+                @if(Auth::user()->role === 'admin')
+                    <div class="sidebar-heading small text-uppercase text-muted mt-2">Management</div>
+
+                    <a href="{{ route('admin.dashboard') }}" class="list-group-item list-group-item-action {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">
+                        <i class="fas fa-tachometer-alt"></i> Dashboard
                     </a>
-                    <a href="{{ route('credits.logs') }}" class="list-group-item list-group-item-action ps-5 {{ request()->routeIs('credits.logs') ? 'active' : '' }}" style="background-color: transparent;">
-                        <i class="fas fa-history me-2"></i> Payment Logs
+                    
+                    <a href="{{ route('products.index') }}" class="list-group-item list-group-item-action {{ request()->routeIs('products.*') ? 'active' : '' }}">
+                        <i class="fas fa-box-open"></i> Products
                     </a>
-                </div>
 
-                <a href="{{ route('reports.index') }}" class="list-group-item list-group-item-action {{ request()->routeIs('reports.*') ? 'active' : '' }}">
-                    <i class="fas fa-chart-line"></i> Sales Reports
-                </a>
+                    <a href="{{ route('inventory.index') }}" class="list-group-item list-group-item-action {{ request()->routeIs('inventory.*') ? 'active' : '' }}">
+                        <i class="fas fa-warehouse"></i> Inventory
+                    </a>
 
-                {{-- NEW: Transaction History Link --}}
-                <a href="{{ route('transactions.index') }}" class="list-group-item list-group-item-action {{ request()->routeIs('transactions.*') ? 'active' : '' }}">
-                    <i class="fas fa-receipt"></i> Transaction History
-                </a>
-                
-                <a href="{{ route('users.index') }}" class="list-group-item list-group-item-action {{ request()->routeIs('users.*') ? 'active' : '' }}">
-                    <i class="fas fa-user-cog"></i> User Management
-                </a>
+                    <a href="{{ route('purchases.index') }}" class="list-group-item list-group-item-action {{ request()->routeIs('purchases.*') ? 'active' : '' }}">
+                        <i class="fas fa-truck-loading"></i> Restocking
+                    </a>
 
-                <a href="{{ route('settings.index') }}" class="list-group-item list-group-item-action {{ request()->routeIs('settings.*') ? 'active' : '' }}">
-                    <i class="fas fa-cogs"></i> Settings
-                </a>
+                    <div class="sidebar-heading small text-uppercase text-muted mt-2">Finance & People</div>
+
+                    <a href="{{ route('customers.index') }}" class="list-group-item list-group-item-action {{ request()->routeIs('customers.*') ? 'active' : '' }}">
+                        <i class="fas fa-users"></i> Customers
+                    </a>
+
+                    <a href="{{ route('credits.index') }}" class="list-group-item list-group-item-action {{ request()->routeIs('credits.*') ? 'active' : '' }}">
+                        <i class="fas fa-file-invoice-dollar"></i> Credits (Utang)
+                    </a>
+
+                    <a href="{{ route('suppliers.index') }}" class="list-group-item list-group-item-action {{ request()->routeIs('suppliers.*') ? 'active' : '' }}">
+                        <i class="fas fa-truck"></i> Suppliers
+                    </a>
+
+                    <div class="sidebar-heading small text-uppercase text-muted mt-2">System</div>
+
+                    <a href="{{ route('reports.index') }}" class="list-group-item list-group-item-action {{ request()->routeIs('reports.*') ? 'active' : '' }}">
+                        <i class="fas fa-chart-line"></i> Reports
+                    </a>
+
+                    <a href="{{ route('users.index') }}" class="list-group-item list-group-item-action {{ request()->routeIs('users.*') ? 'active' : '' }}">
+                        <i class="fas fa-user-cog"></i> Users
+                    </a>
+
+                    <a href="{{ route('settings.index') }}" class="list-group-item list-group-item-action {{ request()->routeIs('settings.*') ? 'active' : '' }}">
+                        <i class="fas fa-cogs"></i> Settings
+                    </a>
+                @endif
                 
-                <a href="{{ route('logs.index') }}" class="list-group-item list-group-item-action {{ request()->routeIs('logs.*') ? 'active' : '' }}">
-                    <i class="fas fa-history"></i> Audit Logs
-                </a>
-                
-                <form action="{{ route('logout') }}" method="POST" class="mt-auto">
+                {{-- LOGOUT --}}
+                <form action="{{ route('logout') }}" method="POST" class="mt-auto border-top border-secondary">
                     @csrf
-                    <button class="list-group-item list-group-item-action text-danger bg-dark">
+                    <button class="list-group-item list-group-item-action text-danger bg-dark py-3">
                         <i class="fas fa-sign-out-alt"></i> Logout
                     </button>
                 </form>
@@ -174,77 +138,40 @@
                     </button>
 
                     <div class="collapse navbar-collapse" id="navbarSupportedContent">
-                        <ul class="navbar-nav ms-auto mt-2 mt-lg-0">
-                            {{-- NOTIFICATION BELL --}}
-                <li class="nav-item dropdown me-3">
-                    <a class="nav-link text-white position-relative" href="#" id="alertsDropdown" role="button" data-bs-toggle="dropdown">
-                        <i class="fas fa-bell fa-lg"></i>
-                        @if($totalAlerts > 0)
-                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
-                                {{ $totalAlerts }}
-                            </span>
-                        @endif
-                    </a>
-                    <ul class="dropdown-menu dropdown-menu-end shadow border-0" aria-labelledby="alertsDropdown" style="width: 300px;">
-                        <li><h6 class="dropdown-header fw-bold">Notifications</h6></li>
-                        
-                        {{-- Out of Stock --}}
-                        @if($outOfStockCount > 0)
-                        <li>
-                            <a class="dropdown-item d-flex align-items-center text-danger" href="{{ route('products.index', ['filter' => 'low']) }}">
-                                <i class="fas fa-times-circle me-2"></i>
-                                <div>
-                                    <strong>{{ $outOfStockCount }} Items Out of Stock</strong>
-                                    <br><small class="text-muted">Restock immediately</small>
-                                </div>
-                            </a>
-                        </li>
-                        <li><hr class="dropdown-divider"></li>
-                        @endif
+                        <ul class="navbar-nav ms-auto mt-2 mt-lg-0 align-items-center">
+                            
+                            {{-- ALERTS (Only for Admin) --}}
+                            @if(Auth::user()->role === 'admin')
+                            <li class="nav-item dropdown me-3">
+                                <a class="nav-link position-relative" href="#" id="alertsDropdown" role="button" data-bs-toggle="dropdown">
+                                    <i class="fas fa-bell fa-lg text-secondary"></i>
+                                    @if($totalAlerts ?? 0 > 0)
+                                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                                            {{ $totalAlerts }}
+                                        </span>
+                                    @endif
+                                </a>
+                                <ul class="dropdown-menu dropdown-menu-end shadow border-0" aria-labelledby="alertsDropdown">
+                                    <li><h6 class="dropdown-header fw-bold">Notifications</h6></li>
+                                    @if(($outOfStockCount ?? 0) > 0)
+                                    <li><a class="dropdown-item text-danger" href="{{ route('products.index') }}"><small>• {{ $outOfStockCount }} Items Out of Stock</small></a></li>
+                                    @endif
+                                    @if(($lowStockCount ?? 0) > 0)
+                                    <li><a class="dropdown-item text-warning" href="{{ route('products.index') }}"><small>• {{ $lowStockCount }} Items Low Stock</small></a></li>
+                                    @endif
+                                    @if(($overdueCount ?? 0) > 0)
+                                    <li><a class="dropdown-item text-dark" href="{{ route('credits.index') }}"><small>• {{ $overdueCount }} Overdue Credits</small></a></li>
+                                    @endif
+                                </ul>
+                            </li>
+                            @endif
 
-                        {{-- Low Stock --}}
-                        @if($lowStockCount > 0)
-                        <li>
-                            <a class="dropdown-item d-flex align-items-center text-warning" href="{{ route('products.index', ['filter' => 'low']) }}">
-                                <i class="fas fa-exclamation-triangle me-2"></i>
-                                <div>
-                                    <strong>{{ $lowStockCount }} Items Low Stock</strong>
-                                    <br><small class="text-muted">Below reorder point</small>
-                                </div>
-                            </a>
-                        </li>
-                        <li><hr class="dropdown-divider"></li>
-                        @endif
-
-                        {{-- Overdue Credits --}}
-                        @if($overdueCount > 0)
-                        <li>
-                            <a class="dropdown-item d-flex align-items-center text-dark" href="{{ route('credits.index', ['filter' => 'overdue']) }}">
-                                <i class="fas fa-clock me-2"></i>
-                                <div>
-                                    <strong>{{ $overdueCount }} Overdue Credits</strong>
-                                    <br><small class="text-muted">Collect payments</small>
-                                </div>
-                            </a>
-                        </li>
-                        <li><hr class="dropdown-divider"></li>
-                        @endif
-
-                        {{-- Empty State --}}
-                        @if($totalAlerts == 0)
-                        <li class="text-center py-3 text-muted">
-                            <i class="fas fa-check-circle fa-2x mb-2 text-success"></i><br>
-                            All good! No alerts.
-                        </li>
-                        @endif
-                    </ul>
-                </li>
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle fw-bold" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
-                                    {{ Auth::user()->name }} ({{ ucfirst(Auth::user()->role) }})
+                                    <i class="fas fa-user-circle me-1"></i> {{ Auth::user()->name }} 
+                                    <span class="badge bg-secondary ms-1">{{ ucfirst(Auth::user()->role) }}</span>
                                 </a>
-                                <ul class="dropdown-menu dropdown-menu-end">
-                                    {{-- UPDATE THIS LINK --}}
+                                <ul class="dropdown-menu dropdown-menu-end shadow">
                                     <li><a class="dropdown-item" href="{{ route('profile.edit') }}">Profile</a></li>
                                     <li><hr class="dropdown-divider"></li>
                                     <li>
@@ -267,7 +194,6 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    
     <script>
         window.addEventListener('DOMContentLoaded', event => {
             const sidebarToggle = document.body.querySelector('#sidebarToggle');
@@ -278,8 +204,6 @@
                 });
             }
         });
-
-       
     </script>
 </body>
 </html>

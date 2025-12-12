@@ -5,10 +5,11 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Sale;
+use App\Models\SaleItem; // NEW: Import SaleItem
 use App\Models\Product;
 use App\Models\CustomerCredit;
 use Carbon\Carbon;
-use Illuminate\Support\Facades\DB; // Don't forget this!
+use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
@@ -21,10 +22,25 @@ class DashboardController extends Controller
         $salesToday = Sale::whereDate('created_at', $today)->sum('total_amount');
         $salesMonth = Sale::where('created_at', '>=', $startOfMonth)->sum('total_amount');
         $transactionCountToday = Sale::whereDate('created_at', $today)->count();
-        $totalCredits = CustomerCredit::where('is_paid', false)->sum('remaining_balance'); // Only count unpaid
+        $totalCredits = CustomerCredit::where('is_paid', false)->sum('remaining_balance');
 
-        // 2. Low Stock Alerts (Dynamic Threshold)
-        // We compare stock column directly against reorder_point column
+        // --- NEW: Calculate Today's Gross Profit ---
+        // Formula: Sales - Total Cost of Goods Sold (COGS)
+        // We need to check items sold TODAY and their cost price
+        $soldItemsToday = SaleItem::whereHas('sale', function($q) use ($today) {
+            $q->whereDate('created_at', $today);
+        })->with('product')->get();
+
+        $totalCostToday = 0;
+        foreach($soldItemsToday as $item) {
+            $cost = $item->product->cost ?? 0; // Get cost from product table
+            $totalCostToday += ($cost * $item->quantity);
+        }
+        
+        $profitToday = $salesToday - $totalCostToday;
+        // -------------------------------------------
+
+        // 2. Low Stock Alerts
         $lowStockItems = Product::whereColumn('stock', '<=', 'reorder_point')
                                 ->where('stock', '>', 0)
                                 ->orderBy('stock', 'asc')
@@ -33,8 +49,7 @@ class DashboardController extends Controller
         
         $outOfStockItems = Product::where('stock', 0)->count();
 
-        // --- NEW: SALES TREND DATA (Last 30 Days) ---
-        // Get sales for the last 30 days, grouped by date
+        // 3. Sales Trend Data (Last 30 Days)
         $salesData = Sale::select(
                 DB::raw('DATE(created_at) as date'), 
                 DB::raw('SUM(total_amount) as total')
@@ -44,24 +59,16 @@ class DashboardController extends Controller
             ->orderBy('date', 'asc')
             ->get();
 
-        // Format data for Chart.js (Labels and Values)
         $chartLabels = [];
         $chartValues = [];
-        
-        // Fill in missing days with 0 (Optional but good for charts)
         $period = \Carbon\CarbonPeriod::create(Carbon::now()->subDays(29), Carbon::now());
         
         foreach ($period as $date) {
             $formattedDate = $date->format('Y-m-d');
-            $chartLabels[] = $date->format('M d'); // Label: "Dec 12"
-            
-            // Find the sale for this date, or 0 if none
+            $chartLabels[] = $date->format('M d');
             $sale = $salesData->firstWhere('date', $formattedDate);
             $chartValues[] = $sale ? $sale->total : 0;
         }
-        // ---------------------------------------------
-
-        
 
         return view('admin.dashboard', compact(
             'salesToday', 
@@ -70,8 +77,9 @@ class DashboardController extends Controller
             'totalCredits', 
             'lowStockItems', 
             'outOfStockItems',
-            'chartLabels', // Pass these to view
-            'chartValues'
+            'chartLabels',
+            'chartValues',
+            'profitToday' // Pass this new variable
         ));
     }
 }

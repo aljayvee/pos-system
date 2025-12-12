@@ -7,8 +7,6 @@
         <li class="breadcrumb-item active">Dashboard</li>
     </ol>
 
-
-
     <div class="row">
         <div class="col-xl-3 col-md-6">
             <div class="card bg-primary text-white mb-4">
@@ -23,9 +21,19 @@
         <div class="col-xl-3 col-md-6">
             <div class="card bg-success text-white mb-4">
                 <div class="card-body">
+                    <h5 class="card-title"><i class="fas fa-coins me-1"></i> Today's Profit</h5>
+                    <h2 class="fw-bold">₱{{ number_format($profitToday, 2) }}</h2>
+                    <small>Gross Income (Sales - Cost)</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-info text-white mb-4">
+                <div class="card-body">
                     <h5 class="card-title">Monthly Sales</h5>
                     <h2 class="fw-bold">₱{{ number_format($salesMonth, 2) }}</h2>
-                    <small>This Month</small>
+                    <small>This Month Revenue</small>
                 </div>
             </div>
         </div>
@@ -33,12 +41,13 @@
         <div class="col-xl-3 col-md-6">
             <div class="card bg-warning text-dark mb-4">
                 <div class="card-body">
-                    <h5 class="card-title">Total Receivables</h5>
+                    <h5 class="card-title">Collectibles</h5>
                     <h2 class="fw-bold">₱{{ number_format($totalCredits, 2) }}</h2>
-                    <small>Unpaid Credits</small>
+                    <small>Unpaid Customer Debt</small>
                 </div>
             </div>
         </div>
+    </div>
 
         <div class="col-xl-3 col-md-6">
             <div class="card bg-danger text-white mb-4">
