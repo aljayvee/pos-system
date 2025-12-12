@@ -8,49 +8,43 @@
     #print-header { display: none; }
 
     @media print {
-        /* 1. RESET LAYOUT */
-        @page { margin: 1cm; size: auto; }
+        /* 1. RESET LAYOUT & HIDE UI */
+        @page { margin: 0.5cm; size: auto; }
         body { background-color: white !important; -webkit-print-color-adjust: exact; }
         
-        /* 2. HIDE UI ELEMENTS */
         #sidebar-wrapper, nav.navbar, .btn, form, .breadcrumb, .badge, .card-header i {
             display: none !important;
         }
 
-        /* 3. EXPAND CONTENT TO FULL PAGE */
-        #page-content-wrapper { margin: 0 !important; width: 100% !important; padding: 0 !important; }
+        /* 2. EXPAND CONTENT TO FULL PAGE */
+        #wrapper { padding-left: 0 !important; }
+        #page-content-wrapper { margin-left: 0 !important; width: 100% !important; }
         .container-fluid { padding: 0 !important; max-width: 100% !important; }
         
-        /* 4. TRANSFORM STATS CARDS (Ink Saver) */
-        /* Turn colored cards into white boxes with black text for printing */
+        /* 3. TRANSFORM STATS CARDS (Ink Saver) */
         .card {
             border: 1px solid #ddd !important;
             background-color: white !important;
             color: black !important;
             box-shadow: none !important;
-            margin-bottom: 20px !important;
-            break-inside: avoid; /* Prevent cutting card in half */
+            margin-bottom: 15px !important;
+            break-inside: avoid;
         }
-        .card-body h3 { font-size: 18pt !important; font-weight: bold !important; color: black !important; }
-        .card-body small { color: #555 !important; font-size: 10pt !important; }
-        .card-header {
-            background-color: #f8f9fa !important;
-            color: black !important;
-            border-bottom: 2px solid #000 !important;
-            font-weight: bold;
+        /* Force text to be black for printing */
+        .card-body h3, .card-body small, .text-white, .text-white-50 { 
+            color: black !important; 
         }
 
-        /* 5. TABLE STYLING */
+        /* 4. TABLE STYLING */
         .table { width: 100% !important; border-collapse: collapse !important; }
         .table th, .table td {
             border: 1px solid #000 !important;
-            padding: 8px !important;
+            padding: 6px !important;
             font-size: 10pt !important;
             color: black !important;
         }
-        .table thead th { background-color: #eee !important; color: black !important; }
 
-        /* 6. SHOW PRINT HEADER */
+        /* 5. SHOW PRINT HEADER */
         #print-header {
             display: block !important;
             text-align: center;
@@ -59,13 +53,8 @@
             border-bottom: 2px solid black;
         }
         
-        /* 7. CHARTS (Resize for Paper) */
-        canvas {
-            max-width: 100% !important;
-            max-height: 300px !important;
-            margin: 0 auto !important;
-            display: block;
-        }
+        /* 6. HIDE CHARTS TO SAVE INK (Optional - Remove if you want charts) */
+        /* canvas { display: none !important; } */
     }
 </style>
 @endsection
@@ -75,7 +64,7 @@
 
 {{-- NEW: Print Only Header --}}
     <div id="print-header">
-        <h1>Sari-Sari Store Sales Report</h1>
+        <h2>Sari-Sari Store Sales Report</h2>
         <p>Generated on: {{ \Carbon\Carbon::now()->format('F d, Y h:i A') }}</p>
         <p>Report Period: 
             <strong>

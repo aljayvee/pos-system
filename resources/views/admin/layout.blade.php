@@ -61,7 +61,7 @@
             #page-content-wrapper { min-width: 0; width: 100%; }
             body.sb-sidenav-toggled #sidebar-wrapper { margin-left: -15rem; }
         }
-    </style>
+    </style>@yield('styles')
     <meta name="csrf-token" content="{{ csrf_token() }}">
 </head>
 <body>
