@@ -41,7 +41,18 @@
                                 @endif
                             </td>
                             <td>
-                                <button class="btn btn-sm btn-outline-primary me-1" 
+                                <!--<button class="btn btn-sm btn-outline-primary me-1" 
+                                        data-bs-toggle="modal" 
+                                        data-bs-target="#editCustomerModal-{{ $customer->id }}">
+                                    <i class="fas fa-edit"></i>
+                                </button> --->
+
+                                    {{-- NEW: View Button --}}
+                                <a href="{{ route('customers.show', $customer->id) }}" class="btn btn-sm btn-info text-white me-1" title="View Profile">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+
+                                <button class="btn btn-sm btn-warning" 
                                         data-bs-toggle="modal" 
                                         data-bs-target="#editCustomerModal-{{ $customer->id }}">
                                     <i class="fas fa-edit"></i>
