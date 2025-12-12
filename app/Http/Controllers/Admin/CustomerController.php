@@ -4,17 +4,19 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Customer;
-use App\Models\Sale;
+use App\Models\Sale; // <--- Import Sale Model (Needed for Profile History)
 use Illuminate\Http\Request;
 
 class CustomerController extends Controller
 {
-    public function index()
+    // FIX: Added 'Request $request' here
+    public function index(Request $request)
     {
         $query = Customer::withCount(['credits as unpaid_count' => function($q){
             $q->where('is_paid', false);
         }]);
 
+        // Now $request is valid
         if ($request->filled('search')) {
             $query->where('name', 'like', '%' . $request->search . '%');
         }
@@ -27,15 +29,14 @@ class CustomerController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
-            'contact' => 'nullable|string|max:255',
-            'address' => 'nullable|string|max:255', // Added validation for address
+            'contact' => 'nullable|string|max:20',
+            'address' => 'nullable|string'
         ]);
 
         Customer::create($request->all());
         return back()->with('success', 'Customer added successfully.');
     }
 
-    // NEW: Update Function
     public function update(Request $request, Customer $customer)
     {
         $request->validate([
@@ -57,7 +58,7 @@ class CustomerController extends Controller
         return back()->with('success', 'Customer deleted.');
     }
 
-    // NEW: Show Customer Profile & History
+    // NEW: Customer Profile & History Method
     public function show(Customer $customer)
     {
         // 1. Load Sales History
@@ -70,6 +71,7 @@ class CustomerController extends Controller
         $totalSpent = Sale::where('customer_id', $customer->id)->sum('total_amount');
         $totalVisits = Sale::where('customer_id', $customer->id)->count();
         
+        // Use relationship sum (safer)
         $currentDebt = $customer->credits()->where('is_paid', false)->sum('remaining_balance');
         $paidDebt = $customer->credits()->where('is_paid', true)->count();
 
