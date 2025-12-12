@@ -14,11 +14,13 @@ class RoleMiddleware
         }
 
         $user = Auth::user();
+        
 
         // Check if user's role is in the allowed list passed from route
         if (!in_array($user->role, $roles)) {
             abort(403, 'Unauthorized access.');
         }
+
 
         return $next($request);
     }

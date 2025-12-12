@@ -27,23 +27,23 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @forelse($purchases as $purchase)
+                    @foreach($purchases as $purchase)
                     <tr>
-                        <td>{{ $purchase->created_at->format('M d, Y') }}</td>
-                        <td class="fw-bold">{{ $purchase->supplier->name ?? 'N/A' }}</td>
-                        <td class="text-success fw-bold">₱{{ number_format($purchase->total_cost, 2) }}</td>
+                        <td>{{ $purchase->id }}</td>
+                        <td>{{ $purchase->formatted_date }}</td> <td>{{ $purchase->supplier->name ?? 'N/A' }}</td>
+                        
+                        <td>{{ $purchase->items->count() }}</td> 
+                        <td>₱{{ number_format($purchase->total_cost, 2) }}</td>
+                        
+                        <td>{{ $purchase->created_at->format('M d, Y h:i A') }}</td>
+                        
                         <td>
-                            {{-- NEW: View Button --}}
-                            <a href="{{ route('purchases.show', $purchase->id) }}" class="btn btn-sm btn-info text-white">
-                                <i class="fas fa-eye"></i> View Items
+                            <a href="{{ route('admin.purchases.show', $purchase->id) }}" class="btn btn-primary">
+                                View Items
                             </a>
                         </td>
                     </tr>
-                    @empty
-                    <tr>
-                        <td colspan="4" class="text-center py-4 text-muted">No purchase history found.</td>
-                    </tr>
-                    @endforelse
+                    @endforeach
                 </tbody>
             </table>
         </div>

@@ -87,7 +87,7 @@ class PurchaseController extends Controller
     public function show(Purchase $purchase)
     {
         // Eager load items and products for performance
-        $purchase->load(['purchaseItems.product', 'supplier', 'user']);
+        $purchase->load(['purchaseItems.product', 'supplier', 'user', 'items']);
         
         return view('admin.purchases.show', compact('purchase'));
     }
