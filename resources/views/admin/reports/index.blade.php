@@ -2,27 +2,91 @@
 
 {{-- Import Chart.js --}}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
 @section('styles')
 <style>
+    /* HIDE PRINT HEADER BY DEFAULT */
+    #print-header { display: none; }
+
     @media print {
-        /* Hide everything we don't need in the report */
-        #sidebar-wrapper, .navbar, .card-header button, form, .btn, .breadcrumb {
+        /* 1. RESET LAYOUT */
+        @page { margin: 1cm; size: auto; }
+        body { background-color: white !important; -webkit-print-color-adjust: exact; }
+        
+        /* 2. HIDE UI ELEMENTS */
+        #sidebar-wrapper, nav.navbar, .btn, form, .breadcrumb, .badge, .card-header i {
             display: none !important;
         }
-        /* Make the main content full width */
-        #page-content-wrapper { margin: 0 !important; padding: 0 !important; width: 100% !important; }
-        .container-fluid { padding: 0 !important; }
-        .card { border: none !important; shadow: none !important; }
+
+        /* 3. EXPAND CONTENT TO FULL PAGE */
+        #page-content-wrapper { margin: 0 !important; width: 100% !important; padding: 0 !important; }
+        .container-fluid { padding: 0 !important; max-width: 100% !important; }
         
-        /* Adjust charts for printing */
-        canvas { max-height: 400px !important; }
+        /* 4. TRANSFORM STATS CARDS (Ink Saver) */
+        /* Turn colored cards into white boxes with black text for printing */
+        .card {
+            border: 1px solid #ddd !important;
+            background-color: white !important;
+            color: black !important;
+            box-shadow: none !important;
+            margin-bottom: 20px !important;
+            break-inside: avoid; /* Prevent cutting card in half */
+        }
+        .card-body h3 { font-size: 18pt !important; font-weight: bold !important; color: black !important; }
+        .card-body small { color: #555 !important; font-size: 10pt !important; }
+        .card-header {
+            background-color: #f8f9fa !important;
+            color: black !important;
+            border-bottom: 2px solid #000 !important;
+            font-weight: bold;
+        }
+
+        /* 5. TABLE STYLING */
+        .table { width: 100% !important; border-collapse: collapse !important; }
+        .table th, .table td {
+            border: 1px solid #000 !important;
+            padding: 8px !important;
+            font-size: 10pt !important;
+            color: black !important;
+        }
+        .table thead th { background-color: #eee !important; color: black !important; }
+
+        /* 6. SHOW PRINT HEADER */
+        #print-header {
+            display: block !important;
+            text-align: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid black;
+        }
+        
+        /* 7. CHARTS (Resize for Paper) */
+        canvas {
+            max-width: 100% !important;
+            max-height: 300px !important;
+            margin: 0 auto !important;
+            display: block;
+        }
     }
 </style>
 @endsection
 
 @section('content')
 <div class="container-fluid px-4 py-4">
+
+{{-- NEW: Print Only Header --}}
+    <div id="print-header">
+        <h1>Sari-Sari Store Sales Report</h1>
+        <p>Generated on: {{ \Carbon\Carbon::now()->format('F d, Y h:i A') }}</p>
+        <p>Report Period: 
+            <strong>
+                @if($type == 'daily') {{ \Carbon\Carbon::parse($startDate)->format('F d, Y') }}
+                @elseif($type == 'monthly') {{ \Carbon\Carbon::parse($startDate)->format('F Y') }}
+                @else {{ $startDate }} to {{ $endDate }}
+                @endif
+            </strong>
+        </p>
+    </div>
+
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="mb-0"><i class="fas fa-chart-line text-primary"></i> Sales & Analytics</h2>
         <span class="badge bg-light text-dark border p-2">
