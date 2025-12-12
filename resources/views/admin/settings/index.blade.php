@@ -98,6 +98,41 @@
                     </div>
                 </div>
 
+                <hr>
+                        {{-- ONLINE PAYMENT GATEWAY --}}
+                        <div class="form-check form-switch mb-3">
+                            <input type="hidden" name="enable_paymongo" value="0">
+                            <input class="form-check-input" type="checkbox" id="paymongoSwitch" name="enable_paymongo" value="1" 
+                                {{ ($settings['enable_paymongo'] ?? '0') == '1' ? 'checked' : '' }} 
+                                onchange="togglePaymongoFields()">
+                            <label class="form-check-label fw-bold text-success" for="paymongoSwitch">
+                                <i class="fas fa-wallet me-1"></i> Enable Online Payment Gateway (PayMongo)
+                            </label>
+                        </div>
+
+                        <div id="paymongo-fields" style="display: {{ ($settings['enable_paymongo'] ?? '0') == '1' ? 'block' : 'none' }};">
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold">PayMongo Secret Key</label>
+                                <input type="password" name="paymongo_secret_key" class="form-control form-control-sm" 
+                                       value="{{ $settings['paymongo_secret_key'] ?? '' }}" placeholder="sk_test_...">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold">PayMongo Public Key</label>
+                                <input type="text" name="paymongo_public_key" class="form-control form-control-sm" 
+                                       value="{{ $settings['paymongo_public_key'] ?? '' }}" placeholder="pk_test_...">
+                            </div>
+                            <div class="alert alert-info small py-2">
+                                <i class="fas fa-info-circle"></i> Don't have keys? <a href="https://paymongo.com/" target="_blank">Sign up for free</a>. Use "Test Mode" keys for development.
+                            </div>
+                        </div>
+
+                        <script>
+                            function togglePaymongoFields() {
+                                const isChecked = document.getElementById('paymongoSwitch').checked;
+                                document.getElementById('paymongo-fields').style.display = isChecked ? 'block' : 'none';
+                            }
+                        </script>
+
                 {{-- SAVE BUTTON --}}
                 <div class="d-grid mb-5">
                     <button type="submit" class="btn btn-primary btn-lg fw-bold">

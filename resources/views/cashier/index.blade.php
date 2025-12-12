@@ -1,5 +1,5 @@
 @extends('cashier.layout')
-
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 @section('content')
 <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 
@@ -149,8 +149,27 @@
                         <small class="text-success fw-bold d-block mt-1">Change: <span id="change-display">₱0.00</span></small>
                     </div>
 
+                    {{-- Digital Input (Modified) --}}
                     <div id="flow-digital" class="mb-3" style="display: none;">
-                        <input type="text" id="reference-number" class="form-control form-control-lg" placeholder="Reference No.">
+                        @if(\App\Models\Setting::where('key', 'enable_paymongo')->value('value') == '1')
+                            {{-- AUTOMATED FLOW --}}
+                            <div class="d-grid gap-2">
+                                <button class="btn btn-primary" onclick="generatePaymentLink()">
+                                    <i class="fas fa-qrcode me-2"></i> Generate GCash/Maya QR
+                                </button>
+                                <div id="digital-status" class="text-center small text-muted mt-1">
+                                    Click to generate payment link.
+                                </div>
+                            </div>
+                            {{-- Hidden inputs to store API results --}}
+                            <input type="hidden" id="paymongo-id">
+                            <input type="text" id="reference-number" class="form-control mt-2 text-center" 
+                                   placeholder="Reference # (Auto-filled)" readonly>
+                        @else
+                            {{-- MANUAL FLOW (Old) --}}
+                            <label class="small text-muted">Reference Number</label>
+                            <input type="text" id="reference-number" class="form-control form-control-lg" placeholder="Enter Ref No.">
+                        @endif
                     </div>
 
                     <div id="flow-credit" style="display: none;">
@@ -660,5 +679,92 @@
             card.style.display = (cat === 'all' || card.getAttribute('data-category') === cat) ? 'block' : 'none';
         });
     }
+
+
+    // --- PAYMONGO LOGIC ---
+    let paymentCheckInterval = null;
+
+    function generatePaymentLink() {
+        const amount = document.getElementById('total-amount').innerText.replace(/,/g, '');
+        if(parseFloat(amount) <= 0) { alert("Invalid amount"); return; }
+
+        // Show loading state
+        const btn = document.querySelector('#flow-digital button');
+        const origText = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+        btn.disabled = true;
+
+        fetch("{{ route('payment.create') }}", {
+            method: "POST",
+            headers: { 
+                "Content-Type": "application/json", 
+                "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute('content') 
+            },
+            body: JSON.stringify({ amount: amount })
+        })
+        .then(res => res.json())
+        .then(data => {
+            btn.innerHTML = origText;
+            btn.disabled = false;
+
+            if(data.success) {
+                // 1. Show Modal
+                document.getElementById('qr-amount').innerText = amount;
+                const modal = new bootstrap.Modal(document.getElementById('qrPaymentModal'));
+                modal.show();
+
+                // 2. Generate QR
+                document.getElementById('qrcode').innerHTML = ""; // Clear prev
+                new QRCode(document.getElementById("qrcode"), {
+                    text: data.checkout_url,
+                    width: 180,
+                    height: 180
+                });
+
+                // 3. Store ID and Start Polling
+                document.getElementById('paymongo-id').value = data.id;
+                document.getElementById('reference-number').value = data.reference_number;
+                
+                startPolling(data.id);
+            } else {
+                alert("Error: " + data.message);
+            }
+        })
+        .catch(err => {
+            btn.innerHTML = origText;
+            btn.disabled = false;
+            alert("Network Error");
+        });
+    }
+
+    function startPolling(id) {
+        if(paymentCheckInterval) clearInterval(paymentCheckInterval);
+        
+        paymentCheckInterval = setInterval(() => {
+            checkPaymentStatus(id);
+        }, 3000); // Check every 3 seconds
+    }
+
+    function checkPaymentStatus(manualId = null) {
+        const id = manualId || document.getElementById('paymongo-id').value;
+        if(!id) return;
+
+        fetch(`/cashier/payment/check/${id}`)
+        .then(res => res.json())
+        .then(data => {
+            if(data.status === 'paid') {
+                clearInterval(paymentCheckInterval);
+                document.getElementById('payment-msg').className = 'text-success fw-bold';
+                document.getElementById('payment-msg').innerText = 'PAYMENT RECEIVED!';
+                document.getElementById('payment-spinner').style.display = 'none';
+                
+                setTimeout(() => {
+                    bootstrap.Modal.getInstance(document.getElementById('qrPaymentModal')).hide();
+                    handlePayNow(); // Auto-submit the sale
+                }, 1500);
+            }
+        });
+    }
+
 </script>
 @endsection

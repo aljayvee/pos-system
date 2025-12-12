@@ -93,6 +93,11 @@ Route::middleware(['auth', 'role:cashier'])->prefix('cashier')->group(function (
 
     // NEW: Add this missing route
     Route::post('/credit-payment', [POSController::class, 'payCredit'])->name('cashier.credit.pay');
+
+    // PayMongo Routes
+    Route::post('/payment/create', [\App\Http\Controllers\Cashier\PaymentController::class, 'createSource'])->name('payment.create');
+    Route::get('/payment/check/{id}', [\App\Http\Controllers\Cashier\PaymentController::class, 'checkStatus'])->name('payment.check');
+
 });
 
 // Authenticated User Routes (Profile)
