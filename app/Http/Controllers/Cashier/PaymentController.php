@@ -29,8 +29,12 @@ class PaymentController extends Controller
         }
         
         try {
-            // 3. Call PayMongo API (Using Basic Auth)
-            $response = Http::withBasicAuth($secretKey, '') // <--- FIX: Correct Auth Format
+            // 3. Call PayMongo API
+            // Added 'withoutVerifying()' to bypass local SSL issues
+            // Added 'timeout(60)' to prevent early timeouts
+            $response = Http::withoutVerifying()
+                ->timeout(60)
+                ->withBasicAuth($secretKey, '')
                 ->withHeaders([
                     'Content-Type' => 'application/json',
                     'Accept' => 'application/json',
@@ -47,11 +51,13 @@ class PaymentController extends Controller
 
             // 4. Handle API Errors
             if ($response->failed()) {
-                // Log the error for debugging if needed
+                // Log the error for debugging
                 \Illuminate\Support\Facades\Log::error('PayMongo Error: ' . $response->body());
                 
                 // Return readable error message
-                $errorMsg = $response->json()['errors'][0]['detail'] ?? 'Unknown API Error';
+                $errorBody = $response->json();
+                $errorMsg = $errorBody['errors'][0]['detail'] ?? 'Unknown API Error';
+                
                 return response()->json(['success' => false, 'message' => 'API: ' . $errorMsg]);
             }
 
@@ -75,7 +81,10 @@ class PaymentController extends Controller
         $secretKey = $this->getSecretKey();
 
         try {
-            $response = Http::withBasicAuth($secretKey, '')
+            // Also apply SSL bypass here
+            $response = Http::withoutVerifying()
+                ->timeout(30)
+                ->withBasicAuth($secretKey, '')
                 ->withHeaders(['Accept' => 'application/json'])
                 ->get("https://api.paymongo.com/v1/links/{$id}");
 
