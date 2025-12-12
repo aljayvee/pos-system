@@ -20,6 +20,7 @@ class ReportController extends Controller
         $type = $request->input('type', 'daily');
         $startDate = $request->input('start_date', Carbon::today()->toDateString());
         $endDate = $request->input('end_date', Carbon::today()->toDateString());
+        $date = $startDate; // Compatibility
         
         // COMPATIBILITY FIX: Define $date for backward compatibility with the View
         $date = $startDate; 
@@ -85,15 +86,11 @@ class ReportController extends Controller
             ->get();
 
         // 7. Slow Moving Items
-        $soldProductIdsLast30Days = SaleItem::whereHas('sale', function($q) {
-                $q->where('created_at', '>=', Carbon::now()->subDays(30));
-            })
-            ->pluck('product_id')
-            ->unique();
-
-        $slowMovingItems = Product::whereNotIn('id', $soldProductIdsLast30Days)
-            ->where('stock', '>', 0)
-            ->take(10)
+        $soldProductIds = \App\Models\SaleItem::whereIn('sale_id', $salesIds)->pluck('product_id')->unique();
+        
+        $slowMovingItems = \App\Models\Product::whereNotIn('id', $soldProductIds)
+            ->where('stock', '>', 0) // Only count items we actually have
+            ->take(10) // Limit to 10
             ->get();
 
 
@@ -110,9 +107,9 @@ class ReportController extends Controller
         return view('admin.reports.index', compact(
             'sales', 'total_sales', 'total_transactions', 
             'cash_sales', 'credit_sales', 'digital_sales',
-            'type', 'startDate', 'endDate', 'date', // <--- Added 'date' here
-            'topItems', 'topCustomers', 'slowMovingItems', 
-            'tithesAmount', 'tithesEnabled', 'gross_profit', 'salesByCategory'
+            'type', 'startDate', 'endDate', 'date',
+            'topItems', 'topCustomers', 'salesByCategory', 'slowMovingItems',
+            'tithesAmount', 'tithesEnabled', 'gross_profit'
         ));
     }
 

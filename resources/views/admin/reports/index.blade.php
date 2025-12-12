@@ -1,11 +1,19 @@
 @extends('admin.layout')
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script> {{-- Import Chart.js --}}
-@section('content')
-<div class="container py-4">
-    <h2 class="mb-4"><i class="fas fa-chart-line text-primary"></i> Sales Report</h2>
 
-    {{-- FILTER TOOLBAR --}}
-    <div class="card bg-light border-0 mb-4">
+{{-- Import Chart.js --}}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+@section('content')
+<div class="container-fluid px-4 py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0"><i class="fas fa-chart-line text-primary"></i> Sales & Analytics</h2>
+        <span class="badge bg-light text-dark border p-2">
+            Date: {{ \Carbon\Carbon::now()->format('F d, Y') }}
+        </span>
+    </div>
+
+    {{-- 1. FILTER TOOLBAR --}}
+    <div class="card bg-white border-0 shadow-sm mb-4">
         <div class="card-body py-3">
             <form action="{{ route('reports.index') }}" method="GET" class="row g-3 align-items-end">
                 
@@ -34,11 +42,13 @@
 
                 {{-- Buttons --}}
                 <div class="col-md-3 d-flex gap-2">
-                    <button type="submit" class="btn btn-primary w-100"><i class="fas fa-filter"></i> Filter</button>
+                    <button type="submit" class="btn btn-primary w-100 fw-bold">
+                        <i class="fas fa-filter me-1"></i> Filter
+                    </button>
                     
-                    {{-- Export Button (Maintains current filters) --}}
-                    <a href="{{ route('reports.export', request()->all()) }}" class="btn btn-success w-100">
-                        <i class="fas fa-file-download"></i> Export
+                    {{-- Export Button (Maintains filters) --}}
+                    <a href="{{ route('reports.export', request()->all()) }}" class="btn btn-success w-100 fw-bold">
+                        <i class="fas fa-file-csv me-1"></i> Export
                     </a>
                 </div>
             </form>
@@ -48,32 +58,97 @@
     {{-- DYNAMIC TITLE --}}
     <div class="mb-3">
         <h5 class="text-muted">
-            Showing results for: 
+            Results for: 
             <span class="fw-bold text-dark">
                 @if($type == 'daily') {{ \Carbon\Carbon::parse($startDate)->format('F d, Y') }}
                 @elseif($type == 'monthly') {{ \Carbon\Carbon::parse($startDate)->format('F Y') }}
                 @elseif($type == 'weekly') Week of {{ \Carbon\Carbon::parse($startDate)->startOfWeek()->format('M d') }} - {{ \Carbon\Carbon::parse($startDate)->endOfWeek()->format('M d, Y') }}
-                @else {{ \Carbon\Carbon::parse($startDate)->format('M d') }} to {{ \Carbon\Carbon::parse($endDate)->format('M d, Y') }}
+                @else {{ \Carbon\Carbon::parse($startDate)->format('M d, Y') }} to {{ \Carbon\Carbon::parse($endDate)->format('M d, Y') }}
                 @endif
             </span>
         </h5>
     </div>
 
-   {{-- ... existing code ... --}}
-   {{-- ... Statistics Cards are above here ... --}}
-
-    <div class="row">
-        <div class="row">
-        <div class="col-xl-6">
-            <div class="card mb-4">
-                <div class="card-header bg-primary text-white">
-                    <i class="fas fa-trophy me-1"></i> Top Selling Items ({{ ucfirst($type) }})
+    {{-- 2. STATISTICS CARDS ROW --}}
+    <div class="row g-3 mb-4">
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-primary text-white h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <small class="text-white-50">Total Revenue</small>
+                            <h3 class="fw-bold mb-0">₱{{ number_format($total_sales, 2) }}</h3>
+                        </div>
+                        <i class="fas fa-coins fa-2x opacity-50"></i>
+                    </div>
                 </div>
-                {{-- VISUAL ANALYTICS ROW --}}
-    <div class="row mb-4">
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-success text-white h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <small class="text-white-50">Gross Profit (Sales - Cost)</small>
+                            <h3 class="fw-bold mb-0">₱{{ number_format($gross_profit, 2) }}</h3>
+                        </div>
+                        <i class="fas fa-chart-line fa-2x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @if($tithesEnabled == '1')
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-info text-white h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <small class="text-white-50">Tithes (10%)</small>
+                            <h3 class="fw-bold mb-0">₱{{ number_format($tithesAmount, 2) }}</h3>
+                        </div>
+                        <i class="fas fa-hand-holding-heart fa-2x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        @else
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-secondary text-white h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <small class="text-white-50">Total Transactions</small>
+                            <h3 class="fw-bold mb-0">{{ $total_transactions }}</h3>
+                        </div>
+                        <i class="fas fa-receipt fa-2x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        @endif
+
+        <div class="col-xl-3 col-md-6">
+            <div class="card bg-warning text-dark h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <small class="opacity-75">Credit Sales (Utang)</small>
+                            <h3 class="fw-bold mb-0">₱{{ number_format($credit_sales, 2) }}</h3>
+                        </div>
+                        <i class="fas fa-user-clock fa-2x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{-- 3. CHARTS ROW --}}
+    <div class="row g-3 mb-4">
         <div class="col-lg-6">
-            <div class="card h-100 shadow-sm">
-                <div class="card-header bg-white font-weight-bold">
+            <div class="card h-100 shadow-sm border-0">
+                <div class="card-header bg-white fw-bold">
                     <i class="fas fa-chart-pie text-primary me-1"></i> Sales by Category
                 </div>
                 <div class="card-body">
@@ -83,8 +158,8 @@
         </div>
 
         <div class="col-lg-6">
-            <div class="card h-100 shadow-sm">
-                <div class="card-header bg-white font-weight-bold">
+            <div class="card h-100 shadow-sm border-0">
+                <div class="card-header bg-white fw-bold">
                     <i class="fas fa-wallet text-success me-1"></i> Payment Method Distribution
                 </div>
                 <div class="card-body">
@@ -93,26 +168,34 @@
             </div>
         </div>
     </div>
-                <div class="card-body p-0">
-                   <table class="table table-sm table-striped mb-0">
-                        <thead>
+
+    {{-- 4. ITEM PERFORMANCE ROW --}}
+    <div class="row g-3 mb-4">
+        <div class="col-lg-6">
+            <div class="card h-100 shadow-sm border-0">
+                <div class="card-header bg-primary text-white">
+                    <i class="fas fa-trophy me-1"></i> Top Selling Items (Fast Moving)
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
                             <tr>
-                                <th class="ps-3">Item Name</th>
+                                <th>Product</th>
                                 <th class="text-center">Qty Sold</th>
-                                <th class="text-end pe-3">Revenue</th>
+                                <th class="text-end">Revenue</th>
                             </tr>
                         </thead>
                         <tbody>
                             @forelse($topItems as $item)
                             <tr>
-                                <td class="ps-3">{{ $item->product->name ?? 'Unknown Item' }}</td>
-                                <td class="text-center fw-bold">{{ $item->total_qty }}</td>
-                                <td class="text-end pe-3">₱{{ number_format($item->total_revenue, 2) }}</td>
+                                <td class="fw-bold text-dark">{{ $item->product->name ?? 'Unknown Item' }}</td>
+                                <td class="text-center">
+                                    <span class="badge bg-success rounded-pill">{{ $item->total_qty }}</span>
+                                </td>
+                                <td class="text-end fw-bold">₱{{ number_format($item->total_revenue, 2) }}</td>
                             </tr>
                             @empty
-                            <tr>
-                                <td colspan="3" class="text-center p-3">No sales data for this period.</td>
-                            </tr>
+                            <tr><td colspan="3" class="text-center text-muted py-4">No sales data found.</td></tr>
                             @endforelse
                         </tbody>
                     </table>
@@ -120,35 +203,31 @@
             </div>
         </div>
 
-        <div class="col-xl-6">
-            <div class="card mb-4">
-                <div class="card-header bg-warning text-dark">
-                    <i class="fas fa-hourglass-half me-1"></i> Slow Moving (Last 30 Days)
+        <div class="col-lg-6">
+            <div class="card h-100 shadow-sm border-0">
+                <div class="card-header bg-danger text-white">
+                    <i class="fas fa-hourglass-half me-1"></i> Slow Moving Items (No Sales)
                 </div>
-                <div class="card-body p-0">
-                    <table class="table table-sm table-striped mb-0">
-                        <thead>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
                             <tr>
-                                <th class="ps-3">Item Name</th>
+                                <th>Product</th>
+                                <th>Category</th>
                                 <th class="text-center">Stock</th>
-                                <th class="text-end pe-3">Action</th>
                             </tr>
                         </thead>
                         <tbody>
                             @forelse($slowMovingItems as $item)
                             <tr>
-                                <td class="ps-3">{{ $item->name }}</td>
-                                <td class="text-center fw-bold">{{ $item->stock }}</td>
-                                <td class="text-end pe-3">
-                                    <a href="{{ route('products.edit', $item->id) }}" class="btn btn-xs btn-outline-dark" title="Edit/Discount">
-                                        <i class="fas fa-edit"></i>
-                                    </a>
+                                <td class="fw-bold">{{ $item->name }}</td>
+                                <td class="small text-muted">{{ $item->category->name ?? '-' }}</td>
+                                <td class="text-center">
+                                    <span class="badge bg-warning text-dark">{{ $item->stock }}</span>
                                 </td>
                             </tr>
                             @empty
-                            <tr>
-                                <td colspan="3" class="text-center p-3 text-muted">All items are selling well!</td>
-                            </tr>
+                            <tr><td colspan="3" class="text-center text-muted py-4">Everything is selling well!</td></tr>
                             @endforelse
                         </tbody>
                     </table>
@@ -157,198 +236,109 @@
         </div>
     </div>
 
-        <div class="col-xl-6">
-            <div class="card mb-4">
-                <div class="card-header">
-                    <i class="fas fa-chart-pie me-1"></i>
-                    Payment Breakdown
+    {{-- 5. TOP CUSTOMERS ROW --}}
+    <div class="row g-3 mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-dark text-white">
+                    <i class="fas fa-users me-1"></i> Top Customers
                 </div>
-                <div class="card-body">
-                    <div class="d-flex justify-content-between border-bottom py-2">
-                        <span>Cash Sales:</span>
-                        <span class="fw-bold text-success">₱{{ number_format($cash_sales, 2) }}</span>
-                    </div>
-                    {{-- NEW: Digital Sales Row --}}
-                    <div class="d-flex justify-content-between border-bottom py-2">
-                        <span>Digital (e-Wallet / Banks):</span>
-                        <span class="fw-bold text-info">₱{{ number_format($digital_sales, 2) }}</span>
-                    </div>
-                    
-                    <div class="d-flex justify-content-between border-bottom py-2">
-                        <span>Credit (Utang):</span>
-                        <span class="fw-bold text-warning">₱{{ number_format($credit_sales, 2) }}</span>
-                    </div>
-                    <div class="d-flex justify-content-between py-2">
-                        <span>Total:</span>
-                        <span class="fw-bold">₱{{ number_format($total_sales, 2) }}</span>
-                    </div>
-                </div>  
-            </div>
-        </div>
-    </div>
-
-    {{-- ... Sales Transaction Table follows here ... --}}
-    <div class="card shadow-sm mb-4">
-        <div class="card-body">
-            {{-- REMOVE action="..." from the form tag so buttons can decide where to go --}}
-            <form method="GET" class="row g-3 align-items-end">
-                <div class="col-md-3">
-                    <label class="form-label">Report Type</label>
-                    <select name="type" class="form-select">
-                        <option value="daily" {{ $type == 'daily' ? 'selected' : '' }}>Daily</option>
-                        <option value="monthly" {{ $type == 'monthly' ? 'selected' : '' }}>Monthly</option>
-                    </select>
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label">Date</label>
-                    <input type="date" name="date" class="form-control" value="{{ $date }}">
-                </div>
-                
-                {{-- UPDATED BUTTONS AREA --}}
-                <div class="col-md-4 d-flex gap-2">
-                    {{-- Filter Button --}}
-                    <button type="submit" 
-                            formaction="{{ route('reports.index') }}" 
-                            class="btn btn-primary flex-fill">
-                        <i class="fas fa-filter"></i> Filter
-                    </button>
-
-                    {{-- Export Button --}}
-                    <button type="submit" 
-                            formaction="{{ route('reports.export') }}" 
-                            class="btn btn-success flex-fill">
-                        <i class="fas fa-file-csv"></i> Export CSV
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-{{-- ... existing code ... --}}
-
-<div class="row">
-        <div class="col-md-3">
-            <div class="card bg-primary text-white mb-4">
-                <div class="card-body">
-                    <h5 class="card-title">Total Sales</h5>
-                    <h2 class="fw-bold">₱{{ number_format($total_sales, 2) }}</h2>
-                    <small>Revenue</small>
-                </div>
-            </div>
-        </div>
-
-        {{-- NEW: GROSS PROFIT CARD --}}
-        <div class="col-md-3">
-            <div class="card bg-success text-white mb-4">
-                <div class="card-body">
-                    <h5 class="card-title"><i class="fas fa-coins"></i> Gross Profit</h5>
-                    <h2 class="fw-bold">₱{{ number_format($gross_profit, 2) }}</h2>
-                    <small>Income (Sales - Cost)</small>
-                </div>
-            </div>
-        </div>
-
-        {{-- Tithes Card (Existing) --}}
-        @if($tithesEnabled == '1')
-        <div class="col-md-3">
-            <div class="card bg-info text-white mb-4 position-relative overflow-hidden">
-                <div class="card-body">
-                    <h5 class="card-title"><i class="fas fa-hand-holding-heart"></i> Tithes (10%)</h5>
-                    <h2 class="fw-bold">₱{{ number_format($tithesAmount, 2) }}</h2>
-                    <small class="text-white-50">Allocated for Offering</small>
-                </div>
-                <i class="fas fa-church position-absolute" style="font-size: 5rem; opacity: 0.2; right: 10px; bottom: -10px;"></i>
-            </div>
-        </div>
-        @endif
-        
-        <div class="col-md-3">
-            <div class="card bg-secondary text-white mb-4">
-                <div class="card-body">
-                    <h5 class="card-title">Transactions</h5>
-                    <h2 class="fw-bold">{{ $total_transactions }}</h2>
-                    <small>Count</small>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Customer Name</th>
+                                <th class="text-center">Transactions</th>
+                                <th class="text-end">Total Spent</th>
+                                <th class="text-center">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse($topCustomers as $cust)
+                            <tr>
+                                <td class="fw-bold">{{ $cust->customer->name ?? 'Walk-in / Unknown' }}</td>
+                                <td class="text-center">{{ $cust->trans_count }}</td>
+                                <td class="text-end fw-bold text-primary">₱{{ number_format($cust->total_spent, 2) }}</td>
+                                <td class="text-center">
+                                    @if($cust->customer_id)
+                                    <a href="{{ route('customers.show', $cust->customer_id) }}" class="btn btn-sm btn-outline-secondary">
+                                        <i class="fas fa-eye"></i> View
+                                    </a>
+                                    @endif
+                                </td>
+                            </tr>
+                            @empty
+                            <tr><td colspan="4" class="text-center text-muted py-4">No customer data available.</td></tr>
+                            @endforelse
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="row mb-4 text-center">
-        <div class="col-md-3">
-            <div class="card bg-success text-white">
-                <div class="card-body">
-                    <h3>₱{{ number_format($total_sales, 2) }}</h3>
-                    <small>Total Revenue</small>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card bg-info text-white">
-                <div class="card-body">
-                    <h3>{{ $total_transactions }}</h3>
-                    <small>Transactions</small>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card bg-warning text-dark">
-                <div class="card-body">
-                    <h3>₱{{ number_format($credit_sales, 2) }}</h3>
-                    <small>Credit Sales (Utang)</small>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="card shadow-sm">
-        <div class="card-header bg-dark text-white">
-            <h5 class="mb-0">Transaction History</h5>
+    {{-- 6. TRANSACTION HISTORY TABLE --}}
+    <div class="card shadow-sm mb-4 border-0">
+        <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="fas fa-list me-2"></i> Transaction History</h5>
+            <span class="badge bg-light text-dark">{{ $total_transactions }} Records</span>
         </div>
         <div class="card-body p-0">
-            <table class="table table-striped mb-0">
-                <thead>
-                    <tr>
-                        <th>Sale ID</th>
-                        <th>Time</th>
-                        <th>Cashier</th>
-                        <th>Customer</th>
-                        <th>Method</th>
-                        <th>Total</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse($sales as $sale)
-                    <tr>
-                        <td>#{{ $sale->id }}</td>
-                        <td>{{ $sale->created_at->format('h:i A') }}</td>
-                        <td>{{ $sale->user->name }}</td>
-                        <td>{{ $sale->customer->name ?? 'Walk-in' }}</td>
-                        <td>
-                            <span class="badge {{ $sale->payment_method == 'credit' ? 'bg-danger' : 'bg-success' }}">
-                                {{ ucfirst($sale->payment_method) }}
-                            </span>
-                        </td>
-                        <td class="fw-bold">₱{{ number_format($sale->total_amount, 2) }}</td>
-                    </tr>
-                    @empty
-                    <tr>
-                        <td colspan="6" class="text-center py-4">No transactions found for this date.</td>
-                    </tr>
-                    @endforelse
-                </tbody>
-            </table>
+            <div class="table-responsive">
+                <table class="table table-striped table-hover mb-0 align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Sale ID</th>
+                            <th>Time</th>
+                            <th>Cashier</th>
+                            <th>Customer</th>
+                            <th>Method</th>
+                            <th class="text-end">Total</th>
+                            <th class="text-center">View</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($sales as $sale)
+                        <tr>
+                            <td class="fw-bold">#{{ $sale->id }}</td>
+                            <td>{{ $sale->created_at->format('h:i A') }}</td>
+                            <td><small>{{ $sale->user->name }}</small></td>
+                            <td>{{ $sale->customer->name ?? 'Walk-in' }}</td>
+                            <td>
+                                @if($sale->payment_method == 'cash') <span class="badge bg-success">Cash</span>
+                                @elseif($sale->payment_method == 'credit') <span class="badge bg-danger">Credit</span>
+                                @else <span class="badge bg-info text-dark">Digital</span>
+                                @endif
+                            </td>
+                            <td class="text-end fw-bold">₱{{ number_format($sale->total_amount, 2) }}</td>
+                            <td class="text-center">
+                                <a href="{{ route('transactions.show', $sale->id) }}" class="btn btn-sm btn-light border">
+                                    <i class="fas fa-receipt text-secondary"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        @empty
+                        <tr>
+                            <td colspan="7" class="text-center py-5 text-muted">
+                                <i class="fas fa-inbox fa-3x mb-3 opacity-25"></i><br>
+                                No transactions found for this period.
+                            </td>
+                        </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 </div>
+
 <script>
-
-
-document.addEventListener("DOMContentLoaded", function() {
-        // 1. Prepare Data for Category Chart
+    document.addEventListener("DOMContentLoaded", function() {
+        // --- 1. Category Chart ---
         const catData = @json($salesByCategory);
         const catLabels = catData.map(item => item.name);
         const catValues = catData.map(item => item.total_revenue);
 
-        // 2. Render Category Chart
         if (catLabels.length > 0) {
             new Chart(document.getElementById('categoryChart'), {
                 type: 'doughnut',
@@ -366,45 +356,41 @@ document.addEventListener("DOMContentLoaded", function() {
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: {
-                        legend: { position: 'right' }
-                    }
+                    plugins: { legend: { position: 'right' } }
                 }
             });
         } else {
-            document.getElementById('categoryChart').parentNode.innerHTML = "<p class='text-center text-muted mt-5'>No data available for this period.</p>";
+            document.getElementById('categoryChart').parentNode.innerHTML = "<div class='text-center py-5 text-muted'><i class='fas fa-chart-pie mb-2 fa-2x opacity-25'></i><br>No data available</div>";
         }
 
-        // 3. Prepare Data for Payment Chart
+        // --- 2. Payment Method Chart ---
         const cash = {{ $cash_sales }};
         const digital = {{ $digital_sales }};
         const credit = {{ $credit_sales }};
 
-        // 4. Render Payment Chart
         if ((cash + digital + credit) > 0) {
             new Chart(document.getElementById('paymentChart'), {
                 type: 'pie',
                 data: {
-                    labels: ['Cash', 'Digital (Gcash)', 'Credit (Utang)'],
+                    labels: ['Cash', 'Digital', 'Credit'],
                     datasets: [{
                         data: [cash, digital, credit],
-                        backgroundColor: ['#198754', '#0dcaf0', '#ffc107'], // Green, Cyan, Yellow
+                        backgroundColor: ['#198754', '#0dcaf0', '#dc3545'],
                         borderWidth: 1
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: {
-                        legend: { position: 'right' }
-                    }
+                    plugins: { legend: { position: 'right' } }
                 }
             });
         } else {
-            document.getElementById('paymentChart').parentNode.innerHTML = "<p class='text-center text-muted mt-5'>No sales recorded.</p>";
+            document.getElementById('paymentChart').parentNode.innerHTML = "<div class='text-center py-5 text-muted'><i class='fas fa-wallet mb-2 fa-2x opacity-25'></i><br>No sales data</div>";
         }
     });
 
+    // Toggle Date Inputs based on Type
     function toggleDateInputs() {
         const type = document.getElementById('report-type').value;
         const endWrapper = document.getElementById('end-date-wrapper');
@@ -415,14 +401,11 @@ document.addEventListener("DOMContentLoaded", function() {
             startLabel.innerText = 'Start Date';
         } else {
             endWrapper.style.display = 'none';
-            // Change label based on type
-            if (type === 'monthly') startLabel.innerText = 'Select Month (Pick any day)';
-            else if (type === 'weekly') startLabel.innerText = 'Select Week (Pick any day)';
+            if (type === 'monthly') startLabel.innerText = 'Select Month';
+            else if (type === 'weekly') startLabel.innerText = 'Select Week';
             else startLabel.innerText = 'Select Date';
         }
     }
-    
-    // Run on load to set correct state
     window.onload = toggleDateInputs;
 </script>
 @endsection

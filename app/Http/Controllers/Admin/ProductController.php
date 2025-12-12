@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Product;
+use Illuminate\Support\Facades\DB; // <--- ADD THIS LINE
 use App\Models\Category;
 use Illuminate\Http\Request;
 use App\Models\ActivityLog;
