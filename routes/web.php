@@ -80,6 +80,8 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->group(function () {
     // Logs
     Route::get('/logs', [ActivityLogController::class, 'index'])->name('logs.index');
 
+    Route::get('/audit-logs', [App\Http\Controllers\Admin\AuditLogController::class, 'index'])->name('audit_logs.index');
+
     
     
 });
