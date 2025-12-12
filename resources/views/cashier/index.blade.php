@@ -304,73 +304,328 @@
     ::-webkit-scrollbar-track { background: #f1f1f1; }
     ::-webkit-scrollbar-thumb { background: #888; border-radius: 3px; }
 </style>
-
 <script>
+    // --- CONFIGURATION ---
     const pointsValue = {{ \App\Models\Setting::where('key', 'points_conversion')->value('value') ?? 1 }};
     const loyaltyEnabled = {{ \App\Models\Setting::where('key', 'enable_loyalty')->value('value') ?? 0 }};
+    
+    // NEW: Load cart from LocalStorage if available, otherwise empty array
     let cart = JSON.parse(localStorage.getItem('pos_cart')) || [];
+
     let html5QrcodeScanner = null;
     let currentCustomerPoints = 0; 
+    let paymentCheckInterval = null; // For PayMongo Polling
 
+    // --- INITIALIZATION ---
     window.onload = () => {
-        document.getElementById('product-search').focus();
-        if(cart.length > 0) updateCartUI();
+        const searchInput = document.getElementById('product-search');
+        if(searchInput) searchInput.focus();
+        
+        if(cart.length > 0) {
+            updateCartUI();
+        }
+        
         updateOnlineStatus();
         toggleFlow(); // Set initial state
     };
 
-    // --- LOGIC: CUSTOMER TYPE & PAYMENT METHOD ---
+    // --- CUSTOMER & LOYALTY LOGIC ---
     document.getElementById('customer-id').addEventListener('change', function() {
         const type = this.value;
         const paySelect = document.getElementById('payment-method');
         const creditOpt = document.getElementById('opt-credit');
         const selectedOption = this.options[this.selectedIndex];
 
-        // STEP 1: Reset all options to enabled first (to avoid getting stuck)
+        // 1. Reset options
         Array.from(paySelect.options).forEach(opt => opt.disabled = false);
 
-        // STEP 2: Apply Logic based on Type
+        // 2. Logic for Customer Type
         if (type === 'new') {
-            // Logic for "New Customer" -> MUST use Credit
-            creditOpt.disabled = false; // 1. Enable Credit First
-            paySelect.value = 'credit'; // 2. Select Credit
-            
-            // 3. Disable Cash & Digital
+            creditOpt.disabled = false; 
+            paySelect.value = 'credit'; 
             Array.from(paySelect.options).forEach(opt => {
-                if (opt.value !== 'credit') opt.disabled = true;
+                if(opt.value !== 'credit') opt.disabled = true;
             });
         } 
         else if (type === 'walk-in') {
-            // Logic for "Walk-in" -> NO Credit allowed
-            creditOpt.disabled = true; // Disable Credit
-            
-            // If currently on Credit, switch to Cash automatically
-            if (paySelect.value === 'credit') {
-                paySelect.value = 'cash';
-            }
-        }
-        else {
-            // Logic for Existing Customers -> All methods allowed
-            // (Already reset to enabled in Step 1)
+            creditOpt.disabled = true; 
+            if(paySelect.value === 'credit') paySelect.value = 'cash';
         }
 
-        // STEP 3: Update Loyalty Display (Existing Logic)
+        // 3. Update Loyalty Display
         currentCustomerPoints = parseInt(selectedOption.getAttribute('data-points') || 0);
         const badge = document.getElementById('redemption-section');
-        
+        const availPoints = document.getElementById('avail-points');
+
         if (loyaltyEnabled == 1 && type !== 'walk-in' && type !== 'new') {
-            if(document.getElementById('avail-points')) {
-                document.getElementById('avail-points').innerText = currentCustomerPoints;
-            }
+            if(availPoints) availPoints.innerText = currentCustomerPoints;
             if(badge) badge.style.display = 'block';
         } else {
             if(badge) badge.style.display = 'none';
         }
 
-        // STEP 4: Update UI Inputs
+        // 4. Update Debt Display
+        const balance = parseFloat(selectedOption.getAttribute('data-balance') || 0);
+        const debtSection = document.getElementById('debt-section');
+        if (debtSection) {
+            if (balance > 0) {
+                debtSection.style.display = 'flex';
+                document.getElementById('customer-balance').innerText = balance.toLocaleString(undefined, {minimumFractionDigits: 2});
+            } else {
+                debtSection.style.display = 'none';
+            }
+        }
+
         toggleFlow();
     });
 
+    // --- PAYMONGO LOGIC (FIXED) ---
+    function generatePaymentLink() {
+        const amountStr = document.getElementById('total-amount').innerText.replace(/,/g, '');
+        const amount = parseFloat(amountStr);
+
+        // Check Minimum Amount
+        if(amount < 100) {
+            alert("Minimum amount for online payment is ₱100.00. Please add more items or use cash.");
+            return;
+        }
+
+        // UI Loading State
+        const btn = document.querySelector('#flow-digital button');
+        const statusDiv = document.getElementById('digital-status');
+        const origText = btn.innerHTML;
+        
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Connecting...';
+        btn.disabled = true;
+        if(statusDiv) statusDiv.innerText = "Contacting PayMongo...";
+
+        fetch("{{ route('payment.create') }}", {
+            method: "POST",
+            headers: { 
+                "Content-Type": "application/json", 
+                "Accept": "application/json", 
+                "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute('content') 
+            },
+            body: JSON.stringify({ amount: amount })
+        })
+        .then(async res => {
+            if (!res.ok) {
+                const text = await res.text();
+                try {
+                    const jsonErr = JSON.parse(text);
+                    if(jsonErr.message) throw new Error(jsonErr.message);
+                } catch(e) { }
+                throw new Error(`Server Error (${res.status})`); 
+            }
+            return res.json();
+        })
+        .then(data => {
+            btn.innerHTML = origText;
+            btn.disabled = false;
+            if(statusDiv) statusDiv.innerText = "Click to generate payment link.";
+
+            if(data.success) {
+                document.getElementById('qr-amount').innerText = amountStr;
+                const modal = new bootstrap.Modal(document.getElementById('qrPaymentModal'));
+                modal.show();
+
+                document.getElementById('qrcode').innerHTML = ""; 
+                new QRCode(document.getElementById("qrcode"), {
+                    text: data.checkout_url,
+                    width: 180,
+                    height: 180
+                });
+
+                document.getElementById('paymongo-id').value = data.id;
+                document.getElementById('reference-number').value = data.reference_number;
+                
+                startPolling(data.id);
+            } else {
+                alert("Payment Error: " + data.message);
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            btn.innerHTML = origText;
+            btn.disabled = false;
+            if(statusDiv) statusDiv.innerText = "Connection Failed.";
+            alert(err.message);
+        });
+    }
+
+    function startPolling(id) {
+        if(paymentCheckInterval) clearInterval(paymentCheckInterval);
+        paymentCheckInterval = setInterval(() => {
+            fetch(`/cashier/payment/check/${id}`)
+            .then(r => r.json())
+            .then(d => {
+                if(d.status === 'paid') {
+                    clearInterval(paymentCheckInterval);
+                    document.getElementById('payment-msg').className = 'text-success fw-bold';
+                    document.getElementById('payment-msg').innerText = 'PAID!';
+                    document.getElementById('payment-spinner').style.display = 'none';
+                    setTimeout(() => {
+                        bootstrap.Modal.getInstance(document.getElementById('qrPaymentModal')).hide();
+                        handlePayNow(); 
+                    }, 1500);
+                }
+            });
+        }, 3000);
+    }
+
+    // --- LOYALTY CALCULATION ---
+    function calculateTotalWithPoints() {
+        let subtotal = 0;
+        cart.forEach(item => subtotal += item.price * item.qty);
+        
+        const pointsInputEl = document.getElementById('points-to-use');
+        let pointsInput = 0;
+        
+        if (pointsInputEl) {
+            pointsInput = parseInt(pointsInputEl.value) || 0;
+
+            if (pointsInput > currentCustomerPoints) {
+                pointsInput = currentCustomerPoints;
+                pointsInputEl.value = pointsInput;
+            }
+
+            let discount = pointsInput * pointsValue;
+            
+            if (discount > subtotal) {
+                discount = subtotal;
+                pointsInput = Math.ceil(discount / pointsValue);
+                pointsInputEl.value = pointsInput;
+            }
+
+            const discDisplay = document.getElementById('discount-display');
+            if(discDisplay) discDisplay.innerText = discount.toFixed(2);
+            
+            subtotal -= discount;
+        }
+
+        if(subtotal < 0) subtotal = 0;
+        document.getElementById('total-amount').innerText = subtotal.toFixed(2);
+        calculateChange();
+    }
+
+    // --- BARCODE SCANNER ---
+    document.getElementById('product-search').addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') {
+            const query = this.value.trim();
+            if (query) {
+                const exactMatch = @json($products).find(p => p.sku === query);
+                if (exactMatch) {
+                    addToCart(exactMatch);
+                    this.value = ''; 
+                }
+            }
+        }
+    });
+
+    function openCameraModal() {
+        const modalEl = document.getElementById('cameraModal');
+        if(!modalEl) return;
+        const modal = new bootstrap.Modal(modalEl);
+        modal.show();
+        
+        if (!html5QrcodeScanner) {
+            html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 }, false);
+            html5QrcodeScanner.render((txt) => {
+                const prod = @json($products).find(p => p.sku === txt);
+                if(prod) { addToCart(prod); alert("Added "+prod.name); }
+            });
+        }
+    }
+    function stopCamera() { if(html5QrcodeScanner) html5QrcodeScanner.clear(); }
+
+    // --- SEARCH FILTER ---
+    document.getElementById('product-search').addEventListener('keyup', function(e) {
+        if(e.key === 'Enter') return; 
+        const val = this.value.toLowerCase();
+        document.querySelectorAll('.product-card').forEach(card => {
+            const name = card.getAttribute('data-name');
+            const sku = card.getAttribute('data-sku') || '';
+            card.style.display = (name.includes(val) || sku.includes(val)) ? 'block' : 'none';
+        });
+    });
+
+    function filterCategory(cat, btn) {
+        document.querySelectorAll('.category-filter').forEach(b => { b.classList.remove('btn-dark','active'); b.classList.add('btn-outline-secondary'); });
+        btn.classList.remove('btn-outline-secondary'); btn.classList.add('btn-dark','active');
+        document.querySelectorAll('.product-card').forEach(card => {
+            card.style.display = (cat === 'all' || card.getAttribute('data-category') === cat) ? 'block' : 'none';
+        });
+    }
+
+    // --- CART FUNCTIONS ---
+    function addToCart(product) {
+        const existingItem = cart.find(item => item.id === product.id);
+        if (existingItem) {
+            if(existingItem.qty < product.stock) existingItem.qty++;
+            else { alert('Not enough stock!'); return; }
+        } else {
+            if(product.stock > 0) {
+                cart.push({ 
+                    id: product.id, 
+                    name: product.name, 
+                    price: parseFloat(product.price), 
+                    qty: 1, 
+                    max_stock: product.stock,
+                    unit: product.unit 
+                });
+            } else { 
+                alert('Out of stock!'); return; 
+            }
+        }
+        updateCartUI();
+    }
+
+    function updateQty(id, change) {
+        const item = cart.find(i => i.id === id);
+        if (!item) return;
+        item.qty += change;
+        if (item.qty <= 0) cart = cart.filter(i => i.id !== id);
+        else if (item.qty > item.max_stock) { item.qty = item.max_stock; alert("Max stock reached"); }
+        updateCartUI();
+    }
+
+    function updateCartUI() {
+        localStorage.setItem('pos_cart', JSON.stringify(cart));
+        const list = document.getElementById('cart-items');
+        list.innerHTML = '';
+        
+        if (cart.length === 0) list.innerHTML = '<li class="list-group-item text-center text-muted mt-5 border-0">Cart is empty</li>';
+
+        cart.forEach(item => {
+            list.innerHTML += `
+                <li class="list-group-item d-flex justify-content-between align-items-center bg-transparent">
+                    <div>
+                        <h6 class="m-0 fw-bold">${item.name}</h6>
+                        <small class="text-muted">
+                            ${item.unit ? '(' + item.unit + ')' : ''} 
+                            ₱${item.price} x ${item.qty}
+                        </small>
+                    </div>
+                    <div class="d-flex align-items-center">
+                        <span class="text-success fw-bold me-3">₱${(item.price * item.qty).toFixed(2)}</span>
+                        <div class="btn-group btn-group-sm">
+                            <button class="btn btn-outline-secondary" onclick="updateQty(${item.id}, -1)">-</button>
+                            <button class="btn btn-outline-secondary" onclick="updateQty(${item.id}, 1)">+</button>
+                        </div>
+                    </div>
+                </li>`;
+        });
+        calculateTotalWithPoints();
+    }
+
+    function clearCart() {
+        if(confirm("Clear cart?")) {
+            cart = [];
+            updateCartUI();
+        }
+    }
+
+    // --- PAYMENT FLOW & CALCULATIONS ---
     function toggleFlow() {
         const method = document.getElementById('payment-method').value;
         ['cash', 'digital', 'credit'].forEach(m => {
@@ -379,7 +634,91 @@
         });
     }
 
-    // --- LOGIC: DEBT COLLECTION ---
+    function calculateChange() {
+        const totalText = document.getElementById('total-amount').innerText;
+        const total = parseFloat(totalText.replace(/,/g, '')) || 0; 
+        const paid = parseFloat(document.getElementById('amount-paid').value) || 0;
+        const change = paid - total;
+        document.getElementById('change-display').innerText = change >= 0 ? '₱' + change.toFixed(2) : 'Invalid';
+    }
+
+    // --- TRANSACTION HANDLING ---
+    function handlePayNow() {
+        if (cart.length === 0) { alert("Cart is empty!"); return; }
+        const method = document.getElementById('payment-method').value;
+
+        if (method === 'credit') {
+            // Check required fields logic can go here or in confirmTransaction
+            new bootstrap.Modal(document.getElementById('creditModal')).show();
+        } else if (confirm("Process Payment?")) {
+            confirmTransaction(method);
+        }
+    }
+
+    function confirmTransaction(method) {
+        let creditData = {};
+        const customerVal = document.getElementById('customer-id').value;
+
+        if (method === 'credit') {
+             const name = document.getElementById('credit-name').value;
+             const dueDate = document.getElementById('credit-due-date').value;
+             if(!name || !dueDate) { alert("Name & Due Date required for credit"); return; }
+             
+             creditData = { 
+                 name: name, 
+                 address: document.getElementById('credit-address').value, 
+                 contact: document.getElementById('credit-contact').value, 
+                 due_date: dueDate 
+             };
+        }
+
+        let pointsUsed = 0;
+        const pointsInputEl = document.getElementById('points-to-use');
+        if(pointsInputEl) pointsUsed = parseInt(pointsInputEl.value) || 0;
+
+        const data = {
+            cart: cart,
+            total_amount: document.getElementById('total-amount').innerText.replace(/,/g, ''),
+            points_used: pointsUsed,
+            amount_paid: method === 'cash' ? document.getElementById('amount-paid').value : 0,
+            payment_method: method,
+            customer_id: customerVal,
+            reference_number: document.getElementById('reference-number').value,
+            credit_details: creditData
+        };
+
+        if (!navigator.onLine) {
+            saveOffline(data);
+            return;
+        }
+
+        fetch("{{ route('cashier.store') }}", {
+            method: "POST",
+            headers: { 
+                "Content-Type": "application/json", 
+                "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute('content') 
+            },
+            body: JSON.stringify(data)
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                localStorage.removeItem('pos_cart'); 
+                cart = []; 
+                if (confirm("Success! Print Receipt?")) {
+                    window.open(`/cashier/receipt/${data.sale_id}`, '_blank', 'width=400,height=600');
+                }
+                location.reload();
+            } else {
+                alert("Error: " + data.message);
+            }
+        })
+        .catch(err => {
+            saveOffline(data);
+        });
+    }
+
+    // --- DEBT COLLECTION LOGIC ---
     function openDebtorList() {
         new bootstrap.Modal(document.getElementById('debtorListModal')).show();
     }
@@ -393,15 +732,10 @@
     }
 
     function openDebtPaymentModal(id, name, balance) {
-        // 1. Get the list modal instance
         const listModalEl = document.getElementById('debtorListModal');
         const listModal = bootstrap.Modal.getInstance(listModalEl);
-        
-        // 2. Hide it first
         listModal.hide();
         
-        // 3. Wait for it to fully close before opening the payment modal
-        // This prevents the "aria-hidden" focus error
         listModalEl.addEventListener('hidden.bs.modal', function () {
             document.getElementById('pay-debt-customer-id').value = id;
             document.getElementById('pay-debt-name').innerText = name;
@@ -447,162 +781,10 @@
         .catch(err => alert("Error: " + err));
     }
 
-    // --- STANDARD POS FUNCTIONS (Cart, Scan, Pay) ---
-    function addToCart(product) {
-        const existingItem = cart.find(item => item.id === product.id);
-        if (existingItem) {
-            if(existingItem.qty < product.stock) existingItem.qty++;
-            else { alert('Not enough stock!'); return; }
-        } else {
-            if(product.stock > 0) {
-                cart.push({ id: product.id, name: product.name, price: parseFloat(product.price), qty: 1, max_stock: product.stock, unit: product.unit });
-            } else { alert('Out of stock!'); return; }
-        }
-        updateCartUI();
-    }
-
-    function updateQty(id, change) {
-        const item = cart.find(i => i.id === id);
-        if (!item) return;
-        item.qty += change;
-        if (item.qty <= 0) cart = cart.filter(i => i.id !== id);
-        else if (item.qty > item.max_stock) { item.qty = item.max_stock; alert("Max stock reached"); }
-        updateCartUI();
-    }
-
-    function updateCartUI() {
-        localStorage.setItem('pos_cart', JSON.stringify(cart));
-        const list = document.getElementById('cart-items');
-        list.innerHTML = '';
-        if (cart.length === 0) list.innerHTML = '<li class="list-group-item text-center text-muted mt-5 border-0">Cart is empty</li>';
-
-        cart.forEach(item => {
-            list.innerHTML += `
-                <li class="list-group-item d-flex justify-content-between align-items-center bg-transparent">
-                    <div>
-                        <h6 class="m-0 fw-bold">${item.name}</h6>
-                        <small class="text-muted">${item.unit ? '('+item.unit+')' : ''} ₱${item.price} x ${item.qty}</small>
-                    </div>
-                    <div class="d-flex align-items-center">
-                        <span class="text-success fw-bold me-3">₱${(item.price * item.qty).toFixed(2)}</span>
-                        <div class="btn-group btn-group-sm">
-                            <button class="btn btn-outline-secondary" onclick="updateQty(${item.id}, -1)">-</button>
-                            <button class="btn btn-outline-secondary" onclick="updateQty(${item.id}, 1)">+</button>
-                        </div>
-                    </div>
-                </li>`;
-        });
-        calculateTotalWithPoints();
-    }
-
-    function clearCart() {
-        if(confirm("Clear cart?")) {
-            cart = [];
-            updateCartUI();
-        }
-    }
-
-    function calculateTotalWithPoints() {
-        let subtotal = 0;
-        cart.forEach(item => subtotal += item.price * item.qty);
-        
-        // Loyalty Logic
-        const pointsInputEl = document.getElementById('points-to-use');
-        let pointsInput = 0;
-        if (pointsInputEl) {
-            pointsInput = parseInt(pointsInputEl.value) || 0;
-            if(pointsInput > currentCustomerPoints) pointsInput = currentCustomerPoints;
-            let discount = pointsInput * pointsValue;
-            if(discount > subtotal) discount = subtotal;
-            document.getElementById('discount-display').innerText = discount.toFixed(2);
-            subtotal -= discount;
-        }
-
-        document.getElementById('total-amount').innerText = subtotal.toFixed(2);
-        calculateChange();
-    }
-
-    function calculateChange() {
-        const total = parseFloat(document.getElementById('total-amount').innerText.replace(/,/g, '')) || 0;
-        const paid = parseFloat(document.getElementById('amount-paid').value) || 0;
-        const change = paid - total;
-        document.getElementById('change-display').innerText = change >= 0 ? '₱' + change.toFixed(2) : 'Invalid';
-    }
-
-    function handlePayNow() {
-        if (cart.length === 0) { alert("Cart is empty!"); return; }
-        const method = document.getElementById('payment-method').value;
-
-        if (method === 'credit') {
-            const custType = document.getElementById('customer-id').value;
-            // Pre-fill modal if new customer
-            if (custType === 'new') {
-                document.getElementById('credit-name').value = ''; 
-                document.getElementById('credit-name').disabled = false;
-            } else {
-                // If existing customer selected, maybe auto-fill name?
-                // For now, let's allow manual entry or keep it simple.
-            }
-            new bootstrap.Modal(document.getElementById('creditModal')).show();
-        } else if (confirm("Process Payment?")) {
-            confirmTransaction(method);
-        }
-    }
-
-    function confirmTransaction(method) {
-        let creditData = {};
-        const customerVal = document.getElementById('customer-id').value;
-
-        if (method === 'credit') {
-             const name = document.getElementById('credit-name').value;
-             const dueDate = document.getElementById('credit-due-date').value;
-             if(!name || !dueDate) { alert("Name & Due Date required for credit"); return; }
-             
-             creditData = { 
-                 name: name, 
-                 address: document.getElementById('credit-address').value, 
-                 contact: document.getElementById('credit-contact').value, 
-                 due_date: dueDate 
-             };
-        }
-
-        const data = {
-            cart: cart,
-            total_amount: document.getElementById('total-amount').innerText.replace(/,/g, ''),
-            points_used: document.getElementById('points-to-use') ? document.getElementById('points-to-use').value : 0,
-            amount_paid: method === 'cash' ? document.getElementById('amount-paid').value : 0,
-            payment_method: method,
-            customer_id: customerVal,
-            reference_number: document.getElementById('reference-number').value,
-            credit_details: creditData
-        };
-
-        if (!navigator.onLine) {
-            saveOffline(data);
-            return;
-        }
-
-        fetch("{{ route('cashier.store') }}", {
-            method: "POST",
-            headers: { "Content-Type": "application/json", "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute('content') },
-            body: JSON.stringify(data)
-        })
-        .then(res => res.json())
-        .then(data => {
-            if (data.success) {
-                localStorage.removeItem('pos_cart');
-                cart = [];
-                if (confirm("Success! Print Receipt?")) window.open(`/cashier/receipt/${data.sale_id}`, '_blank', 'width=400,height=600');
-                location.reload();
-            } else {
-                alert("Error: " + data.message);
-            }
-        });
-    }
-
     // --- OFFLINE SYNC ---
     window.addEventListener('online', updateOnlineStatus);
     window.addEventListener('offline', updateOnlineStatus);
+    
     function updateOnlineStatus() {
         const queue = JSON.parse(localStorage.getItem('offline_sales')) || [];
         const alertBox = document.getElementById('offline-alert');
@@ -612,16 +794,13 @@
         } else if (queue.length > 0) {
             alertBox.style.display = 'block';
             alertBox.classList.replace('alert-warning', 'alert-info');
-            alertBox.innerHTML = `<span>Online! Syncing ${queue.length} sales...</span> <button class="btn btn-sm btn-light" onclick="syncOfflineSales()">Sync</button>`;
+            alertBox.innerHTML = `<span>Online! Syncing ${queue.length} sales...</span> <button class="btn btn-sm btn-light" onclick="syncOfflineSales()">Sync Now</button>`;
             syncOfflineSales();
         } else {
             alertBox.style.display = 'none';
         }
     }
-    
-    // ... (Keep existing syncOfflineSales and saveOffline functions) ...
-    // Note: Re-paste them if you removed them, they are crucial.
-    
+
     function saveOffline(data) {
         let queue = JSON.parse(localStorage.getItem('offline_sales')) || [];
         queue.push(data);
@@ -647,118 +826,5 @@
         alert("Sync Complete!");
         location.reload();
     }
-
-    // --- BARCODE CAMERA ---
-    function openCameraModal() {
-        const modal = new bootstrap.Modal(document.getElementById('cameraModal'));
-        modal.show();
-        if (!html5QrcodeScanner) {
-            html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 }, false);
-            html5QrcodeScanner.render((txt) => {
-                const prod = @json($products).find(p => p.sku === txt);
-                if(prod) { addToCart(prod); alert("Added "+prod.name); }
-            });
-        }
-    }
-    function stopCamera() { if(html5QrcodeScanner) html5QrcodeScanner.clear(); }
-
-    // --- SEARCH FILTER ---
-    document.getElementById('product-search').addEventListener('keyup', function(e) {
-        const val = this.value.toLowerCase();
-        document.querySelectorAll('.product-card').forEach(card => {
-            const name = card.getAttribute('data-name');
-            const sku = card.getAttribute('data-sku');
-            card.style.display = (name.includes(val) || sku.includes(val)) ? 'block' : 'none';
-        });
-    });
-
-    function filterCategory(cat, btn) {
-        document.querySelectorAll('.category-filter').forEach(b => { b.classList.remove('btn-dark','active'); b.classList.add('btn-outline-secondary'); });
-        btn.classList.remove('btn-outline-secondary'); btn.classList.add('btn-dark','active');
-        document.querySelectorAll('.product-card').forEach(card => {
-            card.style.display = (cat === 'all' || card.getAttribute('data-category') === cat) ? 'block' : 'none';
-        });
-    }
-
-// --- PAYMONGO LOGIC ---
-    let paymentCheckInterval = null;
-
-    function generatePaymentLink() {
-        const amount = document.getElementById('total-amount').innerText.replace(/,/g, '');
-        const amountStr = document.getElementById('total-amount').innerText.replace(/,/g, '');
-        const amount = parseFloat(amountStr);
-
-        // --- NEW: Check Minimum Amount for PayMongo ---
-        if(amount < 100) {
-            alert("Minimum amount for online payment is ₱100.00. Please add more items or use cash.");
-            return;
-        }
-        if(parseFloat(amount) <= 0) { alert("Invalid amount"); return; }
-
-        // UI Loading State
-        const btn = document.querySelector('#flow-digital button');
-        const statusDiv = document.getElementById('digital-status');
-        const origText = btn.innerHTML;
-        
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Connecting...';
-        btn.disabled = true;
-        if(statusDiv) statusDiv.innerText = "Contacting PayMongo...";
-
-        fetch("{{ route('payment.create') }}", {
-            method: "POST",
-            headers: { 
-                "Content-Type": "application/json", 
-                "Accept": "application/json", // Important: Force JSON response
-                "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute('content') 
-            },
-            body: JSON.stringify({ amount: amount })
-        })
-        .then(async res => {
-            // Check for HTTP errors (404, 500, etc)
-            if (!res.ok) {
-                const text = await res.text();
-                throw new Error(`Server Error (${res.status}): ${text.substring(0, 50)}...`); 
-            }
-            return res.json();
-        })
-        .then(data => {
-            // Restore Button
-            btn.innerHTML = origText;
-            btn.disabled = false;
-            if(statusDiv) statusDiv.innerText = "Click to generate payment link.";
-
-            if(data.success) {
-                // 1. Show Modal
-                document.getElementById('qr-amount').innerText = amount;
-                const modal = new bootstrap.Modal(document.getElementById('qrPaymentModal'));
-                modal.show();
-
-                // 2. Generate QR
-                document.getElementById('qrcode').innerHTML = ""; 
-                new QRCode(document.getElementById("qrcode"), {
-                    text: data.checkout_url,
-                    width: 180,
-                    height: 180
-                });
-
-                // 3. Store ID and Start Polling
-                document.getElementById('paymongo-id').value = data.id;
-                document.getElementById('reference-number').value = data.reference_number;
-                
-                startPolling(data.id);
-            } else {
-                alert("Payment Error: " + data.message);
-            }
-        })
-        .catch(err => {
-            // Handle Network/Server Errors
-            console.error(err);
-            btn.innerHTML = origText;
-            btn.disabled = false;
-            if(statusDiv) statusDiv.innerText = "Connection Failed.";
-            alert("Failed to generate QR: " + err.message);
-        });
-    }
-
 </script>
 @endsection
