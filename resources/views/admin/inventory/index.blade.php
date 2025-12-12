@@ -4,19 +4,19 @@
 <div class="container-fluid px-4">
     <div class="d-flex justify-content-between align-items-center mt-4 mb-4">
         <h1>Inventory Management</h1>
-        <div>
+        <div >
             <a href="{{ route('purchases.create') }}" class="btn btn-primary"><i class="fas fa-plus"></i> Restock (Purchase)</a>
             <a href="{{ route('inventory.adjust') }}" class="btn btn-danger"><i class="fas fa-minus"></i> Record Wastage</a>
             <a href="{{ route('inventory.history') }}" class="btn btn-secondary"><i class="fas fa-history"></i> History</a>
-            <a href="{{ route('inventory.export') }}" class="btn btn-success me-1">
-                <i class="fas fa-file-csv"></i> Export CSV
-            </a>
             {{-- NEW BUTTON: RECORD WASTAGE --}}
             <a href="{{ route('inventory.adjust') }}" class="btn btn-warning me-1">
                 <i class="fas fa-exclamation-triangle"></i> Record Wastage
             </a>
+            <a href="{{ route('inventory.export') }}" class="btn btn-success me-1">
+                <i class="fas fa-file-csv"></i> Export CSV
+            </a>
+            
 
-            <a href="{{ route('purchases.create') }}" class="btn btn-primary"><i class="fas fa-plus"></i> Restock (Purchase)</a>
         </div>
 
 
