@@ -45,6 +45,17 @@
         .list-group-item.active { background-color: #0d6efd; color: white; font-weight: bold; }
         .list-group-item i { width: 25px; }
 
+        /* Submenu Toggle Style */
+        .submenu-toggle {
+            cursor: pointer;
+            font-weight: bold;
+            color: #adb5bd !important; /* Lighter text for visibility */
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .submenu-toggle:hover { color: #fff !important; }
+
         @media (min-width: 768px) {
             #sidebar-wrapper { margin-left: 0; }
             #page-content-wrapper { min-width: 0; width: 100%; }
@@ -69,7 +80,9 @@
 
                 {{-- ADMIN ONLY LINKS --}}
                 @if(Auth::user()->role === 'admin')
-                    <div class="sidebar-heading small text-uppercase text-muted mt-2">Management</div>
+                    
+                    {{-- 1. MANAGEMENT SECTION (Fixed Visibility) --}}
+                    <div class="sidebar-heading small text-uppercase text-white-50 mt-2">Management</div>
 
                     <a href="{{ route('admin.dashboard') }}" class="list-group-item list-group-item-action {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">
                         <i class="fas fa-tachometer-alt"></i> Dashboard
@@ -87,33 +100,44 @@
                         <i class="fas fa-truck-loading"></i> Restocking
                     </a>
 
-                    <div class="sidebar-heading small text-uppercase text-muted mt-2">Finance & People</div>
+                    {{-- 2. FINANCE & PEOPLE (Collapsible - Open Default) --}}
+                    <div class="list-group-item submenu-toggle mt-2" data-bs-toggle="collapse" data-bs-target="#financeSubmenu">
+                        <small class="text-uppercase">Finance & People</small>
+                        <i class="fas fa-caret-down"></i>
+                    </div>
+                    <div class="collapse show" id="financeSubmenu">
+                        <a href="{{ route('customers.index') }}" class="list-group-item list-group-item-action ps-4 {{ request()->routeIs('customers.*') ? 'active' : '' }}">
+                            <i class="fas fa-users"></i> Customers
+                        </a>
 
-                    <a href="{{ route('customers.index') }}" class="list-group-item list-group-item-action {{ request()->routeIs('customers.*') ? 'active' : '' }}">
-                        <i class="fas fa-users"></i> Customers
-                    </a>
+                        <a href="{{ route('credits.index') }}" class="list-group-item list-group-item-action ps-4 {{ request()->routeIs('credits.*') ? 'active' : '' }}">
+                            <i class="fas fa-file-invoice-dollar"></i> Credits (Utang)
+                        </a>
 
-                    <a href="{{ route('credits.index') }}" class="list-group-item list-group-item-action {{ request()->routeIs('credits.*') ? 'active' : '' }}">
-                        <i class="fas fa-file-invoice-dollar"></i> Credits (Utang)
-                    </a>
+                        <a href="{{ route('suppliers.index') }}" class="list-group-item list-group-item-action ps-4 {{ request()->routeIs('suppliers.*') ? 'active' : '' }}">
+                            <i class="fas fa-truck"></i> Suppliers
+                        </a>
+                    </div>
 
-                    <a href="{{ route('suppliers.index') }}" class="list-group-item list-group-item-action {{ request()->routeIs('suppliers.*') ? 'active' : '' }}">
-                        <i class="fas fa-truck"></i> Suppliers
-                    </a>
+                    {{-- 3. SYSTEM (Collapsible - Open Default) --}}
+                    <div class="list-group-item submenu-toggle mt-2" data-bs-toggle="collapse" data-bs-target="#systemSubmenu">
+                        <small class="text-uppercase">System</small>
+                        <i class="fas fa-caret-down"></i>
+                    </div>
+                    <div class="collapse show" id="systemSubmenu">
+                        <a href="{{ route('reports.index') }}" class="list-group-item list-group-item-action ps-4 {{ request()->routeIs('reports.*') ? 'active' : '' }}">
+                            <i class="fas fa-chart-line"></i> Reports
+                        </a>
 
-                    <div class="sidebar-heading small text-uppercase text-muted mt-2">System</div>
+                        <a href="{{ route('users.index') }}" class="list-group-item list-group-item-action ps-4 {{ request()->routeIs('users.*') ? 'active' : '' }}">
+                            <i class="fas fa-user-cog"></i> Users
+                        </a>
 
-                    <a href="{{ route('reports.index') }}" class="list-group-item list-group-item-action {{ request()->routeIs('reports.*') ? 'active' : '' }}">
-                        <i class="fas fa-chart-line"></i> Reports
-                    </a>
+                        <a href="{{ route('settings.index') }}" class="list-group-item list-group-item-action ps-4 {{ request()->routeIs('settings.*') ? 'active' : '' }}">
+                            <i class="fas fa-cogs"></i> Settings
+                        </a>
+                    </div>
 
-                    <a href="{{ route('users.index') }}" class="list-group-item list-group-item-action {{ request()->routeIs('users.*') ? 'active' : '' }}">
-                        <i class="fas fa-user-cog"></i> Users
-                    </a>
-
-                    <a href="{{ route('settings.index') }}" class="list-group-item list-group-item-action {{ request()->routeIs('settings.*') ? 'active' : '' }}">
-                        <i class="fas fa-cogs"></i> Settings
-                    </a>
                 @endif
                 
                 {{-- LOGOUT --}}
