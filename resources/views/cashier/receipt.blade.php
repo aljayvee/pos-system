@@ -1,111 +1,104 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Receipt #{{ $sale->id }}</title>
     <style>
-        body {
-            font-family: 'Courier New', Courier, monospace;
-            width: 300px; /* Standard thermal width */
-            margin: 0 auto;
-            padding: 10px;
-            font-size: 12px;
-        }
+        body { font-family: 'Courier New', Courier, monospace; font-size: 12px; margin: 0; padding: 20px; background: #f0f0f0; }
+        .receipt { max-width: 300px; margin: 0 auto; background: #fff; padding: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
         .text-center { text-align: center; }
-        .text-right { text-align: right; }
+        .text-end { text-align: right; }
         .fw-bold { font-weight: bold; }
-        .border-bottom { border-bottom: 1px dashed #000; margin: 5px 0; }
-        .table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        .table th { text-align: left; border-bottom: 1px solid #000; }
-        .footer { margin-top: 20px; font-size: 10px; }
-        
-        /* Hide buttons when printing */
+        .mb-1 { margin-bottom: 5px; }
+        .mb-2 { margin-bottom: 10px; }
+        .border-bottom { border-bottom: 1px dashed #000; padding-bottom: 5px; margin-bottom: 5px; }
+        .table { width: 100%; border-collapse: collapse; }
+        .table td { vertical-align: top; }
+        .qty { width: 30px; }
+        .price { width: 60px; text-align: right; }
         @media print {
+            body { background: none; padding: 0; }
+            .receipt { box-shadow: none; width: 100%; max-width: 100%; }
             .no-print { display: none; }
         }
     </style>
 </head>
-<body onload="window.print()">
+<body>
 
-    {{-- Fetch settings manually since not passed from controller --}}
-    @php
-        $storeName = \App\Models\Setting::where('key', 'store_name')->value('value') ?? 'Sari-Sari Store';
-        $storeAddr = \App\Models\Setting::where('key', 'store_address')->value('value');
-        $storeContact = \App\Models\Setting::where('key', 'store_contact')->value('value');
-    @endphp
+    <div class="receipt">
+        {{-- STORE HEADER --}}
+        <div class="text-center mb-2">
+            <div class="fw-bold" style="font-size: 16px;">
+                {{ \App\Models\Setting::where('key', 'store_name')->value('value') ?? 'Sari-Sari Store' }}
+            </div>
+            <div>{{ \App\Models\Setting::where('key', 'store_address')->value('value') ?? '' }}</div>
+            <div>{{ \App\Models\Setting::where('key', 'store_contact')->value('value') ?? '' }}</div>
+        </div>
 
-    <div class="text-center">
-        <h3 style="margin: 0;">{{ $storeName }}</h3>
-        @if($storeAddr)<p style="margin: 2px 0;">{{ $storeAddr }}</p>@endif
-        @if($storeContact)<p style="margin: 2px 0;">{{ $storeContact }}</p>@endif
-        <p>Official Receipt</p>
-        <p>{{ $sale->created_at->format('M d, Y h:i A') }}</p>
-    </div>
+        <div class="border-bottom">
+            <div>Date: {{ $sale->created_at->format('M d, Y h:i A') }}</div>
+            <div>Receipt #: {{ str_pad($sale->id, 6, '0', STR_PAD_LEFT) }}</div>
+            <div>Cashier: {{ $sale->user->name }}</div>
+            @if($sale->customer)
+                <div>Customer: {{ $sale->customer->name }}</div>
+            @endif
+        </div>
 
-    <div class="border-bottom"></div>
-
-    <div>
-        <strong>Trans ID:</strong> #{{ $sale->id }}<br>
-        <strong>Cashier:</strong> {{ $sale->user->name }}<br>
-        <strong>Customer:</strong> {{ $sale->customer->name ?? 'Walk-in' }}
-    </div>
-
-    <div class="border-bottom"></div>
-
-    <table class="table">
-        <thead>
-            <tr>
-                <th>Qty</th>
-                <th>Item</th>
-                <th class="text-right">Price</th>
-            </tr>
-        </thead>
-        <tbody>
+        {{-- ITEMS --}}
+        <table class="table mb-2">
             @foreach($sale->saleItems as $item)
             <tr>
-                <td>{{ $item->quantity }}</td>
+                <td class="qty">{{ $item->quantity }}x</td>
                 <td>
-                    {{ $item->product->name }} 
-                    {{-- NEW: UNIT DISPLAY --}}
-                    <small>({{ $item->product->unit }})</small>
+                    {{ $item->product->name }}
+                    <div style="font-size: 10px; color: #555;">@ {{ number_format($item->price, 2) }}</div>
                 </td>
-                <td class="text-right">{{ number_format($item->price * $item->quantity, 2) }}</td>
+                <td class="price">{{ number_format($item->quantity * $item->price, 2) }}</td>
             </tr>
             @endforeach
-        </tbody>
-    </table>
+        </table>
 
-    <div class="border-bottom"></div>
+        {{-- TOTALS --}}
+        <div class="border-bottom mb-2">
+            <div class="d-flex justify-content-between">
+                <span>Subtotal</span>
+                <span class="float-end">{{ number_format($sale->total_amount + ($sale->points_discount ?? 0), 2) }}</span>
+            </div>
+            
+            @if($sale->points_discount > 0)
+            <div class="d-flex justify-content-between">
+                <span>Points Discount</span>
+                <span class="float-end">-{{ number_format($sale->points_discount, 2) }}</span>
+            </div>
+            @endif
 
-    <div class="text-right">
-        <p style="margin: 2px 0;">
-            <strong>TOTAL: ₱{{ number_format($sale->total_amount, 2) }}</strong>
-        </p>
-        
-        @if($sale->points_discount > 0)
-            <p style="margin: 2px 0;" class="text-success">
-                Points Discount: -₱{{ number_format($sale->points_discount, 2) }}
-            </p>
-        @endif
+            <div class="fw-bold" style="font-size: 14px; margin-top: 5px;">
+                <span>TOTAL</span>
+                <span style="float: right;">₱{{ number_format($sale->total_amount, 2) }}</span>
+            </div>
+        </div>
 
-        @if($sale->payment_method == 'cash')
-            <p style="margin: 2px 0;">Cash: ₱{{ number_format($sale->amount_paid, 2) }}</p>
-            <p style="margin: 2px 0;">Change: ₱{{ number_format($sale->amount_paid - $sale->total_amount, 2) }}</p>
-        @elseif($sale->payment_method == 'credit')
-            <p style="margin: 2px 0;"><strong>PAID VIA CREDIT (UTANG)</strong></p>
-        @else
-            <p style="margin: 2px 0;">Paid via: {{ ucfirst($sale->payment_method) }}</p>
-            <p style="margin: 2px 0;">Ref: {{ $sale->reference_number }}</p>
-        @endif
-    </div>
+        {{-- PAYMENT INFO --}}
+        <div class="mb-2">
+            <div>Payment: {{ ucfirst($sale->payment_method) }}</div>
+            @if($sale->payment_method == 'cash')
+                <div>Cash: {{ number_format($sale->amount_paid, 2) }}</div>
+                <div>Change: {{ number_format($sale->amount_paid - $sale->total_amount, 2) }}</div>
+            @elseif($sale->payment_method == 'digital')
+                <div>Ref: {{ $sale->reference_number }}</div>
+            @elseif($sale->payment_method == 'credit')
+                <div style="font-style: italic;">Balance Added to Account</div>
+            @endif
+        </div>
 
-    <div class="footer text-center">
-        <p>Thank you for buying!</p>
-        <p>This serves as your official proof of payment.</p>
-    </div>
+        {{-- FOOTER --}}
+        <div class="text-center" style="margin-top: 20px;">
+            <div>{{ \App\Models\Setting::where('key', 'receipt_footer')->value('value') ?? 'Thank you!' }}</div>
+            <div style="margin-top: 5px;">--- End of Transaction ---</div>
+        </div>
 
-    <div class="text-center no-print" style="margin-top: 20px;">
-        <button onclick="window.print()">Print Again</button>
-        <button onclick="window.close()">Close</button>
+        <button onclick="window.print()" class="no-print" style="width: 100%; padding: 10px; margin-top: 15px; cursor: pointer; background: #333; color: white; border: none;">Print Receipt</button>
     </div>
 
 </body>
