@@ -55,11 +55,37 @@
                     @endif
                 </div>
 
-                {{-- Credit Flow --}}
-                <div id="flow-credit" style="display:none;">
-                    <input type="text" id="credit-name" class="form-control mb-2" placeholder="Debtor Name">
-                    <input type="date" id="credit-due-date" class="form-control">
+                {{-- FIND THIS SECTION IN modals.blade.php --}}
+<div id="flow-credit" style="display:none;">
+    <div class="bg-light p-3 rounded-3 border">
+        <h6 class="fw-bold text-primary mb-3"><i class="fas fa-user-plus me-2"></i>New Debtor Details</h6>
+        
+        <div class="form-floating mb-2">
+            <input type="text" id="credit-name" class="form-control fw-bold" placeholder="Customer Name">
+            <label>Full Name <span class="text-danger">*</span></label>
+        </div>
+
+        <div class="row g-2 mb-2">
+            <div class="col-6">
+                <div class="form-floating">
+                    <input type="text" id="credit-contact" class="form-control" placeholder="Mobile No.">
+                    <label>Mobile Number</label>
                 </div>
+            </div>
+            <div class="col-6">
+                <div class="form-floating">
+                    <input type="date" id="credit-due-date" class="form-control" placeholder="Due Date">
+                    <label>Due Date <span class="text-danger">*</span></label>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-floating">
+            <textarea id="credit-address" class="form-control" placeholder="Address" style="height: 80px"></textarea>
+            <label>Full Address</label>
+        </div>
+    </div>
+</div>
             </div>
             <div class="modal-footer border-0">
                 <button class="btn btn-dark w-100 py-3 rounded-3 fw-bold fs-5" onclick="processPayment()">COMPLETE</button>

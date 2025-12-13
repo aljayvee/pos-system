@@ -460,37 +460,54 @@
     };
     window.stopCamera = function() { if(html5QrcodeScanner) html5QrcodeScanner.clear(); };
 
-    // --- 8. PAYMENT & OFFLINE ---
     window.openPaymentModal = function() {
         if(cart.length === 0) return Swal.fire('Empty', 'Add items first', 'warning');
         
-        // Reset Inputs
+        // 1. Reset Inputs
         document.getElementById('amount-paid').value = '';
         document.getElementById('change-display').innerText = '₱0.00';
-        document.getElementById('pm-cash').checked = true;
         
-        // FIX: Enable/Disable Credit based on Customer
+        // 2. Get Elements
+        const cashRadio = document.getElementById('pm-cash');
+        const digitalRadio = document.getElementById('pm-digital');
         const creditRadio = document.getElementById('pm-credit');
-        const creditLabel = creditRadio.nextElementSibling; // The label styling
         
-        if (currentCustomer.id === 'walk-in') {
-            creditRadio.disabled = true;
-            creditLabel.classList.add('opacity-50');
-            creditLabel.classList.remove('btn-outline-secondary'); // Visual feedback
-            creditLabel.classList.add('btn-light');
-        } else {
-            creditRadio.disabled = false;
-            creditLabel.classList.remove('opacity-50');
-            creditLabel.classList.add('btn-outline-secondary');
-            creditLabel.classList.remove('btn-light');
+        const cashLbl = cashRadio.nextElementSibling;
+        const digiLbl = digitalRadio.nextElementSibling;
+        const credLbl = creditRadio.nextElementSibling;
+
+        // 3. Reset All to Active First
+        cashRadio.disabled = false; cashLbl.classList.remove('opacity-50');
+        digitalRadio.disabled = false; digiLbl.classList.remove('opacity-50');
+        creditRadio.disabled = false; credLbl.classList.remove('opacity-50');
+
+        // 4. Apply Strict Logic
+        if (currentCustomer.id === 'new') {
+            // CASE A: NEW CREDIT CUSTOMER -> FORCE CREDIT ONLY
+            cashRadio.disabled = true; cashLbl.classList.add('opacity-50');
+            digitalRadio.disabled = true; digiLbl.classList.add('opacity-50');
             
-            // Auto-select credit for new customers
-            if(currentCustomer.id === 'new') creditRadio.checked = true;
+            creditRadio.checked = true; // Auto-check Credit
+        } 
+        else if (currentCustomer.id === 'walk-in') {
+            // CASE B: WALK-IN -> NO CREDIT ALLOWED
+            creditRadio.disabled = true; credLbl.classList.add('opacity-50');
+            
+            cashRadio.checked = true; // Auto-check Cash
+        } 
+        else {
+            // CASE C: EXISTING CUSTOMER -> ALLOW ALL (Default to Cash)
+            if(!creditRadio.checked && !digitalRadio.checked) cashRadio.checked = true;
         }
 
         toggleFlow();
         new bootstrap.Modal(document.getElementById('paymentModal')).show();
-        setTimeout(() => document.getElementById('amount-paid').focus(), 500);
+        
+        // Focus Logic
+        setTimeout(() => {
+            if(!cashRadio.disabled && cashRadio.checked) document.getElementById('amount-paid').focus();
+            if(creditRadio.checked) document.getElementById('credit-name').focus();
+        }, 500);
     };
 
     window.toggleFlow = function() {
