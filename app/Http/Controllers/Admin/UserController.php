@@ -13,8 +13,11 @@ class UserController extends Controller
 {
     public function index()
     {
-        // Get all users except the current logged-in admin (to prevent deleting yourself)
-        $users = User::where('id', '!=', auth()->id())->latest()->get();
+        $storeId = $this->getActiveStoreId();
+        
+        // Show users belonging to this Store OR users with no store (if any)
+        $users = \App\Models\User::where('store_id', $storeId)->get();
+        
         return view('admin.users.index', compact('users'));
     }
 
@@ -25,6 +28,12 @@ class UserController extends Controller
 
     public function store(Request $request)
     {
+
+        // ... validation ...
+        $data = $request->all();
+        $data['password'] = bcrypt($data['password']);
+        $data['store_id'] = $this->getActiveStoreId(); // <--- Force assign to current branch
+
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
@@ -40,7 +49,8 @@ class UserController extends Controller
             'is_active' => true
         ]);
 
-        return redirect()->route('users.index')->with('success', 'New user account created!');
+        \App\Models\User::create($data);
+        return back()->with('success', 'User created for this branch.');
     }
 
     // --- NEW METHODS ---
@@ -106,6 +116,11 @@ class UserController extends Controller
         }
 
         $user->update($data);
+
+        // SECURITY CHECK
+        if ($user->store_id != $this->getActiveStoreId()) {
+            abort(403, 'Unauthorized action. You cannot edit users from another branch.');
+        }
 
         return redirect()->route('users.index')->with('success', 'User updated successfully.');
     }

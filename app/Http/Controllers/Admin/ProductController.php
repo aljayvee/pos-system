@@ -66,7 +66,10 @@ class ProductController extends Controller
     // 1. Show List
    public function index(Request $request)
     {
-        $query = Product::with('category');
+        $storeId = $this->getActiveStoreId();
+        $query->whereHas('inventories', function($q) use ($storeId) {
+             $q->where('store_id', $storeId);
+        });
 
         // 0. Filter: Show Archived (Trash)
         if ($request->has('archived')) {

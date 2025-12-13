@@ -12,9 +12,13 @@ class CustomerController extends Controller
     // FIX: Added 'Request $request' here
     public function index(Request $request)
     {
-        $query = Customer::withCount(['credits as unpaid_count' => function($q){
-            $q->where('is_paid', false);
-        }]);
+
+        $storeId = $this->getActiveStoreId(); // <--- Use Helper
+
+        $query = Customer::where('store_id', $storeId) // <--- Filter
+                 ->withCount(['credits as unpaid_count' => function($q){
+                     $q->where('is_paid', false);
+                 }]);
 
         // Now $request is valid
         if ($request->filled('search')) {
@@ -27,13 +31,17 @@ class CustomerController extends Controller
 
     public function store(Request $request)
     {
+
+        $data = $request->all();
+        $data['store_id'] = $this->getActiveStoreId(); // <--- Assign to current store  
+
         $request->validate([
             'name' => 'required|string|max:255',
             'contact' => 'nullable|string|max:20',
             'address' => 'nullable|string'
         ]);
 
-        Customer::create($request->all());
+        Customer::create($data);
         return back()->with('success', 'Customer added successfully.');
     }
 

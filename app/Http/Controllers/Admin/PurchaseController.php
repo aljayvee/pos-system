@@ -15,7 +15,13 @@ class PurchaseController extends Controller
     // 1. Show History
     public function index()
     {
-        $purchases = Purchase::with('supplier')->latest()->get();
+       $storeId = $this->getActiveStoreId();
+        // Filter Purchases by Store
+        $purchases = \App\Models\Purchase::where('store_id', $storeId)
+                        ->with('supplier')
+                        ->latest()
+                        ->get();
+                        
         return view('admin.purchases.index', compact('purchases'));
     }
 

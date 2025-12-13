@@ -10,18 +10,22 @@ class SupplierController extends Controller
 {
     public function index()
     {
-        $suppliers = Supplier::withCount('purchases')->latest()->get(); // Count purchases for info
+        $storeId = $this->getActiveStoreId();
+        $suppliers = \App\Models\Supplier::where('store_id', $storeId)->get(); // <--- Filter   
         return view('admin.suppliers.index', compact('suppliers'));
     }
 
     public function store(Request $request)
     {
+
+        $data = $request->all();
+        $data['store_id'] = $this->getActiveStoreId(); // <--- Assign to current store
         $request->validate([
             'name' => 'required|string|max:255|unique:suppliers,name',
             'contact_info' => 'nullable|string|max:255',
         ]);
 
-        Supplier::create($request->all());
+        Supplier::create($data);
 
         return back()->with('success', 'Supplier added successfully.');
     }
