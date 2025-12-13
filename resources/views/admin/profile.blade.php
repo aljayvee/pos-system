@@ -5,8 +5,14 @@
     <div class="row justify-content-center">
         <div class="col-md-8">
             <div class="card shadow-sm border-0">
-                <div class="card-header bg-primary text-white">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
                     <h5 class="mb-0"><i class="fas fa-user-circle me-2"></i> My Profile</h5>
+                    
+                    {{-- FIXED: Back Button Logic --}}
+                    <a href="{{ Auth::user()->role == 'admin' ? route('admin.dashboard') : route('cashier.pos') }}" 
+                       class="btn btn-sm btn-light text-primary fw-bold">
+                        <i class="fas fa-arrow-left me-1"></i> Back
+                    </a>
                 </div>
                 <div class="card-body">
                     

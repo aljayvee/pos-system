@@ -9,7 +9,7 @@ use App\Models\SaleItem;
 use App\Models\CreditPayment; 
 use App\Models\Customer;
 use App\Models\CustomerCredit;
-use App\Models\Inventory; // <--- IMPORTANT IMPORT
+use App\Models\Inventory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
@@ -18,25 +18,30 @@ class POSController extends Controller
 {
     public function index()
     {
-        // 1. Get Current Active Store (Respects the "Switch Branch" feature)
+        // 1. Get Current Active Store
         $storeId = $this->getActiveStoreId(); 
 
-        // 2. Fetch Products and Join with Inventory for THIS Store
-        // We calculate 'stock' based on the inventory table, NOT the products table
+        // 2. Fetch Products (Already Fixed: Checks Branch Inventory)
         $products = Product::join('inventories', 'products.id', '=', 'inventories.product_id')
             ->where('inventories.store_id', $storeId)
-            ->where('inventories.stock', '>', 0) // Only show items available in this branch
+            ->where('inventories.stock', '>', 0)
             ->whereNull('products.deleted_at')
             ->select(
                 'products.*', 
-                'inventories.stock as current_stock' // Alias to ensure we get the branch stock
+                'inventories.stock as current_stock'
             )
             ->get();
 
-        // 3. Fetch Customers with Total Unpaid Debt
-        $customers = Customer::withSum(['credits as balance' => function($q) {
-            $q->where('is_paid', false);
-        }], 'remaining_balance')->orderBy('name')->get();
+        // 3. Fetch Customers (FIXED: Filter Debt by Branch)
+        // We only sum up credits that belong to Sales made in THIS store.
+        $customers = Customer::withSum(['credits as balance' => function($q) use ($storeId) {
+            $q->where('is_paid', false)
+              ->whereHas('sale', function($q2) use ($storeId) {
+                  $q2->where('store_id', $storeId);
+              });
+        }], 'remaining_balance')
+        ->orderBy('name')
+        ->get();
 
         // 4. Fetch Settings & Categories
         $loyaltyEnabled = \App\Models\Setting::where('key', 'enable_loyalty')->value('value') ?? '0';
@@ -45,7 +50,7 @@ class POSController extends Controller
         return view('cashier.index', compact('products', 'customers', 'categories', 'loyaltyEnabled'));
     }
 
-    // Process Debt Payment
+    // Process Debt Payment (FIXED: Only pay Branch-Specific Debt)
     public function payCredit(Request $request)
     {
         $request->validate([
@@ -55,24 +60,28 @@ class POSController extends Controller
 
         $paymentAmount = $request->amount;
         $customerId = $request->customer_id;
+        $storeId = $this->getActiveStoreId(); // Get Current Branch
 
         DB::beginTransaction();
         try {
-            // Get Unpaid Credits (Oldest First)
+            // FIXED: Only fetch credits linked to sales from THIS store
             $credits = CustomerCredit::where('customer_id', $customerId)
                         ->where('is_paid', false)
+                        ->whereHas('sale', function($q) use ($storeId) {
+                            $q->where('store_id', $storeId);
+                        })
                         ->orderBy('created_at', 'asc')
                         ->lockForUpdate()
                         ->get();
 
             if ($credits->isEmpty()) {
-                throw new \Exception("Customer has no outstanding balance.");
+                throw new \Exception("Customer has no outstanding balance in this branch.");
             }
 
             $totalDebt = $credits->sum('remaining_balance');
             
             if ($paymentAmount > $totalDebt + 0.01) { 
-                throw new \Exception("Payment exceeds total debt of ₱" . number_format($totalDebt, 2));
+                throw new \Exception("Payment exceeds branch debt of ₱" . number_format($totalDebt, 2));
             }
 
             $remainingPayment = $paymentAmount;
@@ -93,11 +102,11 @@ class POSController extends Controller
 
                 // Create Log Entry
                 CreditPayment::create([
-                    'customer_credit_id' => $credit->id, 
+                    'customer_credit_id' => $credit->credit_id ?? $credit->id, 
                     'user_id' => Auth::id(),
                     'amount' => $toPay,
                     'payment_date' => now(),
-                    'notes' => 'Paid via POS (Cashier Collection)'
+                    'notes' => 'Paid via POS (Branch Collection)'
                 ]);
 
                 $remainingPayment -= $toPay;
@@ -111,7 +120,6 @@ class POSController extends Controller
             return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }
     }
-
 
     public function store(Request $request)
     {
@@ -128,7 +136,7 @@ class POSController extends Controller
 
         DB::beginTransaction();
         try {
-            // 2. Identify Current Active Store (Fix for Branch Anomaly)
+            // 2. Identify Current Active Store
             $storeId = $this->getActiveStoreId();
 
             // 3. Settings & Customer Logic
@@ -170,7 +178,7 @@ class POSController extends Controller
 
             // 5. Create Sale Record (Associated with Current Store)
             $sale = Sale::create([
-                'store_id' => $storeId, // <--- Correct Store ID
+                'store_id' => $storeId,
                 'user_id' => Auth::id(),
                 'customer_id' => $customerId,
                 'total_amount' => $request->total_amount, 
@@ -190,7 +198,6 @@ class POSController extends Controller
                                 ->lockForUpdate()
                                 ->first();
 
-                // If product exists globally but not in this branch's inventory
                 if (!$inventory) {
                     $prod = Product::find($item['id']);
                     $prodName = $prod ? $prod->name : "Item #".$item['id'];

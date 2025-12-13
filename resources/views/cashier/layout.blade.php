@@ -31,10 +31,20 @@
             </button>
 
             <div class="collapse navbar-collapse" id="navbarSupportedContent">
-                <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+                <ul class="navbar-nav ms-auto mb-2 mb-lg-0 align-items-center">
+                    
+                    {{-- FIXED: ADMIN BACK BUTTON (Only visible to Admins) --}}
+                    @if(Auth::user()->role === 'admin')
+                        <li class="nav-item me-3">
+                            <a class="btn btn-outline-warning btn-sm fw-bold" href="{{ route('admin.dashboard') }}">
+                                <i class="fas fa-arrow-left me-1"></i> Back to Admin
+                            </a>
+                        </li>
+                    @endif
+
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle text-white fw-bold" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="fas fa-user-circle me-1"></i> {{ Auth::user()->name }} (Cashier)
+                            <i class="fas fa-user-circle me-1"></i> {{ Auth::user()->name }} ({{ ucfirst(Auth::user()->role) }})
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
                             {{-- PROFILE LINK --}}
