@@ -36,13 +36,17 @@
 
         <div class="row"><span>Beg OR No:</span> <span>{{ $data['beg_or'] }}</span></div>
         <div class="row"><span>End OR No:</span> <span>{{ $data['end_or'] }}</span></div>
-        
         <div class="row"><span>Trans Count:</span> <span>{{ $data['trans_count'] }}</span></div>
 
         <div class="line"></div>
 
         <div class="fw-bold">SALES SUMMARY</div>
-        <div class="row"><span>Gross Sales:</span> <span>{{ number_format($data['total_sales'], 2) }}</span></div>
+        <div class="row"><span>Gross Sales:</span> <span>{{ number_format($data['gross_sales'], 2) }}</span></div>
+        <div class="row"><span>Less: Returns:</span> <span>({{ number_format($data['returns'], 2) }})</span></div>
+        <div class="line"></div>
+        <div class="row fw-bold"><span>NET SALES:</span> <span>{{ number_format($data['net_sales'], 2) }}</span></div>
+        <br>
+        
         <div class="row"><span>Cash Sales:</span> <span>{{ number_format($data['cash_sales'], 2) }}</span></div>
         <div class="row"><span>Card/Digi:</span> <span>{{ number_format($data['card_sales'], 2) }}</span></div>
         <div class="row"><span>Credit:</span> <span>{{ number_format($data['credit_sales'], 2) }}</span></div>
@@ -59,7 +63,7 @@
 
         <div class="fw-bold">ACCUMULATORS</div>
         <div class="row"><span>Old Grand Total:</span> <span>{{ number_format($data['old_accumulated_sales'], 2) }}</span></div>
-        <div class="row"><span>Today's Sales:</span> <span>{{ number_format($data['total_sales'], 2) }}</span></div>
+        <div class="row"><span>Today's Net Sales:</span> <span>{{ number_format($data['net_sales'], 2) }}</span></div>
         <div class="line"></div>
         <div class="row fw-bold"><span>NEW GRAND TOTAL:</span> <span>{{ number_format($data['new_accumulated_sales'], 2) }}</span></div>
 
