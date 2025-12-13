@@ -21,14 +21,17 @@
 </head>
 <body>
 
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-0 shadow-sm" style="background: #1e1b4b !important;">
+    <nav class="navbar navbar-expand-lg navbar-dark shadow-sm py-1 py-lg-2" style="background: #1e1b4b !important;">
         <div class="container-fluid">
-            <a class="navbar-brand fw-bold" href="#">
-                <i class="fas fa-cash-register me-2 text-warning"></i> SariPOS
+            {{-- BRAND --}}
+            <a class="navbar-brand fw-bold fs-3 fs-lg-1 d-flex align-items-center" href="#">
+                <i class="fas fa-cash-register me-2 text-warning"></i> 
+                <span>SariPOS</span>
             </a>
             
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent">
-                <span class="navbar-toggler-icon"></span>
+            {{-- TOGGLER (Mobile Menu) --}}
+            <button class="navbar-toggler border-0 btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent">
+                <span class="navbar-toggler-icon" style="width: em; height: 1em;"></span>
             </button>
 
             <div class="collapse navbar-collapse" id="navbarSupportedContent">
@@ -37,28 +40,22 @@
                     @if(Auth::user()->role === 'admin')
                         <li class="nav-item me-3">
                             <a class="btn btn-outline-light btn-sm fw-bold" href="{{ route('admin.dashboard') }}">
-                                <i class="fas fa-arrow-left me-1"></i> Admin Panel
+                                <i class="fas fa-arrow-left me-1"></i> Admin
                             </a>
                         </li>
                     @endif
 
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle text-white fw-bold" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
+                        <a class="nav-link dropdown-toggle text-white fw-bold small" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
                             <i class="fas fa-user-circle me-1"></i> {{ Auth::user()->name }}
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end shadow border-0">
-                            <li>
-                                <a class="dropdown-item" href="{{ route('profile.edit', ['context' => 'cashier']) }}">
-                                    <i class="fas fa-user-cog me-2"></i> Profile
-                                </a>
-                            </li>
+                            <li><a class="dropdown-item" href="{{ route('profile.edit', ['context' => 'cashier']) }}">Profile</a></li>
                             <li><hr class="dropdown-divider"></li>
                             <li>
                                 <form action="{{ route('logout') }}" method="POST">
                                     @csrf
-                                    <button class="dropdown-item text-danger fw-bold">
-                                        <i class="fas fa-sign-out-alt me-2"></i> Logout
-                                    </button>
+                                    <button class="dropdown-item text-danger fw-bold">Logout</button>
                                 </form>
                             </li>
                         </ul>
