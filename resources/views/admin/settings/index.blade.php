@@ -41,7 +41,7 @@
                     </div>
                 </div>
 
-                {{-- 2. NEW: BIR / GOVERNMENT COMPLIANCE --}}
+                {{-- 2. BIR / GOVERNMENT COMPLIANCE --}}
                 <div class="card shadow-sm mb-4">
                     <div class="card-header bg-secondary text-white">
                         <i class="fas fa-file-contract me-2"></i> BIR / Government Compliance (Tax)
@@ -61,24 +61,27 @@
                                 <div class="col-md-6">
                                     <label class="form-label fw-bold small">TIN (Tax Identification Number)</label>
                                     <div class="input-group">
+                                        {{-- Note: Value is EMPTY by default for security. Placeholder indicates if set. --}}
                                         <input type="password" name="store_tin" id="store_tin" class="form-control" 
-                                               value="{{ $settings['store_tin'] ?? '' }}" placeholder="000-000-000-000">
-                                        <button class="btn btn-outline-secondary" type="button" onclick="toggleVisibility('store_tin')">
+                                               value="" 
+                                               placeholder="{{ !empty($settings['store_tin']) ? '******** (Hidden)' : '000-000-000' }}">
+                                        
+                                        <button class="btn btn-outline-secondary" type="button" onclick="requestReveal('store_tin')">
                                             <i class="fas fa-eye"></i>
                                         </button>
                                     </div>
-                                    <div class="form-text text-danger small">* Hidden for security</div>
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label fw-bold small">Business Permit / DTI No.</label>
                                     <div class="input-group">
                                         <input type="password" name="business_permit" id="business_permit" class="form-control" 
-                                               value="{{ $settings['business_permit'] ?? '' }}" placeholder="Permit Number">
-                                        <button class="btn btn-outline-secondary" type="button" onclick="toggleVisibility('business_permit')">
+                                               value="" 
+                                               placeholder="{{ !empty($settings['business_permit']) ? '******** (Hidden)' : 'Permit Number' }}">
+                                        
+                                        <button class="btn btn-outline-secondary" type="button" onclick="requestReveal('business_permit')">
                                             <i class="fas fa-eye"></i>
                                         </button>
                                     </div>
-                                    <div class="form-text text-danger small">* Hidden for security</div>
                                 </div>
                             </div>
 
@@ -87,16 +90,38 @@
                                     <label class="form-label fw-bold small">VAT Rate (%)</label>
                                     <input type="number" name="tax_rate" class="form-control" 
                                            value="{{ $settings['tax_rate'] ?? '12' }}" min="0" max="100">
-                                    <div class="form-text">Standard PH VAT is 12%</div>
                                 </div>
                                 <div class="col-md-8">
                                     <label class="form-label fw-bold small">Tax Type</label>
                                     <select name="tax_type" class="form-select">
-                                        <option value="inclusive" {{ ($settings['tax_type'] ?? '') == 'inclusive' ? 'selected' : '' }}>VAT Inclusive (Price already includes Tax)</option>
+                                        <option value="inclusive" {{ ($settings['tax_type'] ?? '') == 'inclusive' ? 'selected' : '' }}>VAT Inclusive (Price includes Tax)</option>
                                         <option value="exclusive" {{ ($settings['tax_type'] ?? '') == 'exclusive' ? 'selected' : '' }}>VAT Exclusive (Add Tax to Total)</option>
                                         <option value="non_vat" {{ ($settings['tax_type'] ?? '') == 'non_vat' ? 'selected' : '' }}>Non-VAT Registered</option>
                                     </select>
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- SECURITY MODAL (Add this at the bottom of content section) --}}
+                <div class="modal fade" id="securityModal" tabindex="-1">
+                    <div class="modal-dialog modal-sm modal-dialog-centered">
+                        <div class="modal-content">
+                            <div class="modal-header bg-danger text-white">
+                                <h6 class="modal-title fw-bold"><i class="fas fa-lock me-2"></i>Admin Verification</h6>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <p class="small text-muted mb-2">Enter your admin password to view this sensitive field.</p>
+                                <input type="hidden" id="target-field-id">
+                                <input type="password" id="admin-password" class="form-control text-center fw-bold" placeholder="Password" autofocus>
+                                <div id="password-error" class="text-danger small mt-1 text-center" style="display:none;">Incorrect password</div>
+                            </div>
+                            <div class="modal-footer p-2">
+                                <button type="button" class="btn btn-danger w-100" onclick="verifyAndReveal()">
+                                    <i class="fas fa-unlock me-2"></i> Reveal
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -270,6 +295,65 @@
         } else {
             input.type = "password";
         }
+    }
+
+
+    let securityModal;
+
+    document.addEventListener('DOMContentLoaded', function() {
+        securityModal = new bootstrap.Modal(document.getElementById('securityModal'));
+        
+        // Allow Enter key in modal
+        document.getElementById('admin-password').addEventListener('keyup', function(e) {
+            if (e.key === 'Enter') verifyAndReveal();
+        });
+    });
+
+    function requestReveal(fieldId) {
+        // Reset Modal
+        document.getElementById('target-field-id').value = fieldId;
+        document.getElementById('admin-password').value = '';
+        document.getElementById('password-error').style.display = 'none';
+        
+        securityModal.show();
+        setTimeout(() => document.getElementById('admin-password').focus(), 500);
+    }
+
+    function verifyAndReveal() {
+        const password = document.getElementById('admin-password').value;
+        const fieldKey = document.getElementById('target-field-id').value; // 'store_tin' or 'business_permit'
+        const errorMsg = document.getElementById('password-error');
+
+        if (!password) return;
+
+        // AJAX Request
+        fetch("{{ route('settings.reveal') }}", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRF-TOKEN": document.querySelector('input[name="_token"]').value
+            },
+            body: JSON.stringify({ password: password, key: fieldKey })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                // Success: Fill input and show it
+                const input = document.getElementById(fieldKey);
+                input.value = data.value;
+                input.type = "text"; // Show plain text
+                securityModal.hide();
+            } else {
+                // Error
+                errorMsg.innerText = data.message || "Incorrect Password";
+                errorMsg.style.display = 'block';
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            errorMsg.innerText = "Server Error. Try again.";
+            errorMsg.style.display = 'block';
+        });
     }
 </script>
 @endsection

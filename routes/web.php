@@ -72,7 +72,9 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->group(function () {
     // Settings & System
     Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
     Route::post('/settings', [SettingsController::class, 'update'])->name('settings.update');
-    
+    // NEW: Route to reveal sensitive data
+    Route::post('/settings/reveal', [SettingsController::class, 'reveal'])->name('settings.reveal');
+
     // Backup & Restore
     Route::get('/settings/backup', [BackupController::class, 'download'])->name('settings.backup');
     Route::post('/settings/restore', [BackupController::class, 'restore'])->name('settings.restore');

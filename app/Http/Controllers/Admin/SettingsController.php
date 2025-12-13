@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Setting;
 use Illuminate\Support\Facades\Crypt; // Import Crypt
+use Illuminate\Support\Facades\Hash; // Import Hash
 use Illuminate\Contracts\Encryption\DecryptException; // Import Exception
 use App\Models\ActivityLog; // <--- Import this
 
@@ -38,6 +39,45 @@ class SettingsController extends Controller
 
         return view('admin.settings.index', compact('settings'));
     }
+
+    // NEW: Secure Reveal Method
+    public function reveal(Request $request)
+    {
+        $request->validate([
+            'password' => 'required',
+            'key' => 'required|in:store_tin,business_permit'
+        ]);
+
+        // 1. Verify Admin Password
+        if (!Hash::check($request->password, auth()->user()->password)) {
+            return response()->json(['success' => false, 'message' => 'Incorrect Admin Password'], 403);
+        }
+
+        // 2. Fetch & Decrypt
+        $storeId = $this->getActiveStoreId();
+        $encryptedValue = Setting::where('store_id', $storeId)->where('key', $request->key)->value('value');
+
+        if (!$encryptedValue) {
+            return response()->json(['success' => true, 'value' => '']);
+        }
+
+        try {
+            $decrypted = Crypt::decryptString($encryptedValue);
+        } catch (DecryptException $e) {
+            $decrypted = $encryptedValue; // Fallback if legacy/plain text
+        }
+
+        // Log this security event
+        ActivityLog::create([
+            'store_id' => $storeId,
+            'user_id' => auth()->id(),
+            'action' => 'Security Access',
+            'description' => 'Viewed sensitive field: ' . $request->key
+        ]);
+
+        return response()->json(['success' => true, 'value' => $decrypted]);
+    }
+
 
     public function update(Request $request)
     {
