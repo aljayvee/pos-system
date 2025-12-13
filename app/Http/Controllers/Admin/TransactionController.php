@@ -16,7 +16,14 @@ class TransactionController extends Controller
     // 1. List All Transactions
     public function index(Request $request)
     {
-        $query = Sale::with(['user', 'customer'])->latest();
+        // Get Active Store
+        $multiStoreEnabled = \App\Models\Setting::where('key', 'enable_multi_store')->value('value') ?? '0';
+        $storeId = ($multiStoreEnabled == '1') ? session('active_store_id', auth()->user()->store_id ?? 1) : 1;
+
+        // Filter Query
+        $query = Sale::with(['user', 'customer'])
+                     ->where('store_id', $storeId) // <--- FILTER
+                     ->latest();
 
         // Search by ID or Reference
         if ($request->filled('search')) {

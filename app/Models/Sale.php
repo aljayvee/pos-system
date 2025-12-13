@@ -8,11 +8,15 @@ class Sale extends Model
 {
     // Allow these fields to be filled by the controller
     protected $fillable = [
+        'store_id',
         'user_id', 
         'customer_id', 
         'total_amount', 
         'amount_paid', 
-        'payment_method'
+        'payment_method',
+        'reference_number', // Ensure this is here too
+        'points_used',      // And this
+        'points_discount'
     ];
 
     // Define relationships
@@ -29,5 +33,10 @@ class Sale extends Model
     public function customer()
     {
         return $this->belongsTo(Customer::class);
+    }
+
+    public function store()
+    {
+        return $this->belongsTo(Store::class);
     }
 }
