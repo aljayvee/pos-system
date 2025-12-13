@@ -175,13 +175,17 @@
 
 <script>
     // --- 1. CONFIGURATION ---
-    // --- 1. CONFIGURATION ---
     const CONFIG = {
         pointsValue: Number("{{ \App\Models\Setting::where('key', 'points_conversion')->value('value') ?? 1 }}"),
         loyaltyEnabled: Number("{{ \App\Models\Setting::where('key', 'enable_loyalty')->value('value') ?? 0 }}"),
         paymongoEnabled: Number("{{ \App\Models\Setting::where('key', 'enable_paymongo')->value('value') ?? 0 }}"),
-        // ADD THIS NEW LINE:
-        taxType: "{{ \App\Models\Setting::where('key', 'tax_type')->value('value') ?? 'inclusive' }}", 
+        
+        // NEW: Pass the Master Switch status
+        birEnabled: Number("{{ $birEnabled ?? 0 }}"), 
+        
+        // Pass the Tax Type
+        taxType: "{{ \App\Models\Setting::where('key', 'tax_type')->value('value') ?? 'inclusive' }}",
+
         csrfToken: document.querySelector('meta[name="csrf-token"]').getAttribute('content')
     };
 
@@ -299,9 +303,11 @@
 
     function updateCartUI() {
         localStorage.setItem('pos_cart', JSON.stringify(cart));
+        
         let html = '';
         let subtotal = 0;
         
+        // 1. Build Cart HTML & Calculate Subtotal
         if (cart.length === 0) {
             html = `<div class="text-center text-muted mt-5"><i class="fas fa-basket-shopping fa-3x opacity-25"></i><p>Cart is empty</p></div>`;
         } else {
@@ -321,37 +327,34 @@
             });
         }
 
-        // 1. Inject Items HTML
+        // 2. Inject Items
         document.querySelectorAll('#cart-items').forEach(el => el.innerHTML = html);
 
-        // 2. VAT / Tax Logic
+        // 3. VAT / Tax Logic (Controlled by Master Switch)
         let grandTotal = subtotal;
         let taxAmt = 0;
         
-        // UI Elements
         const subtotalEl = document.getElementById('subtotal-display');
         const taxRow = document.getElementById('tax-row');
         const taxEl = document.getElementById('tax-display');
 
-        if (CONFIG.taxType === 'exclusive') {
-            // Exclusive: Add 12% on top
-            taxAmt = subtotal * 0.12;
+        // CHECK: Is BIR Enabled? AND Is it set to Exclusive?
+        if (CONFIG.birEnabled === 1 && CONFIG.taxType === 'exclusive') {
+            taxAmt = subtotal * 0.12; // 12% VAT
             grandTotal = subtotal + taxAmt;
             
-            // Show Breakdown
+            // Show Tax Row
             if(taxRow) taxRow.style.setProperty('display', 'flex', 'important');
             if(taxEl) taxEl.innerText = taxAmt.toFixed(2);
         } else {
-            // Inclusive or Non-VAT: Hide Tax Row (already in price)
+            // Hide Tax Row (If BIR is OFF or Inclusive)
             if(taxRow) taxRow.style.display = 'none';
         }
 
-        // 3. Update Displays
+        // 4. Update Displays
         if(subtotalEl) subtotalEl.innerText = subtotal.toFixed(2);
-        
+
         document.querySelectorAll('.total-amount-display').forEach(el => el.innerText = grandTotal.toFixed(2));
-        
-        // Sync Mobile Footer & Modal
         if(document.getElementById('mobile-total-display')) document.getElementById('mobile-total-display').innerText = grandTotal.toFixed(2);
         if(document.getElementById('mobile-cart-count')) document.getElementById('mobile-cart-count').innerText = cart.length + ' Items';
         if(document.getElementById('modal-total')) document.getElementById('modal-total').innerText = grandTotal.toFixed(2);
