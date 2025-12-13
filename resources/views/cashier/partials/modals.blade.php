@@ -100,3 +100,56 @@
         </div>
     </div>
 </div>
+
+{{-- 4. DEBTOR LIST MODAL (NEW) --}}
+<div class="modal fade" id="debtorListModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title"><i class="fas fa-users me-2"></i>Customers with Debt</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="text" id="debtor-search" class="form-control mb-3" placeholder="Search debtor..." onkeyup="filterDebtors()">
+                <div class="list-group" style="max-height: 400px; overflow-y: auto;">
+                    @foreach($customers as $c)
+                        @if(($c->balance ?? 0) > 0)
+                        <button class="list-group-item list-group-item-action d-flex justify-content-between align-items-center debtor-row" 
+                                data-name="{{ strtolower($c->name) }}"
+                                onclick="openDebtPaymentModal('{{ $c->id }}', '{{ $c->name }}', '{{ $c->balance }}')">
+                            <span class="fw-bold">{{ $c->name }}</span>
+                            <span class="badge bg-danger rounded-pill">₱{{ number_format($c->balance, 2) }}</span>
+                        </button>
+                        @endif
+                    @endforeach
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{-- 5. PAY DEBT MODAL (NEW) --}}
+<div class="modal fade" id="debtPaymentModal" tabindex="-1">
+    <div class="modal-dialog modal-sm modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-light border-0">
+                <h6 class="modal-title fw-bold">Collect Payment</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center">
+                <input type="hidden" id="pay-debt-customer-id">
+                <h5 id="pay-debt-name" class="fw-bold mb-1">Customer</h5>
+                <small class="text-danger fw-bold text-uppercase">Current Debt</small>
+                <h2 class="text-danger fw-extrabold mb-3">₱<span id="pay-debt-balance">0.00</span></h2>
+                
+                <div class="form-floating mb-2">
+                    <input type="number" id="pay-debt-amount" class="form-control fw-bold" placeholder="Amount">
+                    <label>Payment Amount</label>
+                </div>
+                <button class="btn btn-danger w-100 fw-bold py-2" onclick="processDebtPayment()">
+                    CONFIRM PAYMENT
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

@@ -206,6 +206,17 @@
         }
     });
 
+
+    // --- RESTORED: CLEAR CART FUNCTION ---
+    window.clearCart = function() {
+        if(cart.length === 0) return;
+        Swal.fire({
+            title: 'Clear Cart?', text: "Remove all items?", icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', confirmButtonText: 'Yes'
+        }).then((res) => {
+            if(res.isConfirmed) { cart = []; updateCartUI(); }
+        });
+    };
+
     // --- 4. CORE POS LOGIC ---
     // Defined globally so onclick="" attributes can find them
     window.addToCart = function(product) {
@@ -294,6 +305,49 @@
             card.style.display = match ? 'block' : 'none';
         });
     });
+
+    // --- RESTORED: DEBT FUNCTIONS ---
+    window.openDebtorList = function() {
+        new bootstrap.Modal(document.getElementById('debtorListModal')).show();
+    };
+
+    window.filterDebtors = function() {
+        const q = document.getElementById('debtor-search').value.toLowerCase();
+        document.querySelectorAll('.debtor-row').forEach(row => {
+            row.style.display = row.dataset.name.includes(q) ? 'flex' : 'none';
+        });
+        
+    };
+
+    window.openDebtPaymentModal = function(id, name, balance) {
+        // Close list modal first
+        bootstrap.Modal.getInstance(document.getElementById('debtorListModal')).hide();
+        
+        document.getElementById('pay-debt-customer-id').value = id;
+        document.getElementById('pay-debt-name').innerText = name;
+        document.getElementById('pay-debt-balance').innerText = balance;
+        document.getElementById('pay-debt-amount').value = '';
+        
+        new bootstrap.Modal(document.getElementById('debtPaymentModal')).show();
+    };
+
+    window.processDebtPayment = function() {
+        const id = document.getElementById('pay-debt-customer-id').value;
+        const amount = document.getElementById('pay-debt-amount').value;
+        
+        if(!amount || amount <= 0) return Swal.fire('Error', 'Enter valid amount', 'warning');
+
+        fetch("{{ route('cashier.credit.pay') }}", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "X-CSRF-TOKEN": CONFIG.csrfToken },
+            body: JSON.stringify({ customer_id: id, amount: amount })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if(data.success) Swal.fire('Success', 'Payment Collected!', 'success').then(() => location.reload());
+            else Swal.fire('Error', data.message, 'error');
+        });
+    };
 
     window.filterCategory = function(cat, btn) {
         document.querySelectorAll('.category-filter').forEach(b => { 
@@ -495,6 +549,8 @@
         }
     }
 
+    function searchSaleForReturn() { /* Return logic */ }
+    function submitReturn() { /* Return logic */ }
     function playBeep() { /* Sound */ }
     function playError() { /* Sound */ }
 </script>
