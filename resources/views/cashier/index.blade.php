@@ -74,6 +74,11 @@
                     </div>
                     <button class="btn btn-dark rounded-3" onclick="openCameraModal()"><i class="fas fa-camera"></i></button>
                     
+                    {{-- ADD THIS RIGHT AFTER IT: --}}
+                    <button class="btn btn-danger fw-bold rounded-3 ms-1" onclick="openDebtorList()" title="Pay Debt">
+                        <i class="fas fa-hand-holding-usd"></i> <span class="d-none d-md-inline">Pay Debt</span>
+                    </button>
+
                     {{-- Return & Report Buttons (Desktop Only) --}}
                     <div class="d-none d-md-block">
                         <button class="btn btn-warning fw-bold rounded-3" onclick="openReturnModal()">Return</button>
@@ -458,6 +463,32 @@
     // --- 8. PAYMENT & OFFLINE ---
     window.openPaymentModal = function() {
         if(cart.length === 0) return Swal.fire('Empty', 'Add items first', 'warning');
+        
+        // Reset Inputs
+        document.getElementById('amount-paid').value = '';
+        document.getElementById('change-display').innerText = '₱0.00';
+        document.getElementById('pm-cash').checked = true;
+        
+        // FIX: Enable/Disable Credit based on Customer
+        const creditRadio = document.getElementById('pm-credit');
+        const creditLabel = creditRadio.nextElementSibling; // The label styling
+        
+        if (currentCustomer.id === 'walk-in') {
+            creditRadio.disabled = true;
+            creditLabel.classList.add('opacity-50');
+            creditLabel.classList.remove('btn-outline-secondary'); // Visual feedback
+            creditLabel.classList.add('btn-light');
+        } else {
+            creditRadio.disabled = false;
+            creditLabel.classList.remove('opacity-50');
+            creditLabel.classList.add('btn-outline-secondary');
+            creditLabel.classList.remove('btn-light');
+            
+            // Auto-select credit for new customers
+            if(currentCustomer.id === 'new') creditRadio.checked = true;
+        }
+
+        toggleFlow();
         new bootstrap.Modal(document.getElementById('paymentModal')).show();
         setTimeout(() => document.getElementById('amount-paid').focus(), 500);
     };
@@ -491,56 +522,62 @@
             cart: cart,
             total_amount: total,
             payment_method: method,
-            customer_id: document.getElementById('customer-id').value,
+            customer_id: currentCustomer.id,
             amount_paid: method === 'cash' ? document.getElementById('amount-paid').value : 0,
-            reference_number: document.getElementById('reference-number')?.value
+            reference_number: document.getElementById('reference-number')?.value,
+            credit_details: method === 'credit' ? {
+                name: document.getElementById('credit-name')?.value,
+                due_date: document.getElementById('credit-due-date')?.value
+            } : null
         };
 
-        if (isOffline) {
-            saveToOfflineQueue(payload);
-            return;
-        }
+        if (isOffline) { saveToOfflineQueue(payload); return; }
 
-        try {
-            Swal.showLoading();
-            const res = await fetch("{{ route('cashier.store') }}", {
-                method: "POST",
-                headers: { "Content-Type": "application/json", "X-CSRF-TOKEN": CONFIG.csrfToken },
-                body: JSON.stringify(payload)
-            });
-            const data = await res.json();
-            
+        Swal.showLoading();
+        fetch("{{ route('cashier.store') }}", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "X-CSRF-TOKEN": CONFIG.csrfToken },
+            body: JSON.stringify(payload)
+        })
+        .then(res => res.json())
+        .then(data => {
             if (data.success) {
+                bootstrap.Modal.getInstance(document.getElementById('paymentModal')).hide();
+                
                 Swal.fire({
-                    icon: 'success',
-                    title: 'Paid!',
-                    showCancelButton: true,
-                    confirmButtonText: 'Receipt',
-                    cancelButtonText: 'Next'
+                    icon: 'success', title: 'Paid!', showCancelButton: true, confirmButtonText: 'Receipt', cancelButtonText: 'New Sale'
                 }).then((r) => {
+                    // FIX: CLEAR CART PROPERLY
+                    cart = [];
+                    localStorage.removeItem('pos_cart');
+                    updateCartUI(); 
+                    document.getElementById('customer-id').value = 'walk-in'; // Reset customer
+                    currentCustomer = { id: 'walk-in', points: 0, balance: 0 }; // Reset state
+
                     if (r.isConfirmed) window.open(`/cashier/receipt/${data.sale_id}`, '_blank', 'width=400,height=600');
-                    location.reload();
                 });
-            } else {
-                Swal.fire('Failed', data.message, 'error');
-            }
-        } catch (err) {
-            saveToOfflineQueue(payload);
-        }
+            } else Swal.fire('Failed', data.message, 'error');
+        })
+        .catch(() => saveToOfflineQueue(payload));
     };
 
     function saveToOfflineQueue(data) {
         let queue = JSON.parse(localStorage.getItem('offline_queue_sales')) || [];
-        data.offline_id = Date.now();
-        queue.push(data);
+        data.offline_id = Date.now(); queue.push(data);
         localStorage.setItem('offline_queue_sales', JSON.stringify(queue));
-        Swal.fire('Saved Offline', 'Transaction stored locally.', 'info').then(() => location.reload());
+        
+        // Clear Cart Offline
+        cart = [];
+        localStorage.removeItem('pos_cart');
+        updateCartUI();
+        bootstrap.Modal.getInstance(document.getElementById('paymentModal')).hide();
+        
+        Swal.fire('Saved Offline', 'Transaction stored locally.', 'info');
     }
 
     function updateConnectionStatus() {
-        isOffline = !navigator.onLine;
-        const bar = document.getElementById('connection-status');
-        bar.className = isOffline ? 'status-offline' : 'status-online';
+       isOffline = !navigator.onLine;
+        document.getElementById('connection-status').className = isOffline ? 'status-offline' : 'status-online';
     }
 
     function syncOfflineData() {

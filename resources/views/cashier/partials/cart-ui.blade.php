@@ -1,6 +1,6 @@
 <div class="cart-container border-0 h-100">
 
-{{-- NEW: Header with Clear Button --}}
+{{-- NEW HEADER WITH CLEAR BUTTON --}}
     <div class="p-3 border-bottom bg-white d-flex justify-content-between align-items-center rounded-top-3">
         <h6 class="fw-bold m-0"><i class="fas fa-shopping-cart me-2 text-primary"></i>Current Order</h6>
         <button class="btn btn-sm btn-outline-danger border-0" onclick="clearCart()" title="Clear Cart">
