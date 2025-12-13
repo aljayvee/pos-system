@@ -80,10 +80,27 @@
                             <tbody>
                                 @foreach($lowStockItems as $item)
                                 <tr>
-                                    <td>{{ $item->name }}</td>
-                                    <td class="fw-bold text-danger">{{ $item->stock }}</td>
                                     <td>
-                                        <a href="{{ route('products.edit', $item->id) }}" class="btn btn-sm btn-outline-dark">Restock</a>
+                                        <span class="fw-bold">{{ $item->name }}</span>
+                                        <br>
+                                        <small class="text-muted">{{ $item->category->name ?? 'Uncategorized' }}</small>
+                                    </td>
+                                    <td>
+                                        {{-- Visual Progress Bar --}}
+                                        <div class="d-flex align-items-center">
+                                            <span class="fw-bold text-danger me-2">{{ $item->stock }}</span>
+                                            <div class="progress flex-grow-1" style="height: 6px;">
+                                                <div class="progress-bar bg-danger" role="progressbar" 
+                                                    style="width: {{ ($item->stock / ($item->reorder_point ?: 10)) * 100 }}%">
+                                                </div>
+                                            </div>
+                                            <span class="small text-muted ms-2">/ {{ $item->reorder_point ?? 10 }}</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <a href="{{ route('inventory.adjust') }}?product_id={{ $item->id }}" class="btn btn-sm btn-outline-dark">
+                                            <i class="fas fa-plus"></i> Restock
+                                        </a>
                                     </td>
                                 </tr>
                                 @endforeach

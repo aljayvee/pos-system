@@ -45,5 +45,26 @@ class AppServiceProvider extends ServiceProvider
 
             $view->with(compact('lowStockCount', 'outOfStockCount', 'overdueCount', 'totalAlerts'));
         });
+
+
+        // Share alert counts with all views (Sidebar badges)
+    View::composer('*', function ($view) {
+        if (auth()->check() && auth()->user()->role === 'admin') {
+            $lowStockCount = Product::whereColumn('stock', '<=', 'reorder_point')
+                                    ->where('stock', '>', 0)
+                                    ->count();
+            
+            $outOfStockCount = Product::where('stock', 0)->count();
+            
+            $overdueCount = CustomerCredit::where('is_paid', false)
+                                          ->whereDate('due_date', '<', now())
+                                          ->count();
+
+            $totalAlerts = $lowStockCount + $outOfStockCount + $overdueCount;
+
+            $view->with(compact('lowStockCount', 'outOfStockCount', 'overdueCount', 'totalAlerts'));
+        }
+    });
+
     }
 }
