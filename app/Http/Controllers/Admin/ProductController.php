@@ -164,7 +164,7 @@ class ProductController extends Controller
             'category_id' => 'required|exists:categories,id',
             'sku' => 'nullable|unique:products,sku,' . $product->id,
             'reorder_point' => 'nullable|integer|min:0',
-            'sku' => 'nullable|string|unique:products,sku,' . $id, // Ignore current product ID
+            
         ]);
 
         $product->update($request->all());
