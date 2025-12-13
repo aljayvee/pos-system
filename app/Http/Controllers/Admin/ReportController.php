@@ -16,52 +16,71 @@ class ReportController extends Controller
     // 1. Sales Report (Main Dashboard)
     public function index(Request $request)
     {
+        // 1. Filter Parameters
         $type = $request->input('type', 'daily');
-        $startDate = $request->input('start_date', Carbon::today()->toDateString());
-        $endDate = $request->input('end_date', Carbon::today()->toDateString());
-        $storeId = $this->getActiveStoreId();
+        $startDate = $request->input('start_date', \Carbon\Carbon::today()->toDateString());
+        $endDate = $request->input('end_date', \Carbon\Carbon::today()->toDateString());
+        $date = $startDate; // For View Compatibility
 
-        // Query Sales
-        $query = Sale::with('user', 'customer')
-                     ->where('store_id', $storeId)
-                     ->latest();
+        // 2. Multi-Store Context Logic
+        $isMultiStore = \App\Models\Setting::where('key', 'enable_multi_store')->value('value') ?? '0';
+        $activeStoreId = $this->getActiveStoreId();
+        
+        // Determine Target Store: Default to active, but allow 'all' if selected
+        $targetStore = $request->input('store_filter', $activeStoreId);
 
+        // 3. Build Query
+        $query = Sale::with('user', 'customer')->latest();
+
+        // Apply Store Filter (If not 'all', filter by specific ID)
+        if ($targetStore !== 'all') {
+            $query->where('store_id', $targetStore);
+        }
+
+        // Apply Date Filter
         if ($type === 'daily') {
             $query->whereDate('created_at', $startDate);
         } elseif ($type === 'weekly') {
-            $start = Carbon::parse($startDate)->startOfWeek();
-            $end = Carbon::parse($startDate)->endOfWeek();
+            $start = \Carbon\Carbon::parse($startDate)->startOfWeek();
+            $end = \Carbon\Carbon::parse($startDate)->endOfWeek();
             $query->whereBetween('created_at', [$start, $end]);
         } elseif ($type === 'monthly') {
-            $query->whereMonth('created_at', Carbon::parse($startDate)->month)
-                  ->whereYear('created_at', Carbon::parse($startDate)->year);
+            $query->whereMonth('created_at', \Carbon\Carbon::parse($startDate)->month)
+                  ->whereYear('created_at', \Carbon\Carbon::parse($startDate)->year);
         } elseif ($type === 'custom') {
             $query->whereBetween('created_at', [
-                Carbon::parse($startDate)->startOfDay(), 
-                Carbon::parse($endDate)->endOfDay()
+                \Carbon\Carbon::parse($startDate)->startOfDay(), 
+                \Carbon\Carbon::parse($endDate)->endOfDay()
             ]);
         }
 
         $sales = $query->get();
         $salesIds = $sales->pluck('id');
 
-        // Calculate Totals
+        // 4. Calculate Financials
         $total_sales = $sales->sum('total_amount');
         $total_transactions = $sales->count();
         $cash_sales = $sales->where('payment_method', 'cash')->sum('total_amount');
         $credit_sales = $sales->where('payment_method', 'credit')->sum('total_amount');
         $digital_sales = $sales->where('payment_method', 'digital')->sum('total_amount');
 
-        // Calculate Gross Profit
+        // Tithes Calculation (10% if enabled)
+        $tithesEnabled = \App\Models\Setting::where('key', 'enable_tithes')->value('value') ?? '1'; 
+        $tithesAmount = ($tithesEnabled == '1') ? $total_sales * 0.10 : 0;
+
+        // Gross Profit Calculation
         $soldItems = SaleItem::whereIn('sale_id', $salesIds)->with('product')->get();
         $total_cost = 0;
         foreach ($soldItems as $item) {
+            // Use recorded cost if available, otherwise fallback to product master cost
             $itemCost = ($item->cost > 0) ? $item->cost : ($item->product->cost ?? 0);
             $total_cost += ($itemCost * $item->quantity);
         }
         $gross_profit = $total_sales - $total_cost;
 
-        // Top Selling Items
+        // 5. Analytics Data
+        
+        // Top Items
         $topItems = SaleItem::select('product_id', DB::raw('sum(quantity) as total_qty'), DB::raw('sum(price * quantity) as total_revenue'))
             ->whereIn('sale_id', $salesIds)
             ->groupBy('product_id')
@@ -70,11 +89,42 @@ class ReportController extends Controller
             ->take(10)
             ->get();
 
+        // Top Customers
+        $topCustomers = Sale::select('customer_id', DB::raw('sum(total_amount) as total_spent'), DB::raw('count(*) as trans_count'))
+            ->whereNotNull('customer_id')
+            ->whereIn('id', $salesIds)
+            ->groupBy('customer_id')
+            ->orderByDesc('total_spent')
+            ->with('customer')
+            ->take(5)
+            ->get();
+
+        // Slow Moving Items
+        $soldProductIds = \App\Models\SaleItem::whereIn('sale_id', $salesIds)->pluck('product_id')->unique();
+        $slowMovingItems = \App\Models\Product::whereNotIn('id', $soldProductIds)
+            ->where('stock', '>', 0)
+            ->take(10)
+            ->get();
+
+        // Sales By Category
+        $salesByCategory = SaleItem::select('categories.name', DB::raw('sum(sale_items.price * sale_items.quantity) as total_revenue'))
+            ->join('products', 'sale_items.product_id', '=', 'products.id')
+            ->join('categories', 'products.category_id', '=', 'categories.id')
+            ->whereIn('sale_items.sale_id', $salesIds)
+            ->groupBy('categories.name')
+            ->orderByDesc('total_revenue')
+            ->get();
+
+        // Fetch Stores list for the dropdown
+        $stores = \App\Models\Store::all();
+
         return view('admin.reports.index', compact(
             'sales', 'total_sales', 'total_transactions', 
             'cash_sales', 'credit_sales', 'digital_sales',
-            'type', 'startDate', 'endDate', 
-            'topItems', 'gross_profit'
+            'type', 'startDate', 'endDate', 'date',
+            'topItems', 'topCustomers', 'salesByCategory', 'slowMovingItems',
+            'tithesAmount', 'tithesEnabled', 'gross_profit',
+            'stores', 'targetStore', 'isMultiStore' // New Consolidated Reporting Variables
         ));
     }
 

@@ -78,15 +78,32 @@
 
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="mb-0"><i class="fas fa-chart-line text-primary"></i> Sales & Analytics</h2>
+        
         <span class="badge bg-light text-dark border p-2">
             Date: {{ \Carbon\Carbon::now()->format('F d, Y') }}
         </span>
     </div>
+    <hr>
 
     {{-- 1. FILTER TOOLBAR --}}
     <div class="card bg-white border-0 shadow-sm mb-4">
         <div class="card-body py-3">
             <form action="{{ route('reports.index') }}" method="GET" class="row g-3 align-items-end">
+
+            {{-- NEW: Store Filter (Only show if Multi-Store is ON) --}}
+                @if($isMultiStore == '1')
+                <div class="col-md-3">
+                    <label class="small fw-bold">Branch / Store</label>
+                    <select name="store_filter" class="form-select" onchange="this.form.submit()">
+                        <option value="all" {{ $targetStore == 'all' ? 'selected' : '' }}>-- Consolidated (All) --</option>
+                        @foreach($stores as $store)
+                            <option value="{{ $store->id }}" {{ $targetStore == $store->id ? 'selected' : '' }}>
+                                {{ $store->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+                @endif
                 
                 {{-- Report Type --}}
                 <div class="col-md-3">
@@ -126,16 +143,19 @@
                         <button type="button" onclick="window.print()" class="btn btn-secondary w-400 fw-bold">
                             <i class="fas fa-print me-1"></i> Print / PDF
                         </button>
-                       <div class="col-md-12 mt-2">
-                            <a href="{{ route('reports.forecast') }}" class="btn btn-outline-primary w-100">
-                                <i class="fas fa-magic me-1"></i> View Inventory Forecast & Buying Recommendations
-                            </a>
-                        </div>
                         
                 </div>
             </form>
         </div>
+        
     </div>
+    <hr>
+    <div class="col-md-12 mt-2">
+                            <a href="{{ route('reports.forecast') }}" class="btn btn-outline-primary w-100">
+                                <i class="fas fa-magic me-1"></i> View Inventory Forecast & Buying Recommendations
+                            </a>
+            </div>
+            <hr>
 
     {{-- DYNAMIC TITLE --}}
     <div class="mb-3">

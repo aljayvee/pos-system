@@ -7,34 +7,34 @@ use App\Models\Purchase;
 use App\Models\PurchaseItem;
 use App\Models\Product;
 use App\Models\Supplier;
+use App\Models\Inventory; // <--- Import Inventory
+use App\Models\ActivityLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 
 class PurchaseController extends Controller
 {
-    // 1. Show History
     public function index()
     {
        $storeId = $this->getActiveStoreId();
-        // Filter Purchases by Store
-        $purchases = \App\Models\Purchase::where('store_id', $storeId)
-                        ->with('supplier')
+       
+       // Show purchases for the current store
+       $purchases = Purchase::where('store_id', $storeId)
+                        ->with('supplier', 'user')
                         ->latest()
-                        ->get();
+                        ->paginate(15);
                         
-        return view('admin.purchases.index', compact('purchases'));
+       return view('admin.purchases.index', compact('purchases'));
     }
 
-    // 2. Show Stock-In Form
     public function create()
     {
-        $products = Product::all();
-        $suppliers = Supplier::all();
+        $products = Product::orderBy('name')->get();
+        $suppliers = Supplier::orderBy('name')->get();
         return view('admin.purchases.create', compact('products', 'suppliers'));
     }
 
-    // 3. Save Restocking
-    // 3. Save Restocking
     public function store(Request $request)
     {
         $request->validate([
@@ -46,24 +46,31 @@ class PurchaseController extends Controller
         ]);
 
         DB::transaction(function () use ($request) {
-            // Handle Supplier (Create new if name provided, or select existing)
+            $storeId = $this->getActiveStoreId(); // Identify Active Branch
+
+            // 1. Handle Supplier
             $supplierId = $request->supplier_id;
             if ($request->filled('new_supplier_name')) {
-                $supplier = \App\Models\Supplier::create(['name' => $request->new_supplier_name]);
+                $supplier = Supplier::create([
+                    'name' => $request->new_supplier_name,
+                    'contact_info' => $request->new_supplier_contact ?? null
+                ]);
                 $supplierId = $supplier->id;
             }
 
-            // Create Purchase Header
+            // 2. Create Purchase Record linked to Store
             $purchase = Purchase::create([
+                'store_id' => $storeId, // <--- Link to Branch
+                'user_id' => Auth::id(),
                 'supplier_id' => $supplierId,
                 'purchase_date' => $request->purchase_date,
-                'total_cost' => 0 // Will calculate below
+                'total_cost' => 0
             ]);
 
             $totalCost = 0;
 
             foreach ($request->items as $itemData) {
-                // Create Item Record
+                // 3. Create Purchase Items
                 PurchaseItem::create([
                     'purchase_id' => $purchase->id,
                     'product_id' => $itemData['product_id'],
@@ -71,57 +78,60 @@ class PurchaseController extends Controller
                     'unit_cost' => $itemData['unit_cost']
                 ]);
 
-                // UPDATE INVENTORY & COST
+                // 4. UPDATE BRANCH INVENTORY (Critical Fix)
+                $inventory = Inventory::firstOrCreate(
+                    ['product_id' => $itemData['product_id'], 'store_id' => $storeId],
+                    ['stock' => 0, 'reorder_point' => 10]
+                );
+                $inventory->increment('stock', $itemData['quantity']);
+
+                // 5. Update Global Product Cost (Moving Average or Last Price)
                 $product = Product::find($itemData['product_id']);
                 if ($product) {
-                    $product->increment('stock', $itemData['quantity']);
-                    
-                    // NEW: Update Master Cost Price to latest buying price
                     $product->update(['cost' => $itemData['unit_cost']]);
+                    // Optional: Update global stock sum if you maintain it
+                    // $product->increment('stock', $itemData['quantity']); 
                 }
 
                 $totalCost += ($itemData['quantity'] * $itemData['unit_cost']);
             }
 
-            // Update Total
             $purchase->update(['total_cost' => $totalCost]);
+
+            // Log Activity
+            ActivityLog::create([
+                'user_id' => Auth::id(),
+                'store_id' => $storeId,
+                'action' => 'Restocking',
+                'description' => "Restocked items (Purchase #{$purchase->id}). Total: ₱" . number_format($totalCost, 2)
+            ]);
         });
 
-        return redirect()->route('purchases.index')->with('success', 'Stocks added successfully!');
+        return redirect()->route('purchases.index')->with('success', 'Stocks added to branch inventory successfully!');
     }
 
     public function show(Purchase $purchase)
     {
-        // Eager load items and products for performance
-        $purchase->load(['purchaseItems.product', 'supplier', 'user', 'items']);
-        
+        $purchase->load(['purchaseItems.product', 'supplier', 'user']);
         return view('admin.purchases.show', compact('purchase'));
     }
 
-    // NEW: Void / Delete Purchase (Reverse Stock)
-    public function destroy(\App\Models\Purchase $purchase)
+    public function destroy(Purchase $purchase)
     {
-        \Illuminate\Support\Facades\DB::transaction(function () use ($purchase) {
-            // 1. Restore/Revert Stock Levels
+        DB::transaction(function () use ($purchase) {
+            // Reverse Stock from Branch Inventory
             foreach ($purchase->purchaseItems as $item) {
-                $product = \App\Models\Product::find($item->product_id);
-                if ($product) {
-                    // Deduct the quantity that was added
-                    $product->decrement('stock', $item->quantity);
+                $inventory = Inventory::where('product_id', $item->product_id)
+                                ->where('store_id', $purchase->store_id) // Match the original store
+                                ->first();
+                                
+                if ($inventory) {
+                    $inventory->decrement('stock', $item->quantity);
                 }
             }
-
-            // 2. Log the Action (Audit Trail)
-            \App\Models\ActivityLog::create([
-                'user_id' => auth()->id(),
-                'action' => 'Void Purchase',
-                'description' => "Voided Stock-In #{$purchase->id} from {$purchase->supplier->name}. Total: ₱{$purchase->total_cost}"
-            ]);
-
-            // 3. Delete Record (Cascading delete will remove purchase_items)
             $purchase->delete();
         });
 
-        return redirect()->route('purchases.index')->with('success', 'Purchase record voided and stock levels reversed.');
+        return redirect()->route('purchases.index')->with('success', 'Purchase voided and inventory reversed.');
     }
 }
