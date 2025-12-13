@@ -66,26 +66,38 @@
         <div class="col-lg-8 col-md-7 col-12">
             
             {{-- Search & Tools --}}
+            {{-- Search & Tools --}}
             <div class="card border-0 shadow-sm rounded-4 p-3 mb-3">
-                <div class="d-flex gap-2">
-                    <div class="input-group flex-grow-1">
+                {{-- ADDED: flex-wrap to prevent overflow on small screens --}}
+                <div class="d-flex gap-2 flex-wrap"> 
+                    
+                    {{-- Search Input (Grows to fill space) --}}
+                    <div class="input-group flex-grow-1" style="min-width: 200px;">
                         <span class="input-group-text bg-white border-end-0"><i class="fas fa-search"></i></span>
                         <input type="text" id="product-search" class="form-control border-start-0 py-2" placeholder="Search Item...">
                     </div>
-                    <button class="btn btn-dark rounded-3" onclick="openCameraModal()"><i class="fas fa-camera"></i></button>
+
+                    {{-- Camera Button --}}
+                    <button class="btn btn-dark rounded-3" onclick="openCameraModal()" title="Scan Barcode">
+                        <i class="fas fa-camera"></i>
+                    </button>
                     
-                    {{-- ADD THIS RIGHT AFTER IT: --}}
-                    <button class="btn btn-danger fw-bold rounded-3 ms-1" onclick="openDebtorList()" title="Pay Debt">
-                        <i class="fas fa-hand-holding-usd"></i> <span class="d-none d-md-inline">Pay Debt</span>
+                    {{-- Pay Debt Button (Icon on mobile, Text on Desktop) --}}
+                    <button class="btn btn-danger fw-bold rounded-3" onclick="openDebtorList()" title="Pay Debt">
+                        <i class="fas fa-hand-holding-usd"></i> <span class="d-none d-md-inline ms-1">Pay Debt</span>
                     </button>
 
-                    {{-- Return & Report Buttons (Desktop Only) --}}
-                    <div class="d-none d-md-block">
-                        <button class="btn btn-warning fw-bold rounded-3" onclick="openReturnModal()">Return</button>
-                        @if($birEnabled == '1')
-                        <a href="{{ route('cashier.reading', 'x') }}" target="_blank" class="btn btn-outline-secondary rounded-3" title="X-Reading"><i class="fas fa-print"></i></a>
-                        @endif
-                    </div>
+                    {{-- Return Button (Now Visible on Mobile - Icon Only) --}}
+                    <button class="btn btn-warning fw-bold rounded-3" onclick="openReturnModal()" title="Return Item">
+                        <i class="fas fa-undo"></i> <span class="d-none d-md-inline ms-1">Return</span>
+                    </button>
+
+                    {{-- Report Button (Now Visible on Mobile) --}}
+                    @if($birEnabled == '1')
+                    <a href="{{ route('cashier.reading', 'x') }}" target="_blank" class="btn btn-outline-secondary rounded-3" title="Print X-Reading">
+                        <i class="fas fa-print"></i>
+                    </a>
+                    @endif
                 </div>
 
                 {{-- Categories --}}
