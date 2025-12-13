@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Setting;
+use Illuminate\Support\Facades\Crypt; // Import Crypt
+use Illuminate\Contracts\Encryption\DecryptException; // Import Exception
 use App\Models\ActivityLog; // <--- Import this
 
 class SettingsController extends Controller
@@ -22,6 +24,18 @@ class SettingsController extends Controller
         // Merge them so the view sees both
         $settings = $branchSettings->merge($globalSettings);
 
+        // DECRYPT SENSITIVE DATA FOR VIEWING
+        // We check if it's encrypted; if not (legacy data), we show it as is.
+        foreach (['store_tin', 'business_permit'] as $key) {
+            if (isset($settings[$key]) && !empty($settings[$key])) {
+                try {
+                    $settings[$key] = Crypt::decryptString($settings[$key]);
+                } catch (DecryptException $e) {
+                    // Value was plain text (not yet encrypted), keep as is
+                }
+            }
+        }
+
         return view('admin.settings.index', compact('settings'));
     }
 
@@ -31,19 +45,20 @@ class SettingsController extends Controller
         $data = $request->except('_token');
 
         foreach ($data as $key => $value) {
-            // SPECIAL CASE: Multi-store toggle is ALWAYS saved to Store 1 (Global)
+            
+            // ENCRYPT SENSITIVE DATA BEFORE SAVING
+            if (in_array($key, ['store_tin', 'business_permit']) && !empty($value)) {
+                try {
+                    $value = Crypt::encryptString($value);
+                } catch (\Exception $e) {
+                    return back()->with('error', 'Encryption failed for ' . $key);
+                }
+            }
+
             if ($key === 'enable_multi_store') {
-                Setting::updateOrCreate(
-                    ['key' => $key, 'store_id' => 1], // Always ID 1
-                    ['value' => $value]
-                );
-            } 
-            else {
-                // All other settings (Printer, Header, Loyalty) are saved for the CURRENT Store
-                Setting::updateOrCreate(
-                    ['key' => $key, 'store_id' => $storeId], 
-                    ['value' => $value]
-                );
+                Setting::updateOrCreate(['key' => $key, 'store_id' => 1], ['value' => $value]);
+            } else {
+                Setting::updateOrCreate(['key' => $key, 'store_id' => $storeId], ['value' => $value]);
             }
         }
 

@@ -401,12 +401,20 @@ class POSController extends Controller
                           ->whereDate('created_at', $date)
                           ->get();
 
+        // 2. Fetch & Decrypt TIN
+        $rawTin = \App\Models\Setting::where('key', 'store_tin')->value('value');
+        try {
+            $tin = $rawTin ? \Illuminate\Support\Facades\Crypt::decryptString($rawTin) : '000-000-000';
+        } catch (\Exception $e) {
+            $tin = $rawTin; // Fallback if plain text
+        }
+
         // 2. Fetch Aggregates
         $data = [
             'type' => strtoupper($type) . '-READING',
             'date' => now()->format('Y-m-d H:i:s'),
             'store_name' => \App\Models\Setting::where('key', 'store_name')->value('value'),
-            'tin' => \App\Models\Setting::where('key', 'store_tin')->value('value'),
+            'tin' => $tin,
             'machine_no' => 'POS-001', // Example Machine ID
             
             // Sales Stats

@@ -1,35 +1,45 @@
 @php
+    use Illuminate\Support\Facades\Crypt;
+    use Illuminate\Contracts\Encryption\DecryptException;
+
     // 1. Fetch Store Details
     $storeName = \App\Models\Setting::where('key', 'store_name')->value('value') ?? 'Sari-Sari Store';
     $storeAddress = \App\Models\Setting::where('key', 'store_address')->value('value') ?? '';
     $storeContact = \App\Models\Setting::where('key', 'store_contact')->value('value') ?? '';
     $receiptFooter = \App\Models\Setting::where('key', 'receipt_footer')->value('value') ?? 'Thank you!';
     
-    // 2. Fetch Tax Settings
+    // 2. Fetch & Decrypt Tax Settings
     $enableTax = \App\Models\Setting::where('key', 'enable_tax')->value('value') ?? '0';
-    $tin = \App\Models\Setting::where('key', 'store_tin')->value('value') ?? '';
-    $permit = \App\Models\Setting::where('key', 'business_permit')->value('value') ?? '';
+    
+    // Decrypt TIN
+    $rawTin = \App\Models\Setting::where('key', 'store_tin')->value('value');
+    try {
+        $tin = $rawTin ? Crypt::decryptString($rawTin) : '';
+    } catch (DecryptException $e) {
+        $tin = $rawTin; // Fallback
+    }
+
+    // Decrypt Permit
+    $rawPermit = \App\Models\Setting::where('key', 'business_permit')->value('value');
+    try {
+        $permit = $rawPermit ? Crypt::decryptString($rawPermit) : '';
+    } catch (DecryptException $e) {
+        $permit = $rawPermit; // Fallback
+    }
     
     // Tax Calculation Variables
     $taxRate = (float) (\App\Models\Setting::where('key', 'tax_rate')->value('value') ?? 12);
-    $taxType = \App\Models\Setting::where('key', 'tax_type')->value('value') ?? 'inclusive'; // inclusive, exclusive, non_vat
+    $taxType = \App\Models\Setting::where('key', 'tax_type')->value('value') ?? 'inclusive'; 
 
     $totalAmount = $sale->total_amount;
     $vatableSales = 0;
     $vatAmount = 0;
     $vatExempt = 0;
 
-    // 3. Perform Calculation based on Tax Type
+    // 3. Perform Calculation
     if ($taxType === 'non_vat') {
-        // No Tax
         $vatExempt = $totalAmount;
-        $vatableSales = 0;
-        $vatAmount = 0;
-    } 
-    else {
-        // Standard VAT (Inclusive logic is standard for Retail POS)
-        // Even if "Exclusive" was selected, the 'total_amount' in DB is the Final amount paid, 
-        // so we strip the tax out backward to show the breakdown.
+    } else {
         $vatableSales = $totalAmount / (1 + ($taxRate / 100));
         $vatAmount = $totalAmount - $vatableSales;
     }
