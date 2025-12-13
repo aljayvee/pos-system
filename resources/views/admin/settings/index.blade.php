@@ -124,6 +124,25 @@
                                 <i class="fas fa-info-circle"></i> Use "Test Keys" (sk_test, pk_test) for development.
                             </div>
                         </div>
+
+                        <hr>
+                        {{-- MULTI-STORE TOGGLE --}}
+                        <div class="form-check form-switch mb-3">
+                            <input type="hidden" name="enable_multi_store" value="0">
+                            <input class="form-check-input" type="checkbox" id="multiStoreSwitch" name="enable_multi_store" value="1" 
+                                {{ ($settings['enable_multi_store'] ?? '0') == '1' ? 'checked' : '' }}
+                                onchange="toggleStoreManagement()">
+                            <label class="form-check-label fw-bold text-primary" for="multiStoreSwitch">
+                                <i class="fas fa-network-wired me-1"></i> Enable Multi-Store / Branches
+                            </label>
+                        </div>
+
+                        <div id="store-management-link" class="mb-3 ps-4" style="display: {{ ($settings['enable_multi_store'] ?? '0') == '1' ? 'block' : 'none' }};">
+                            <a href="{{ route('stores.index') }}" class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-store-alt me-1"></i> Manage Stores & Branches
+                            </a>
+                        </div>
+
                     </div>
                 </div>
 
@@ -176,5 +195,11 @@
         const isChecked = document.getElementById('paymongoSwitch').checked;
         document.getElementById('paymongo-fields').style.display = isChecked ? 'block' : 'none';
     }
+
+    function toggleStoreManagement() {
+    const isChecked = document.getElementById('multiStoreSwitch').checked;
+    document.getElementById('store-management-link').style.display = isChecked ? 'block' : 'none';
+}
+
 </script>
 @endsection

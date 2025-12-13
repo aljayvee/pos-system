@@ -86,6 +86,10 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->group(function () {
 
     // Inside 'admin' middleware group
     Route::get('/reports/forecast', [ReportController::class, 'forecast'])->name('reports.forecast');
+
+    // Inside 'admin' middleware group
+    Route::resource('stores', \App\Http\Controllers\Admin\StoreController::class);
+    Route::get('/stores/switch/{id}', [\App\Http\Controllers\Admin\StoreController::class, 'switch'])->name('stores.switch');
     
 });
 

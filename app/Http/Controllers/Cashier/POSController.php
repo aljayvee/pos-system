@@ -206,8 +206,18 @@ class POSController extends Controller
                     throw new \Exception("Insufficient stock for " . $product->name);
                 }
 
-                // Deduct Stock
-                $product->decrement('stock', $item['qty']);
+                // Determine Store ID
+                $storeId = auth()->user()->store_id ?? session('active_store_id', 1);
+
+                // Update Inventory Record directly
+                $inventory = \App\Models\Inventory::where('product_id', $product->id)
+                                ->where('store_id', $storeId)
+                                ->first();
+
+                if ($inventory) {
+                    if ($inventory->stock < $item['qty']) throw new \Exception("Insufficient stock in this branch.");
+                    $inventory->decrement('stock', $item['qty']);
+                }
 
                 // Create Sale Item
                 SaleItem::create([
