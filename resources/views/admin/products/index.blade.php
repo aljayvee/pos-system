@@ -91,15 +91,30 @@
         <div class="card-body p-0">
             <table class="table table-striped table-hover mb-0">
                 <thead class="table-light">
-                    <tr>
-                        <th>Product Name</th>
-                        <th>Category</th>
-                        <th>Price</th>
-                        <th>Stock Level</th>
-                        <th>Status</th>
-                        <th class="text-center">Actions</th>
-                    </tr>
-                </thead>
+                        <tr>
+                            {{-- Helper to keep current filters while sorting --}}
+                            @php
+                                $queryParams = request()->except(['sort', 'direction', 'page']);
+                                function sortLink($field, $label, $params) {
+                                    $direction = (request('sort') == $field && request('direction') == 'asc') ? 'desc' : 'asc';
+                                    $icon = '';
+                                    if (request('sort') == $field) {
+                                        $icon = (request('direction') == 'asc') ? '<i class="fas fa-sort-up"></i>' : '<i class="fas fa-sort-down"></i>';
+                                    }
+                                    $url = route('products.index', array_merge($params, ['sort' => $field, 'direction' => $direction]));
+                                    return "<a href='{$url}' class='text-decoration-none text-dark fw-bold'>{$label} {$icon}</a>";
+                                }
+                            @endphp
+
+                            <th>{!! sortLink('name', 'Product Name', $queryParams) !!}</th>
+                            <th>{!! sortLink('category', 'Category', $queryParams) !!}</th>
+                            <th class="text-end">{!! sortLink('price', 'Price', $queryParams) !!}</th>
+                            <th class="text-center">{!! sortLink('stock', 'Stock', $queryParams) !!}</th>
+                            <th class="text-center">Unit</th>
+                            <th class="text-center">Status</th>
+                            <th class="text-end">Action</th>
+                        </tr>
+                    </thead>
                 <tbody>
                     @forelse($products as $product)
                     <tr>
