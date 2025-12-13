@@ -21,26 +21,27 @@
 </head>
 <body>
 
-    <nav class="navbar navbar-expand-lg navbar-dark shadow-sm py-1 py-lg-2" style="background: #1e1b4b !important;">
-        <div class="container-fluid">
-            {{-- BRAND --}}
-            <a class="navbar-brand fw-bold fs-3 fs-lg-1 d-flex align-items-center" href="#">
-                <i class="fas fa-cash-register me-2 text-warning"></i> 
+    {{-- COMPACT MOBILE NAVBAR --}}
+    <nav class="navbar navbar-expand-lg navbar-dark shadow-sm p-0" style="background: #1e1b4b !important;">
+        <div class="container-fluid py-1">
+            {{-- BRAND (Height minimized) --}}
+            <a class="navbar-brand fw-bold fs-6 fs-lg-4 d-flex align-items-center m-0" href="#">
+                <i class="fas fa-cash-register me-2 text-warning small"></i> 
                 <span>SariPOS</span>
             </a>
             
-            {{-- TOGGLER (Mobile Menu) --}}
-            <button class="navbar-toggler border-0 btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent">
-                <span class="navbar-toggler-icon" style="width: em; height: 1em;"></span>
+            {{-- TOGGLER (Compacted) --}}
+            <button class="navbar-toggler border-0 p-1" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent">
+                <span class="navbar-toggler-icon" style="width: 1em; height: 1em;"></span>
             </button>
 
             <div class="collapse navbar-collapse" id="navbarSupportedContent">
-                <ul class="navbar-nav ms-auto mb-2 mb-lg-0 align-items-center">
+                <ul class="navbar-nav ms-auto mb-2 mb-lg-0 align-items-center mt-2 mt-lg-0">
                     
                     @if(Auth::user()->role === 'admin')
                         <li class="nav-item me-3">
-                            <a class="btn btn-outline-light btn-sm fw-bold" href="{{ route('admin.dashboard') }}">
-                                <i class="fas fa-arrow-left me-1"></i> Admin
+                            <a class="btn btn-outline-light btn-sm fw-bold w-100 mb-2 mb-lg-0" href="{{ route('admin.dashboard') }}">
+                                <i class="fas fa-arrow-left me-1"></i> Admin Panel
                             </a>
                         </li>
                     @endif
