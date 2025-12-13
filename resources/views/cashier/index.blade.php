@@ -66,46 +66,47 @@
         <div class="col-lg-8 col-md-7 col-12">
             
             {{-- Search & Tools --}}
-            <div class="card border-0 shadow-sm rounded-4 p-3 mb-3">
-                {{-- FIX: Added 'align-items-center' to fix vertical positioning --}}
-                <div class="d-flex gap-2 flex-wrap align-items-center"> 
+            <div class="card border-0 shadow-sm rounded-4 p-2 p-md-3 mb-3">
+                <div class="d-flex gap-2 align-items-center"> 
                     
-                    {{-- Search Input --}}
-                    <div class="input-group flex-grow-1" style="min-width: 180px;">
-                        <span class="input-group-text bg-white border-end-0"><i class="fas fa-search"></i></span>
-                        <input type="text" id="product-search" class="form-control border-start-0 py-2" placeholder="Search Item...">
+                    {{-- 1. Search + Scan Group (Merged) --}}
+                    <div class="input-group flex-grow-1">
+                        <span class="input-group-text bg-white border-end-0 ps-3"><i class="fas fa-search text-muted"></i></span>
+                        
+                        <input type="text" id="product-search" class="form-control border-start-0 border-end-0 py-2" placeholder="Search Item...">
+                        
+                        {{-- Scan Button (Right Side of Input) --}}
+                        <button class="btn btn-dark px-3" onclick="openCameraModal()" title="Scan Barcode">
+                            <i class="fas fa-camera"></i>
+                        </button>
                     </div>
 
-                    {{-- Camera Button --}}
-                    <button class="btn btn-dark rounded-3 d-flex align-items-center justify-content-center" style="height: 42px; width: 42px;" onclick="openCameraModal()" title="Scan Barcode">
-                        <i class="fas fa-camera"></i>
-                    </button>
-                    
-                    {{-- Pay Debt Button --}}
-                    <button class="btn btn-danger fw-bold rounded-3 d-flex align-items-center" style="height: 42px;" onclick="openDebtorList()" title="Pay Debt">
-                        <i class="fas fa-hand-holding-usd"></i> 
-                        <span class="d-none d-md-inline ms-2">Pay Debt</span>
-                    </button>
-
-                    {{-- Return Button --}}
-                    <button class="btn btn-warning fw-bold rounded-3 d-flex align-items-center justify-content-center" style="height: 42px; min-width: 42px;" onclick="openReturnModal()" title="Return Item">
-                        <i class="fas fa-undo"></i> 
-                        <span class="d-none d-md-inline ms-2">Return</span>
-                    </button>
-
-                    {{-- Report Button --}}
-                    @if($birEnabled == '1')
-                    <a href="{{ route('cashier.reading', 'x') }}" target="_blank" class="btn btn-outline-secondary rounded-3 d-flex align-items-center justify-content-center" style="height: 42px; width: 42px;" title="Print X-Reading">
-                        <i class="fas fa-print"></i>
-                    </a>
-                    @endif
+                    {{-- 2. Desktop Buttons (Hidden on Mobile) --}}
+                    <div class="d-none d-lg-flex gap-2">
+                        <button class="btn btn-danger fw-bold rounded-3" onclick="openDebtorList()">
+                            <i class="fas fa-hand-holding-usd me-1"></i> Pay Debt
+                        </button>
+                        <button class="btn btn-warning fw-bold rounded-3" onclick="openReturnModal()">
+                            <i class="fas fa-undo me-1"></i> Return
+                        </button>
+                        @if($birEnabled == '1')
+                        <a href="{{ route('cashier.reading', 'x') }}" target="_blank" class="btn btn-outline-secondary rounded-3" title="Report">
+                            <i class="fas fa-print"></i>
+                        </a>
+                        @endif
+                    </div>
                 </div>
 
-                {{-- Categories --}}
-                <div class="d-flex gap-2 mt-3 overflow-auto pb-1 no-scrollbar">
-                    <button class="btn btn-dark rounded-pill px-4 category-filter active" onclick="filterCategory('all', this)">All</button>
+                {{-- 3. Categories (Compacted for Mobile) --}}
+                <div class="d-flex gap-2 mt-2 overflow-auto pb-1 no-scrollbar">
+                    <button class="btn btn-dark btn-sm rounded-pill px-3 fw-bold category-filter active" onclick="filterCategory('all', this)">All</button>
                     @foreach($categories as $cat)
-                        <button class="btn btn-light border rounded-pill px-4 category-filter" onclick="filterCategory('{{ strtolower($cat->name) }}', this)">{{ $cat->name }}</button>
+                        {{-- Using btn-sm and smaller font size --}}
+                        <button class="btn btn-light btn-sm border rounded-pill px-3 fw-bold category-filter" 
+                                style="white-space: nowrap;" 
+                                onclick="filterCategory('{{ strtolower($cat->name) }}', this)">
+                            {{ $cat->name }}
+                        </button>
                     @endforeach
                 </div>
             </div>
