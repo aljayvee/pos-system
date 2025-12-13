@@ -80,7 +80,9 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->group(function () {
     // Logs
     Route::get('/logs', [ActivityLogController::class, 'index'])->name('logs.index');
 
-    
+    // Returns
+    Route::get('/transactions/{sale}/return', [ReturnController::class, 'create'])->name('admin.transactions.return');
+    Route::post('/transactions/{sale}/return', [ReturnController::class, 'store'])->name('admin.transactions.process_return');
     
 });
 
