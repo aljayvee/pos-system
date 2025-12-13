@@ -10,9 +10,11 @@ use App\Models\CreditPayment;
 use App\Models\Customer;
 use App\Models\CustomerCredit;
 use App\Models\Inventory;
+use App\Models\SalesReturn; // Import SalesReturn
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Crypt; // Import Crypt
 
 class POSController extends Controller
 {
@@ -46,10 +48,10 @@ class POSController extends Controller
         // 4. Fetch Settings & Categories
         $loyaltyEnabled = \App\Models\Setting::where('key', 'enable_loyalty')->value('value') ?? '0';
         $categories = \App\Models\Category::has('products')->orderBy('name')->get();
-        // NEW: Fetch BIR/Tax Setting
+        // --- FIXED: Fetch BIR/Tax Setting ---
         $birEnabled = \App\Models\Setting::where('key', 'enable_tax')->value('value') ?? '0';
 
-        return view('cashier.index', compact('products', 'customers', 'categories', 'loyaltyEnabled'));
+        return view('cashier.index', compact('products', 'customers', 'categories', 'loyaltyEnabled', 'birEnabled'));
     }
 
     // Process Debt Payment (FIXED: Only pay Branch-Specific Debt)
