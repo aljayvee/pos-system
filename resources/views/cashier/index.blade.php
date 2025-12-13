@@ -446,38 +446,71 @@
     };
 
     // --- 8. CAMERA (ROBUST IMPLEMENTATION) ---
-    window.openCameraModal = function() {
-        new bootstrap.Modal(document.getElementById('cameraModal')).show();
-        
-        // Initialize if not already
-        if (!html5QrCode) {
-            html5QrCode = new Html5Qrcode("reader");
-        }
+    // REPLACE your existing window.openCameraModal function with this:
 
-        const config = { 
-            fps: 15, // Higher fps for faster batching
-            qrbox: { width: 300, height: 150 }, // Rectangular for 1D
-            aspectRatio: 1.0,
-            experimentalFeatures: { useBarCodeDetectorIfSupported: true }
-        };
-
-        html5QrCode.start(
-            { facingMode: "environment" }, 
-            config, 
-            (decodedText) => {
-                if (isScanning) return; // Prevent double trigger
-                isScanning = true;
-                
-                handleBatchScan(decodedText);
-                
-                // Pause slightly (1s) to let user move product, but keep camera open
-                setTimeout(() => { isScanning = false; }, 1000);
-            },
-            (err) => { /* Ignore frame errors */ }
-        ).catch(err => {
-            Swal.fire('Error', 'Camera access failed', 'error');
+window.openCameraModal = function() {
+    // 1. SECURITY CHECK
+    if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+        Swal.fire({
+            icon: 'error',
+            title: 'Security Error',
+            html: `
+                <p>Google Chrome blocks camera access on insecure connections (HTTP).</p>
+                <hr>
+                <div class="text-start small">
+                    <strong>Solution:</strong><br>
+                    1. Use <b>Ngrok</b> to create an HTTPS link.<br>
+                    2. Or enable "Insecure origins" in Chrome Flags.
+                </div>
+            `
         });
+        return;
+    }
+
+    const modal = new bootstrap.Modal(document.getElementById('cameraModal'));
+    modal.show();
+    
+    // Initialize HTML5QRCode
+    if (!html5QrCode) {
+        html5QrCode = new Html5Qrcode("reader");
+    }
+
+    const config = { 
+        fps: 15, 
+        qrbox: { width: 250, height: 150 }, // 1D Barcode Box
+        aspectRatio: 1.0,
+        experimentalFeatures: { useBarCodeDetectorIfSupported: true } 
     };
+
+    // Prefer Back Camera
+    html5QrCode.start(
+        { facingMode: "environment" }, 
+        config, 
+        (decodedText) => {
+            // SUCCESS
+            if (isScanning) return;
+            isScanning = true;
+            handleScan(decodedText); // Call your scan handler
+            setTimeout(() => { isScanning = false; }, 1500); 
+        },
+        (errorMessage) => {
+            // Ignore frame parse errors (scanning in progress...)
+        }
+    ).catch(err => {
+        // 2. CATCH & SHOW REAL ERROR
+        console.error("Camera failed", err);
+        
+        // Hide modal
+        bootstrap.Modal.getInstance(document.getElementById('cameraModal')).hide();
+
+        let msg = "Could not access camera.";
+        if (err.name === 'NotAllowedError') msg = "Camera Permission Denied. Please allow access in Chrome Settings.";
+        if (err.name === 'NotFoundError') msg = "No camera found on this device.";
+        if (err.name === 'NotReadableError') msg = "Camera is already in use by another app.";
+
+        Swal.fire('Scanner Error', msg + `<br><small class="text-muted">${err}</small>`, 'error');
+    });
+};
     
     window.stopCameraAndClose = function() {
         if(html5QrCode) {
