@@ -1,4 +1,5 @@
-@extends(Auth::user()->role == 'admin' ? 'admin.layout' : 'cashier.layout')
+{{-- Logic: If role is Cashier OR we passed 'context=cashier' in URL, use Cashier Layout --}}
+@extends( (Auth::user()->role == 'cashier' || request('context') == 'cashier') ? 'cashier.layout' : 'admin.layout' )
 
 @section('content')
 <div class="container py-4">
@@ -8,8 +9,8 @@
                 <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
                     <h5 class="mb-0"><i class="fas fa-user-circle me-2"></i> My Profile</h5>
                     
-                    {{-- FIXED: Back Button Logic --}}
-                    <a href="{{ Auth::user()->role == 'admin' ? route('admin.dashboard') : route('cashier.pos') }}" 
+                    {{-- FIXED: Back Button Logic based on Context --}}
+                    <a href="{{ (Auth::user()->role == 'cashier' || request('context') == 'cashier') ? route('cashier.pos') : route('admin.dashboard') }}" 
                        class="btn btn-sm btn-light text-primary fw-bold">
                         <i class="fas fa-arrow-left me-1"></i> Back
                     </a>

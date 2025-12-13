@@ -33,7 +33,7 @@
             <div class="collapse navbar-collapse" id="navbarSupportedContent">
                 <ul class="navbar-nav ms-auto mb-2 mb-lg-0 align-items-center">
                     
-                    {{-- FIXED: ADMIN BACK BUTTON (Only visible to Admins) --}}
+                    {{-- ADMIN BACK BUTTON (Visible only to Admins) --}}
                     @if(Auth::user()->role === 'admin')
                         <li class="nav-item me-3">
                             <a class="btn btn-outline-warning btn-sm fw-bold" href="{{ route('admin.dashboard') }}">
@@ -47,14 +47,13 @@
                             <i class="fas fa-user-circle me-1"></i> {{ Auth::user()->name }} ({{ ucfirst(Auth::user()->role) }})
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
-                            {{-- PROFILE LINK --}}
+                            {{-- FIXED: Pass 'context=cashier' so Profile knows to stay in POS mode --}}
                             <li>
-                                <a class="dropdown-item" href="{{ route('profile.edit') }}">
+                                <a class="dropdown-item" href="{{ route('profile.edit', ['context' => 'cashier']) }}">
                                     <i class="fas fa-user-cog me-2"></i> Profile Settings
                                 </a>
                             </li>
                             <li><hr class="dropdown-divider"></li>
-                            {{-- LOGOUT FORM --}}
                             <li>
                                 <form action="{{ route('logout') }}" method="POST">
                                     @csrf
