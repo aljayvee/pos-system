@@ -140,7 +140,7 @@ class ProductController extends Controller
             'cost' => 'nullable|numeric|min:0',
             'sku' => 'nullable|string|unique:products,sku', // <--- New
             'stock' => 'integer|min:0',
-            'reorder_point' => 'nullable|integer|min:0'
+            'reorder_point' => 'nullable|integer|min:0',
         ]);
 
         Product::create($request->all());

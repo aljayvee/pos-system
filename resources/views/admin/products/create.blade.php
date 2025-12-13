@@ -71,8 +71,12 @@
                     </div>
                     <div class="col-md-6 mb-3">
                         <label class="form-label">Reorder Point (Low Stock Alert)</label>
-                        <input type="number" name="reorder_point" class="form-control" value="10" placeholder="Default: 10">
-                        <div class="form-text">Alert when stock falls below this number.</div>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-bell"></i></span>
+                            <input type="number" name="reorder_point" class="form-control" 
+                                value="{{ old('reorder_point', $product->reorder_point ?? 10) }}" min="0">
+                        </div>
+                        <small class="text-muted">System will alert when stock reaches this level.</small>
                     </div>
                 </div>
 

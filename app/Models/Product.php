@@ -18,6 +18,7 @@ class Product extends Model
     'sku',    // <--- Add this
     'stock', 
     'unit', 
+    'reorder_point',
     'image', 
     'reorder_point'
 ];

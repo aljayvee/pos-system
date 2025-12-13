@@ -29,9 +29,7 @@ class AppServiceProvider extends ServiceProvider
         // NEW: Share Notification Data with Admin Layout
         View::composer('admin.layout', function ($view) {
             // 1. Low Stock Count
-            $lowStockCount = Product::whereColumn('stock', '<=', 'reorder_point')
-                                    ->where('stock', '>', 0)
-                                    ->count();
+            $lowStockCount = Product::whereColumn('stock', '<=', 'reorder_point')->count();
             
             // 2. Out of Stock Count
             $outOfStockCount = Product::where('stock', 0)->count();
@@ -50,9 +48,7 @@ class AppServiceProvider extends ServiceProvider
         // Share alert counts with all views (Sidebar badges)
     View::composer('*', function ($view) {
         if (auth()->check() && auth()->user()->role === 'admin') {
-            $lowStockCount = Product::whereColumn('stock', '<=', 'reorder_point')
-                                    ->where('stock', '>', 0)
-                                    ->count();
+            $lowStockCount = Product::whereColumn('stock', '<=', 'reorder_point')->count();
             
             $outOfStockCount = Product::where('stock', 0)->count();
             

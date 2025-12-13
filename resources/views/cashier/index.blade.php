@@ -53,8 +53,11 @@
                                     <h6 class="fw-bold text-dark mb-1 text-truncate">{{ $product->name }}</h6>
                                     <span class="badge bg-light text-dark border mb-1">{{ ucfirst($product->unit) }}</span>
                                     <h5 class="text-primary fw-bold mb-0">₱{{ number_format($product->price, 2) }}</h5>
-                                    @if($product->stock <= 5)
-                                        <small class="text-danger fw-bold d-block">Low Stock: {{ $product->stock }}</small>
+                                    {{-- Use the dynamic reorder_point from the database --}}
+                                    @if($product->stock <= $product->reorder_point)
+                                        <small class="text-danger fw-bold d-block">
+                                            <i class="fas fa-exclamation-circle"></i> Low Stock: {{ $product->stock }}
+                                        </small>
                                     @endif
                                 </div>
                             </div>
