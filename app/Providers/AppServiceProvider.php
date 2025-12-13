@@ -39,9 +39,14 @@ class AppServiceProvider extends ServiceProvider
                                           ->whereDate('due_date', '<', Carbon::now())
                                           ->count();
 
-            $totalAlerts = $lowStockCount + $outOfStockCount + $overdueCount;
+                                          // 4. NEW: Expiring Soon (Next 7 Days + Already Expired)
+                $expiringCount = Product::whereNotNull('expiration_date')
+                                        ->where('expiration_date', '<=', now()->addDays(7))
+                                        ->count();
 
-            $view->with(compact('lowStockCount', 'outOfStockCount', 'overdueCount', 'totalAlerts'));
+            $totalAlerts = $lowStockCount + $outOfStockCount + $overdueCount + $expiringCount;
+
+            $view->with(compact('lowStockCount', 'outOfStockCount', 'overdueCount', 'expiringCount', 'totalAlerts'));
         });
 
 

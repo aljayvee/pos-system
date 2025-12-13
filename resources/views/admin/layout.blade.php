@@ -198,6 +198,14 @@
                                     @if(($lowStockCount ?? 0) > 0)
                                     <li><a class="dropdown-item text-warning" href="{{ route('products.index') }}"><small>• {{ $lowStockCount }} Items Low Stock</small></a></li>
                                     @endif
+                                    {{-- NEW: Expiring Alert --}}
+                                    @if(($expiringCount ?? 0) > 0)
+                                        <li>
+                                            <a class="dropdown-item text-danger" href="{{ route('products.index') }}">
+                                                <small>• <strong>{{ $expiringCount }} Items Expiring Soon</strong></small>
+                                            </a>
+                                        </li>
+                                    @endif
                                     @if(($overdueCount ?? 0) > 0)
                                     <li><a class="dropdown-item text-dark" href="{{ route('credits.index') }}"><small>• {{ $overdueCount }} Overdue Credits</small></a></li>
                                     @endif

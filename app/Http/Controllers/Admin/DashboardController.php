@@ -81,6 +81,19 @@ class DashboardController extends Controller
             ->orderBy('date', 'asc')
             ->get();
 
+            // 6. NEW: Fetch Expiring Items (Next 7 Days)
+        // We join with inventories to show the stock level of the current store
+        $expiringItems = DB::table('products')
+            ->join('inventories', 'products.id', '=', 'inventories.product_id')
+            ->where('inventories.store_id', $storeId)
+            ->where('inventories.stock', '>', 0) // Only show if in stock
+            ->whereNotNull('products.expiration_date')
+            ->where('products.expiration_date', '<=', Carbon::now()->addDays(7)) // 7 Days Horizon
+            ->select('products.*', 'inventories.stock as current_stock')
+            ->orderBy('products.expiration_date', 'asc') // Urgency Sort
+            ->take(5)
+            ->get();
+
         $chartLabels = [];
         $chartValues = [];
         $period = \Carbon\CarbonPeriod::create(Carbon::now()->subDays(29), Carbon::now());
@@ -94,7 +107,8 @@ class DashboardController extends Controller
 
         return view('admin.dashboard', compact(
             'salesToday', 'salesMonth', 'transactionCountToday', 'totalCredits', 
-            'lowStockItems', 'outOfStockItems', 'chartLabels', 'chartValues', 'profitToday'
+            'lowStockItems', 'outOfStockItems', 'chartLabels', 'chartValues', 'profitToday',
+            'expiringItems'
         ));
     }
 }

@@ -107,28 +107,69 @@
                             </tbody>
                         </table>
                     @else
-                        <p class="text-success text-center m-3"><i class="fas fa-check-circle"></i> Inventory levels are healthy!</p>
+                    <div class="text-center py-4 text-muted">
+                        <i class="fas fa-check-circle fa-2x mb-2 text-success"></i>
+                        <p class="mb-0">Inventory levels are healthy!</p>
+                    </div>
                     @endif
                 </div>
             </div>
         </div>
 
-        <div class="col-xl-6">
-            <div class="card mb-4">
-                <div class="card-header">
-                    <i class="fas fa-info-circle me-1"></i>
-                    System Info
-                </div>
-                <div class="card-body">
-                    <p>Welcome to the <strong>Sari-Sari Store Management System</strong>.</p>
-                    <ul>
-                        <li>Use <strong>Products</strong> to manage items and prices.</li>
-                        <li>Use <strong>Inventory</strong> to check detailed stock levels.</li>
-                        <li>Use <strong>Reports</strong> to view detailed daily/monthly sales breakdown.</li>
-                    </ul>
-                </div>
-            </div>
+<div class="col-xl-6">
+    <div class="card mb-4">
+        <div class="card-header bg-warning text-dark">
+            <i class="fas fa-stopwatch me-1"></i>
+            Expiring Soon (Next 7 Days)
         </div>
+        <div class="card-body">
+            @if(count($expiringItems) > 0)
+                <table class="table table-sm table-borderless">
+                    <thead>
+                        <tr class="text-muted small">
+                            <th>Product</th>
+                            <th class="text-center">Expiry Date</th>
+                            <th class="text-end">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($expiringItems as $item)
+                        <tr class="align-middle border-bottom">
+                            <td>
+                                <div class="fw-bold">{{ $item->name }}</div>
+                                <small class="text-muted">Stock: {{ $item->current_stock }}</small>
+                            </td>
+                            <td class="text-center">
+                                @php
+                                    $expiry = \Carbon\Carbon::parse($item->expiration_date);
+                                    $isExpired = $expiry->isPast();
+                                @endphp
+                                <span class="fw-bold {{ $isExpired ? 'text-danger' : 'text-dark' }}">
+                                    {{ $expiry->format('M d, Y') }}
+                                </span>
+                                <br>
+                                <small class="{{ $isExpired ? 'text-danger' : 'text-muted' }}">
+                                    {{ $isExpired ? 'Expired' : $expiry->diffForHumans() }}
+                                </small>
+                            </td>
+                            <td class="text-end">
+                                <a href="{{ route('products.edit', $item->id) }}" class="btn btn-sm btn-light text-primary">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            @else
+                <div class="text-center py-4 text-muted">
+                    <i class="fas fa-check-circle fa-2x mb-2 text-success"></i>
+                    <p class="mb-0">No expiring items found.</p>
+                </div>
+            @endif
+        </div>
+    </div>
+</div>
     </div>
 
         </div> <div class="row mb-4">
