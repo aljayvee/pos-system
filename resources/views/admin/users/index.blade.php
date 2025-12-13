@@ -56,6 +56,11 @@
                                         <i class="fas {{ $user->is_active ? 'fa-ban' : 'fa-check' }}"></i>
                                     </button>
                                 </form>
+
+                                {{-- NEW: Edit Button --}}
+                                <a href="{{ route('users.edit', $user->id) }}" class="btn btn-sm btn-warning" title="Edit User">
+                                    <i class="fas fa-edit"></i>
+                                </a>
                                 
                                 <form action="{{ route('users.destroy', $user->id) }}" method="POST" onsubmit="return confirm('Permanently delete this user?');" class="ms-1">
                                     @csrf @method('DELETE')

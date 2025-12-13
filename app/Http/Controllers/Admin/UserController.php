@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
 use App\Models\ActivityLog;
+use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Hash;
 
 class UserController extends Controller
@@ -42,9 +43,17 @@ class UserController extends Controller
         return redirect()->route('users.index')->with('success', 'New user account created!');
     }
 
+    // --- NEW METHODS ---
+
+    public function edit(User $user)
+    {
+        return view('admin.users.edit', compact('user'));
+    }
+
     public function destroy(User $user)
     {
-        if(auth()->id() == $user->id) {
+        // Prevent deleting yourself
+        if ($user->id === auth()->id()) {
             return back()->with('error', 'You cannot delete your own account.');
         }
 
@@ -62,6 +71,12 @@ class UserController extends Controller
     // Optional: Toggle Active Status
     public function toggleStatus(User $user)
     {
+
+        // Prevent deactivating yourself
+        if ($user->id === auth()->id()) {
+            return back()->with('error', 'You cannot deactivate your own account.');
+        }
+
         $user->update(['is_active' => !$user->is_active]);
         $status = $user->is_active ? 'activated' : 'deactivated';
         return back()->with('success', "User has been $status.");
@@ -74,9 +89,9 @@ class UserController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email,' . $user->id,
+            'email' => ['required', 'email', Rule::unique('users')->ignore($user->id)],
             'role' => 'required|in:admin,cashier',
-            'password' => 'nullable|min:6|confirmed' // Password is optional here
+            'password' => 'nullable|min:6' // Password is optional here
         ]);
 
         $data = [
@@ -92,6 +107,6 @@ class UserController extends Controller
 
         $user->update($data);
 
-        return back()->with('success', 'User account updated successfully.');
+        return redirect()->route('users.index')->with('success', 'User updated successfully.');
     }
 }

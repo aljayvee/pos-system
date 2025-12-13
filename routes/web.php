@@ -38,7 +38,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->group(function () {
     
     // User Management (With Toggle)
     Route::post('/users/{user}/toggle', [UserController::class, 'toggleStatus'])->name('users.toggle');
-    Route::resource('users', UserController::class)->except(['show', 'edit']);
+    Route::resource('users', UserController::class)->except(['show']);
 
     // Inventory & Adjustment Routes
     Route::get('/inventory', [InventoryController::class, 'index'])->name('inventory.index');
