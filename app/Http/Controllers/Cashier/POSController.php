@@ -46,6 +46,8 @@ class POSController extends Controller
         // 4. Fetch Settings & Categories
         $loyaltyEnabled = \App\Models\Setting::where('key', 'enable_loyalty')->value('value') ?? '0';
         $categories = \App\Models\Category::has('products')->orderBy('name')->get();
+        // NEW: Fetch BIR/Tax Setting
+        $birEnabled = \App\Models\Setting::where('key', 'enable_tax')->value('value') ?? '0';
 
         return view('cashier.index', compact('products', 'customers', 'categories', 'loyaltyEnabled'));
     }

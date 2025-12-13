@@ -40,7 +40,8 @@
                             <i class="fas fa-hand-holding-usd"></i> Pay Debt
                         </button>
 
-                        {{-- NEW: Reports Dropdown (Add this here) --}}
+                        {{-- NEW: Reports Dropdown (Only if BIR/Tax Feature is Enabled) --}}
+                        @if($birEnabled == '1')
                         <div class="dropdown d-inline-block">
                             <button class="btn btn-outline-dark fw-bold dropdown-toggle" type="button" data-bs-toggle="dropdown">
                                 <i class="fas fa-file-invoice"></i> Reports
@@ -50,6 +51,7 @@
                                 <li><a class="dropdown-item" href="{{ route('cashier.reading', 'z') }}" target="_blank">Print Z-Reading (End of Day)</a></li>
                             </ul>
                         </div>
+                        @endif
                     </div>
                     
                     

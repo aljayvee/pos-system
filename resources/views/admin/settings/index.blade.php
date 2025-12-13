@@ -261,7 +261,12 @@
     function toggleVisibility(id) {
         const input = document.getElementById(id);
         if (input.type === "password") {
-            input.type = "text";
+            // Simple check: Ask user to confirm they are the admin
+            // For stricter security, you would verify this via AJAX, 
+            // but this prevents accidental display.
+            if(confirm("Display sensitive BIR information?")) {
+                input.type = "text";
+            }
         } else {
             input.type = "password";
         }
