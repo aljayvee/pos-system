@@ -21,7 +21,7 @@
 </head>
 <body>
 
-    {{-- MOBILE-OPTIMIZED NAVBAR --}}
+    {{-- MOBILE & DESKTOP OPTIMIZED NAVBAR --}}
     <nav class="navbar navbar-expand-lg navbar-dark shadow-sm p-0" style="background: #1e1b4b !important;">
         <div class="container-fluid py-1">
             
@@ -31,14 +31,16 @@
                 <span>SariPOS</span>
             </a>
 
-            {{-- 2. ADMIN BUTTON (Right-side, Outside Hamburger) --}}
+            {{-- 2. MOBILE ADMIN BUTTON (Visible ONLY on Mobile d-lg-none) --}}
+            {{-- Placed BEFORE Toggler to sit to its left, or AFTER to sit to its right. 
+                 Current: Left of Toggler for better spacing --}}
             @if(Auth::user()->role === 'admin')
-                <a class="btn btn-outline-warning btn-sm fw-bold me-2 py-1 px-2" style="font-size: 0.75rem;" href="{{ route('admin.dashboard') }}">
+                <a class="btn btn-outline-warning btn-sm fw-bold me-2 py-1 px-2 d-lg-none" style="font-size: 0.75rem;" href="{{ route('admin.dashboard') }}">
                     <i class="fas fa-arrow-left me-1"></i> Admin
                 </a>
             @endif
             
-            {{-- 3. HAMBURGER TOGGLER --}}
+            {{-- 3. HAMBURGER TOGGLER (Mobile Only) --}}
             <button class="navbar-toggler border-0 p-1" type="button" data-bs-toggle="collapse" data-bs-target="#mobileMenu">
                 <span class="navbar-toggler-icon" style="width: 1.2em; height: 1.2em;"></span>
             </button>
@@ -48,11 +50,9 @@
                 
                 {{-- A. MOBILE "CONTROL PANEL" VIEW (Visible only on Mobile) --}}
                 <div class="d-lg-none bg-white rounded-3 shadow-lg p-3 mt-3 position-relative" style="z-index: 1050; border-top: 4px solid #f59e0b;">
-                    
-                    {{-- Visual Arrow pointing up --}}
                     <div class="position-absolute top-0 end-0 me-2 mt-n2" style="width: 0; height: 0; border-left: 10px solid transparent; border-right: 10px solid transparent; border-bottom: 10px solid #f59e0b; transform: translateY(-100%);"></div>
 
-                    {{-- 1. USER PROFILE ROW --}}
+                    {{-- User Profile Row --}}
                     <div class="d-flex align-items-center border-bottom pb-3 mb-3">
                         <div class="bg-primary bg-opacity-10 text-primary rounded-4 d-flex align-items-center justify-content-center me-3" style="width: 50px; height: 50px; font-size: 1.5rem;">
                             <i class="fas fa-user-circle"></i>
@@ -64,7 +64,7 @@
                         </div>
                     </div>
 
-                    {{-- 2. ACTION BUTTONS GRID (Big Buttons for Touch) --}}
+                    {{-- Action Buttons --}}
                     <label class="small text-muted fw-bold text-uppercase mb-2">Transactions</label>
                     <div class="row g-2 mb-4">
                         <div class="col-6">
@@ -79,8 +79,6 @@
                                 <span class="small">Return</span>
                             </button>
                         </div>
-                        
-                        {{-- Optional Report Button --}}
                         @if(\App\Models\Setting::where('key', 'enable_tax')->value('value') == '1')
                         <div class="col-12">
                             <a href="{{ route('cashier.reading', 'x') }}" target="_blank" class="btn btn-light w-100 py-2 border fw-bold d-flex align-items-center justify-content-center gap-2 text-secondary">
@@ -90,7 +88,7 @@
                         @endif
                     </div>
 
-                    {{-- 3. SETTINGS LIST --}}
+                    {{-- Settings List --}}
                     <label class="small text-muted fw-bold text-uppercase mb-2">Account</label>
                     <div class="list-group list-group-flush rounded-3 border">
                         <a href="{{ route('profile.edit', ['context' => 'cashier']) }}" class="list-group-item list-group-item-action py-3 d-flex align-items-center fw-bold text-dark">
@@ -108,6 +106,16 @@
 
                 {{-- B. DESKTOP STANDARD MENU (Hidden on Mobile) --}}
                 <ul class="navbar-nav ms-auto mb-2 mb-lg-0 d-none d-lg-flex align-items-center">
+                    
+                    {{-- DESKTOP ADMIN BUTTON (Added Here for Desktop View) --}}
+                    @if(Auth::user()->role === 'admin')
+                    <li class="nav-item me-3">
+                        <a class="btn btn-outline-warning btn-sm fw-bold px-3" href="{{ route('admin.dashboard') }}">
+                            <i class="fas fa-arrow-left me-1"></i> Back to Admin Panel
+                        </a>
+                    </li>
+                    @endif
+
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle text-white fw-bold small" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
                             <i class="fas fa-user-circle me-1"></i> {{ Auth::user()->name }}
@@ -127,7 +135,6 @@
             </div>
         </div>
     </nav>
-
     {{-- Content Area --}}
     <div>
         @yield('content')
