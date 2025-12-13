@@ -264,13 +264,11 @@ class POSController extends Controller
 
             // 2. CREATE NEW CUSTOMER WITH FULL DETAILS
             if ($customerId === 'new' && $request->payment_method === 'credit') {
-                $details = $request->input('credit_details');
-                
                 $customer = Customer::create([
-                    'store_id' => $storeId, // Ensure it belongs to the active store
-                    'name' => $details['name'],
-                    'address' => $details['address'], // Now validated as required
-                    'contact' => $details['contact'], // Now validated as required
+                    'store_id' => $storeId, 
+                    'name' => $request->input('credit_details.name'),
+                    'address' => $request->input('credit_details.address'),
+                    'contact' => $request->input('credit_details.contact'),
                     'points' => 0
                 ]);
                 $customerId = $customer->id;
@@ -341,19 +339,10 @@ class POSController extends Controller
             }
 
             // 3. CREDIT RECORD CREATION
+            // 6. RECORD CREDIT (UTANG)
             if ($request->payment_method === 'credit' && $customer) {
                 $dueDate = $request->input('credit_details.due_date');
                 
-                // Optional: Update contact info for EXISTING customers if provided
-                if ($customerId !== 'new') {
-                    if ($request->input('credit_details.contact') || $request->input('credit_details.address')) {
-                        $customer->update([
-                            'contact' => $request->input('credit_details.contact') ?? $customer->contact,
-                            'address' => $request->input('credit_details.address') ?? $customer->address,
-                        ]);
-                    }
-                }
-
                 CustomerCredit::create([
                     'customer_id' => $customer->id,
                     'sale_id' => $sale->id,
