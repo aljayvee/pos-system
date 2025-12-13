@@ -65,12 +65,13 @@ class ProductController extends Controller
     // 1. Show List
    public function index(Request $request)
     {
+        // 1. Get Active Store ID
         $storeId = $this->getActiveStoreId();
 
-        // 1. Base Query
+        // 2. Start Query
         $query = Product::with('category');
 
-        // 2. Filters (Existing)
+        // 3. Existing Filters
         if ($request->has('archived')) {
             $query->onlyTrashed();
         }
@@ -84,38 +85,44 @@ class ProductController extends Controller
             $query->where('category_id', $request->category);
         }
 
-        // 3. NEW: Dynamic Sorting Logic
-        $sortField = $request->input('sort', 'created_at'); // Default: Created Date
-        $sortDirection = $request->input('direction', 'desc'); // Default: Descending
+        // 4. NEW: Dynamic Sorting Logic
+        $sort = $request->input('sort', 'created_at'); // Default: Newest
+        $dir  = $request->input('direction', 'desc');
 
-        // Allowed fields to prevent SQL injection
-        $allowedSorts = ['name', 'price', 'stock', 'created_at'];
-
-        if (in_array($sortField, $allowedSorts)) {
-            $query->orderBy($sortField, $sortDirection);
+        // Handle Sorting Types
+        if ($sort === 'category') {
+            // Sort by Category Name
+            $query->join('categories', 'products.category_id', '=', 'categories.id')
+                  ->orderBy('categories.name', $dir)
+                  ->select('products.*'); // Select products to avoid ID collisions
         } 
-        elseif ($sortField === 'category') {
-            // Sort by Related Category Name (requires join)
-            $query->select('products.*')
-                  ->join('categories', 'products.category_id', '=', 'categories.id')
-                  ->orderBy('categories.name', $sortDirection);
-        }
+        elseif ($sort === 'stock') {
+            // Sort by BRANCH SPECIFIC Stock
+            // We left join the inventory for the CURRENT store
+            $query->leftJoin('inventories', function($join) use ($storeId) {
+                    $join->on('products.id', '=', 'inventories.product_id')
+                         ->where('inventories.store_id', '=', $storeId);
+                })
+                ->orderBy(DB::raw('COALESCE(inventories.stock, 0)'), $dir) // Treat null as 0
+                ->select('products.*');
+        } 
+        elseif (in_array($sort, ['name', 'price'])) {
+            // Sort by Product Fields
+            $query->orderBy($sort, $dir);
+        } 
         else {
-            $query->latest(); // Fallback
+            // Default Fallback
+            $query->latest(); 
         }
 
-        // 4. Special Filter for Low Stock (Existing)
+        // 5. Existing "Low Stock" Filter
         if ($request->filled('filter') && $request->filter == 'low') {
-            // Note: If using Multi-Store accessor for stock, DB sorting for 'stock' column 
-            // might sort by GLOBAL stock, not BRANCH stock. 
-            // For true branch sorting, we need a join on inventories table.
-            // But for now, we'll keep the basic filter logic.
-            $products = $query->get()->filter(function($p) {
+             // Logic remains the same (using Accessor or Collection filter)
+             $products = $query->get()->filter(function($p) {
                 return $p->stock <= $p->reorder_point;
-            })->toQuery()->paginate(10); // Re-paginating collection is tricky, simplified below
+            })->toQuery()->paginate(10);
         } else {
-            // Append query parameters to pagination links so sorting persists across pages
-            $products = $query->paginate(10)->withQueryString(); 
+            $products = $query->paginate(10)->withQueryString();
         }
 
         $categories = \App\Models\Category::all();

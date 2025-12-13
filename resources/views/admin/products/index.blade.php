@@ -92,24 +92,34 @@
             <table class="table table-striped table-hover mb-0">
                 <thead class="table-light">
                         <tr>
-                            {{-- Helper to keep current filters while sorting --}}
+                            {{-- Sorting Helper Logic --}}
                             @php
-                                $queryParams = request()->except(['sort', 'direction', 'page']);
-                                function sortLink($field, $label, $params) {
-                                    $direction = (request('sort') == $field && request('direction') == 'asc') ? 'desc' : 'asc';
+                                $baseParams = request()->except(['sort', 'direction', 'page']);
+                                function sortLink($key, $label, $baseParams) {
+                                    $currentSort = request('sort', 'created_at');
+                                    $currentDir = request('direction', 'desc');
+                                    
+                                    // Toggle direction if clicking the same header
+                                    $newDir = ($currentSort === $key && $currentDir === 'asc') ? 'desc' : 'asc';
                                     $icon = '';
-                                    if (request('sort') == $field) {
-                                        $icon = (request('direction') == 'asc') ? '<i class="fas fa-sort-up"></i>' : '<i class="fas fa-sort-down"></i>';
+
+                                    if ($currentSort === $key) {
+                                        $icon = $currentDir === 'asc' 
+                                            ? '<i class="fas fa-sort-up ms-1"></i>' 
+                                            : '<i class="fas fa-sort-down ms-1"></i>';
+                                    } else {
+                                        $icon = '<i class="fas fa-sort text-muted ms-1 opacity-25"></i>';
                                     }
-                                    $url = route('products.index', array_merge($params, ['sort' => $field, 'direction' => $direction]));
-                                    return "<a href='{$url}' class='text-decoration-none text-dark fw-bold'>{$label} {$icon}</a>";
+
+                                    $url = route('products.index', array_merge($baseParams, ['sort' => $key, 'direction' => $newDir]));
+                                    return "<a href='{$url}' class='text-decoration-none text-dark fw-bold d-flex align-items-center'>{$label} {$icon}</a>";
                                 }
                             @endphp
 
-                            <th>{!! sortLink('name', 'Product Name', $queryParams) !!}</th>
-                            <th>{!! sortLink('category', 'Category', $queryParams) !!}</th>
-                            <th class="text-end">{!! sortLink('price', 'Price', $queryParams) !!}</th>
-                            <th class="text-center">{!! sortLink('stock', 'Stock', $queryParams) !!}</th>
+                            <th>{!! sortLink('name', 'Product Name', $baseParams) !!}</th>
+                            <th>{!! sortLink('category', 'Category', $baseParams) !!}</th>
+                            <th class="text-end">{!! sortLink('price', 'Price', $baseParams) !!}</th>
+                            <th class="text-center">{!! sortLink('stock', 'Stock', $baseParams) !!}</th>
                             <th class="text-center">Unit</th>
                             <th class="text-center">Status</th>
                             <th class="text-end">Action</th>
