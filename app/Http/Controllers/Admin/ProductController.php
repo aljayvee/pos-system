@@ -14,12 +14,11 @@ class ProductController extends Controller
 
     public function import(Request $request)
     {
-        $request->validate([
-            'csv_file' => 'required|file|mimes:csv,txt'
-        ]);
+        $request->validate(['csv_file' => 'required|file|mimes:csv,txt']);
 
         $file = $request->file('csv_file');
         $handle = fopen($file->getPathname(), 'r');
+        fgetcsv($handle); // Skip header
         
         // Skip the header row
         fgetcsv($handle);
@@ -67,6 +66,7 @@ class ProductController extends Controller
    public function index(Request $request)
     {
         $storeId = $this->getActiveStoreId();
+        $query = Product::with('category'); 
         $query->whereHas('inventories', function($q) use ($storeId) {
              $q->where('store_id', $storeId);
         });
@@ -76,11 +76,12 @@ class ProductController extends Controller
             $query->onlyTrashed(); // Query ONLY deleted items
         }
 
-        // 1. Search Filter (Name or SKU)
+        // E. Search Filter
         if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where('name', 'like', '%' . $request->search . '%')
-              ->orWhere('sku', 'like', '%' . $request->search . '%');
+            $query->where(function($q) use ($request) {
+                $q->where('name', 'like', '%' . $request->search . '%')
+                  ->orWhere('sku', 'like', '%' . $request->search . '%');
+            });
         }
 
         // 2. Category Filter
@@ -88,15 +89,19 @@ class ProductController extends Controller
             $query->where('category_id', $request->category);
         }
 
-        // 3. Stock Level Filter (Optional: "Low Stock")
+        // G. Stock Level Filter
         if ($request->filled('filter') && $request->filter == 'low') {
-            $query->whereColumn('stock', '<=', 'reorder_point');
+            // Note: This checks the Accessor logic in Product model (which uses session active_store_id)
+            $query->get()->filter(function($p) {
+                return $p->stock <= $p->reorder_point;
+            });
+            // Optimization: For large datasets, use join on inventories table instead of filter()
         }
 
         $products = $query->latest()->paginate(10); // Keep filters in pagination links
         
         // Fetch categories for the dropdown
-        $categories = \App\Models\Category::all();
+        $categories = Category::all();
 
         return view('admin.products.index', compact('products', 'categories'));
     }
@@ -114,14 +119,10 @@ class ProductController extends Controller
     public function forceDelete($id)
     {
         $product = Product::withTrashed()->findOrFail($id);
-
-        // Optional: Check for relationships before hard delete
-        if($product->saleItems()->exists() || $product->purchaseItems()->exists()) {
+        if($product->saleItems()->exists()) { // Removed purchaseItems check for simplicity unless needed
             return back()->with('error', 'Cannot permanently delete. This item has sales history.');
         }
-
-        $product->forceDelete(); // Permanently remove from DB
-
+        $product->forceDelete();
         return back()->with('success', 'Product permanently deleted.');
     }
 
@@ -146,7 +147,18 @@ class ProductController extends Controller
             'reorder_point' => 'nullable|integer|min:0',
         ]);
 
-        Product::create($request->all());
+        $product = Product::create($request->all());
+
+        // In Multi-Store, we should create an Inventory record for the current store
+        $storeId = $this->getActiveStoreId();
+
+        // Check if Inventory exists, if not create it
+        \App\Models\Inventory::create([
+            'product_id' => $product->id,
+            'store_id' => $storeId,
+            'stock' => $request->stock ?? 0,
+            'reorder_point' => $request->reorder_point ?? 10
+        ]);
 
         return redirect()->route('products.index')->with('success', 'Product created successfully.');
     }
@@ -172,6 +184,16 @@ class ProductController extends Controller
 
         $product->update($request->all());
 
+        // Update Inventory Reorder Point for this store
+        $storeId = $this->getActiveStoreId();
+        $inventory = \App\Models\Inventory::where('product_id', $product->id)
+                        ->where('store_id', $storeId)->first();
+
+                        if ($inventory && $request->has('reorder_point')) {
+            $inventory->reorder_point = $request->reorder_point;
+            $inventory->save();
+        }
+
         return redirect()->route('products.index')->with('success', 'Product updated successfully.');
     }
 
@@ -180,14 +202,14 @@ class ProductController extends Controller
     {
 
         $product = Product::findOrFail($id);
-        // 1. Check if feature is enabled
-        $isEnabled = \App\Models\Setting::where('key', 'enable_barcode')->value('value') ?? '0';
+        $isEnabled = \App\Models\Setting::where('key', 'enable_barcode')
+                        ->where('store_id', $this->getActiveStoreId()) // Check Branch Setting
+                        ->value('value') ?? '0';
         
         if ($isEnabled !== '1') {
             return back()->with('error', 'Barcode printing is currently disabled in Settings.');
         }
 
-        // 2. Check SKU
         if (!$product->sku) {
             return back()->with('error', 'Product does not have an SKU/Barcode to print.');
         }
@@ -201,6 +223,7 @@ class ProductController extends Controller
         // Log BEFORE deleting
         ActivityLog::create([
             'user_id' => auth()->id(),
+            'store_id' => $this->getActiveStoreId(),
             'action' => 'Archived Product',
             'description' => "Archived product: {$product->name}"
         ]);

@@ -97,6 +97,16 @@ class UserController extends Controller
     // NEW: Update User (Name, Email, Role, Password)
     public function update(Request $request, User $user)
     {
+
+        // 1. Get Current Admin's Branch
+        $currentStoreId = $this->getActiveStoreId();
+
+        // 2. Strict Check: Prevent editing users from other branches
+        // (Unless you are in Main Store #1, which might act as Super Admin)
+        if ($user->store_id != $currentStoreId && $currentStoreId != 1) {
+            abort(403, 'Unauthorized. You can only manage users in your own branch.');
+        }
+
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => ['required', 'email', Rule::unique('users')->ignore($user->id)],
