@@ -174,16 +174,13 @@
 </script> {{-- <<< THIS WAS THE MISSING TAG CAUSING THE ERROR --}}
 
 <script>
-    // --- 1. CONFIGURATION ---
     const CONFIG = {
         pointsValue: Number("{{ \App\Models\Setting::where('key', 'points_conversion')->value('value') ?? 1 }}"),
         loyaltyEnabled: Number("{{ \App\Models\Setting::where('key', 'enable_loyalty')->value('value') ?? 0 }}"),
         paymongoEnabled: Number("{{ \App\Models\Setting::where('key', 'enable_paymongo')->value('value') ?? 0 }}"),
         
-        // NEW: Pass the Master Switch status
+        // --- NEW: Pass Tax Settings to JS ---
         birEnabled: Number("{{ $birEnabled ?? 0 }}"), 
-        
-        // Pass the Tax Type
         taxType: "{{ \App\Models\Setting::where('key', 'tax_type')->value('value') ?? 'inclusive' }}",
 
         csrfToken: document.querySelector('meta[name="csrf-token"]').getAttribute('content')
@@ -307,7 +304,7 @@
         let html = '';
         let subtotal = 0;
         
-        // 1. Build Cart HTML & Calculate Subtotal
+        // 1. Build Cart HTML
         if (cart.length === 0) {
             html = `<div class="text-center text-muted mt-5"><i class="fas fa-basket-shopping fa-3x opacity-25"></i><p>Cart is empty</p></div>`;
         } else {
@@ -327,31 +324,30 @@
             });
         }
 
-        // 2. Inject Items
         document.querySelectorAll('#cart-items').forEach(el => el.innerHTML = html);
 
-        // 3. VAT / Tax Logic (Controlled by Master Switch)
+        // 2. TAX VISIBILITY LOGIC
         let grandTotal = subtotal;
         let taxAmt = 0;
         
         const subtotalEl = document.getElementById('subtotal-display');
-        const taxRow = document.getElementById('tax-row');
+        const taxRow = document.getElementById('tax-row'); // The row showing "VAT (12%)"
         const taxEl = document.getElementById('tax-display');
 
-        // CHECK: Is BIR Enabled? AND Is it set to Exclusive?
+        // LOGIC: Only show if Master Switch is ON (1) AND Type is 'Exclusive'
         if (CONFIG.birEnabled === 1 && CONFIG.taxType === 'exclusive') {
-            taxAmt = subtotal * 0.12; // 12% VAT
+            taxAmt = subtotal * 0.12; 
             grandTotal = subtotal + taxAmt;
             
-            // Show Tax Row
+            // Show the row
             if(taxRow) taxRow.style.setProperty('display', 'flex', 'important');
             if(taxEl) taxEl.innerText = taxAmt.toFixed(2);
         } else {
-            // Hide Tax Row (If BIR is OFF or Inclusive)
+            // FORCE HIDE if toggle is Off
             if(taxRow) taxRow.style.display = 'none';
         }
 
-        // 4. Update Displays
+        // 3. Update Text
         if(subtotalEl) subtotalEl.innerText = subtotal.toFixed(2);
 
         document.querySelectorAll('.total-amount-display').forEach(el => el.innerText = grandTotal.toFixed(2));
