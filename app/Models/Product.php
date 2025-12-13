@@ -27,4 +27,10 @@ class Product extends Model
     {
         return $this->belongsTo(Category::class);
     }
+
+    // --- ADD THIS MISSING RELATIONSHIP ---
+    public function saleItems()
+    {
+        return $this->hasMany(SaleItem::class);
+    }
 }
