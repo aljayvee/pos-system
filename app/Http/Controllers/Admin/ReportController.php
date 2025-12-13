@@ -148,6 +148,8 @@ class ReportController extends Controller
 
         $sales = $query->get();
 
+
+        $reportType = $request->input('report_type', 'sales'); // sales, inventory, credits
         $filename = "sales_report_{$type}_{$startDate}.csv";
         $headers = [
             "Content-type"        => "text/csv",
@@ -172,6 +174,18 @@ class ReportController extends Controller
                     $sale->amount_paid
                 ]);
             }
+
+            if ($reportType === 'sales') {
+                // ... (Existing Sales Export Logic) ...
+                $this->exportSalesLogic($file, $request);
+            } 
+            elseif ($reportType === 'inventory') {
+                $this->exportInventoryLogic($file);
+            } 
+            elseif ($reportType === 'credits') {
+                $this->exportCreditsLogic($file);
+            }
+
             fclose($file);
         };
 
@@ -240,6 +254,132 @@ class ReportController extends Controller
         if ($daysLeft <= 3) return 'Critical (Runs out < 3 days)';
         if ($daysLeft <= 7) return 'Low (Runs out < 1 week)';
         return 'Healthy';
+    }
+
+    // NEW: Credit Report View
+    public function creditReport()
+    {
+        $credits = CustomerCredit::with('customer')
+                    ->where('is_paid', false)
+                    ->orderBy('created_at', 'desc')
+                    ->get();
+
+        $totalReceivables = $credits->sum('remaining_balance');
+        
+        // Group by Customer for summary
+        $customerSummary = $credits->groupBy('customer_id')->map(function ($row) {
+            return [
+                'name' => $row->first()->customer->name,
+                'total_debt' => $row->sum('remaining_balance'),
+                'count' => $row->count()
+            ];
+        });
+
+        return view('admin.reports.credits', compact('credits', 'totalReceivables', 'customerSummary'));
+    }
+
+    // NEW: Inventory Report View
+    public function inventoryReport()
+    {
+        $storeId = $this->getActiveStoreId();
+        
+        // Fetch products with inventory for the current store
+        $inventory = Product::join('inventories', 'products.id', '=', 'inventories.product_id')
+            ->where('inventories.store_id', $storeId)
+            ->select(
+                'products.*',
+                'inventories.stock as current_stock',
+                'inventories.reorder_point'
+            )
+            ->get();
+
+        // Categorize Items
+        $lowStock = $inventory->filter(function($p) { return $p->current_stock <= $p->reorder_point; });
+        $outOfStock = $inventory->filter(function($p) { return $p->current_stock == 0; });
+        
+        // Calculate Total Valuation
+        $totalValue = $inventory->sum(function($p) { return $p->price * $p->current_stock; });
+        $totalCost = $inventory->sum(function($p) { return ($p->cost ?? 0) * $p->current_stock; });
+
+        return view('admin.reports.inventory', compact('inventory', 'lowStock', 'outOfStock', 'totalValue', 'totalCost'));
+    }
+
+    // --- Helper Functions for Export Logic ---
+
+    private function exportSalesLogic($file, $request) {
+        fputcsv($file, ['Sale ID', 'Date', 'Customer', 'Items', 'Total', 'Payment', 'Profit']);
+        
+        $storeId = $this->getActiveStoreId();
+        $startDate = $request->input('start_date', Carbon::today()->toDateString());
+        
+        // Re-use query logic (simplified for brevity)
+        $sales = Sale::with(['user', 'customer', 'saleItems.product'])
+                     ->where('store_id', $storeId)
+                     ->whereDate('created_at', $startDate) // Default to daily for export if not specified
+                     ->get();
+
+        foreach ($sales as $sale) {
+            $cost = $sale->saleItems->sum(function($item) { 
+                return ($item->cost ?: $item->product->cost ?: 0) * $item->quantity; 
+            });
+            $profit = $sale->total_amount - $cost;
+            
+            $itemsList = $sale->saleItems->map(fn($i) => "{$i->product->name} ({$i->quantity})")->join(', ');
+
+            fputcsv($file, [
+                $sale->id,
+                $sale->created_at->format('Y-m-d H:i'),
+                $sale->customer->name ?? 'Walk-in',
+                $itemsList,
+                $sale->total_amount,
+                ucfirst($sale->payment_method),
+                number_format($profit, 2)
+            ]);
+        }
+    }
+
+    private function exportInventoryLogic($file) {
+        fputcsv($file, ['Product', 'Barcode', 'Category', 'Stock', 'Cost', 'Price', 'Status']);
+        
+        $storeId = $this->getActiveStoreId();
+        $inventory = Product::join('inventories', 'products.id', '=', 'inventories.product_id')
+            ->where('inventories.store_id', $storeId)
+            ->with('category')
+            ->select('products.*', 'inventories.stock as current_stock', 'inventories.reorder_point')
+            ->get();
+
+        foreach ($inventory as $item) {
+            $status = ($item->current_stock <= $item->reorder_point) ? 'Low Stock' : 'Good';
+            if ($item->current_stock == 0) $status = 'Out of Stock';
+
+            fputcsv($file, [
+                $item->name,
+                $item->sku,
+                $item->category->name ?? 'None',
+                $item->current_stock,
+                $item->cost,
+                $item->price,
+                $status
+            ]);
+        }
+    }
+
+    private function exportCreditsLogic($file) {
+        fputcsv($file, ['Customer', 'Sale ID', 'Date', 'Due Date', 'Total Debt', 'Paid', 'Balance']);
+        
+        $credits = CustomerCredit::with('customer')->where('is_paid', false)->get();
+
+        foreach ($credits as $credit) {
+            fputcsv($file, [
+                $credit->customer->name ?? 'Unknown',
+                $credit->sale_id,
+                $credit->created_at->format('Y-m-d'),
+                $credit->due_date,
+                $credit->total_amount,
+                $credit->amount_paid,
+                $credit->remaining_balance
+            ]);
+        }
     }
 
 }
