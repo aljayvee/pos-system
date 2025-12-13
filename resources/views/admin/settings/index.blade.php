@@ -46,15 +46,17 @@
                     <div class="card-header bg-secondary text-white">
                         <i class="fas fa-file-contract me-2"></i> BIR / Government Compliance (Tax)
                     </div>
+                    
                     <div class="card-body">
                         {{-- Toggle Switch --}}
                         <div class="form-check form-switch mb-3">
                             <input type="hidden" name="enable_tax" value="0">
                             <input class="form-check-input" type="checkbox" id="taxSwitch" name="enable_tax" value="1" 
                                 {{ ($settings['enable_tax'] ?? '0') == '1' ? 'checked' : '' }}
-                                onchange="toggleTaxFields()">
+                                onchange="validateAndToggleTax()">
                             <label class="form-check-label fw-bold" for="taxSwitch">Enable VAT & BIR Details on Receipt</label>
                         </div>
+                        
 
                         <div id="tax-fields" style="display: {{ ($settings['enable_tax'] ?? '0') == '1' ? 'block' : 'none' }};">
                             <div class="row mb-3">
@@ -233,6 +235,9 @@
                         <i class="fas fa-save me-2"></i> Save All Settings
                     </button>
                 </div>
+                @if(session('warning'))
+                            <div class="alert alert-warning fw-bold"><i class="fas fa-exclamation-triangle me-2"></i> {{ session('warning') }}</div>
+                        @endif
             </form>
         </div>
 
@@ -354,6 +359,33 @@
             errorMsg.innerText = "Server Error. Try again.";
             errorMsg.style.display = 'block';
         });
+    }
+
+    function validateAndToggleTax() {
+        const switchEl = document.getElementById('taxSwitch');
+        const fieldsDiv = document.getElementById('tax-fields');
+        const tinInput = document.getElementById('store_tin');
+        const permitInput = document.getElementById('business_permit');
+
+        // If turning ON
+        if (switchEl.checked) {
+            // Check if user typed something OR if there is existing saved data (indicated by placeholder)
+            const hasTin = tinInput.value.trim() !== '' || tinInput.placeholder.includes('Hidden');
+            const hasPermit = permitInput.value.trim() !== '' || permitInput.placeholder.includes('Hidden');
+
+            if (!hasTin || !hasPermit) {
+                alert("Restricted: You must enter a TIN and Business Permit to enable BIR Tax Compliance.");
+                switchEl.checked = false; // Revert switch
+                fieldsDiv.style.display = 'none'; // Keep hidden
+                
+                // Optional: Highlight the missing fields if they are visible
+                // But since they are hidden when switch is off, we just alert.
+                return;
+            }
+        }
+
+        // Standard Toggle Logic
+        fieldsDiv.style.display = switchEl.checked ? 'block' : 'none';
     }
 </script>
 @endsection

@@ -84,25 +84,46 @@ class SettingsController extends Controller
         $storeId = $this->getActiveStoreId();
         $data = $request->except('_token');
 
+        // --- 1. VALIDATE BIR REQUIREMENTS ---
+        // If enabling tax, ensure TIN and Permit exist (either in this request OR already in DB)
+        if (isset($data['enable_tax']) && $data['enable_tax'] == '1') {
+            
+            $hasTin = !empty($data['store_tin']) || 
+                      \App\Models\Setting::where('store_id', $storeId)->where('key', 'store_tin')->where('value', '!=', '')->exists();
+            
+            $hasPermit = !empty($data['business_permit']) || 
+                         \App\Models\Setting::where('store_id', $storeId)->where('key', 'business_permit')->where('value', '!=', '')->exists();
+
+            if (!$hasTin || !$hasPermit) {
+                $data['enable_tax'] = '0'; // Force OFF
+                session()->flash('warning', 'BIR Compliance could not be enabled. TIN and Business Permit are required.');
+            }
+        }
+
+        // --- 2. SAVE SETTINGS (Existing Logic) ---
         foreach ($data as $key => $value) {
             
-            // ENCRYPT SENSITIVE DATA BEFORE SAVING
+            // Skip empty sensitive fields (don't overwrite existing data with blanks)
+            if (in_array($key, ['store_tin', 'business_permit']) && empty($value)) {
+                continue;
+            }
+
+            // Encrypt if provided
             if (in_array($key, ['store_tin', 'business_permit']) && !empty($value)) {
                 try {
-                    $value = Crypt::encryptString($value);
+                    $value = \Illuminate\Support\Facades\Crypt::encryptString($value);
                 } catch (\Exception $e) {
                     return back()->with('error', 'Encryption failed for ' . $key);
                 }
             }
 
             if ($key === 'enable_multi_store') {
-                Setting::updateOrCreate(['key' => $key, 'store_id' => 1], ['value' => $value]);
+                \App\Models\Setting::updateOrCreate(['key' => $key, 'store_id' => 1], ['value' => $value]);
             } else {
-                Setting::updateOrCreate(['key' => $key, 'store_id' => $storeId], ['value' => $value]);
+                \App\Models\Setting::updateOrCreate(['key' => $key, 'store_id' => $storeId], ['value' => $value]);
             }
         }
 
-        // Log to the specific store's log
         \App\Models\ActivityLog::create([
             'store_id' => $storeId,
             'user_id' => auth()->id(),
@@ -110,6 +131,6 @@ class SettingsController extends Controller
             'description' => 'Updated configuration for Branch #' . $storeId
         ]);
 
-        return back()->with('success', 'Settings updated for this branch.');
+        return back()->with('success', 'Settings updated successfully.');
     }
 }
