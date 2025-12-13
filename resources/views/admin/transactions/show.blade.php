@@ -8,6 +8,12 @@
                 <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
                     <span>Transaction Details #{{ $sale->id }}</span>
                     <div>
+
+                    {{-- NEW: Return Items Button --}}
+                        <a href="{{ route('admin.transactions.return', $sale->id) }}" class="btn btn-sm btn-danger fw-bold me-2">
+                            <i class="fas fa-undo"></i> Return Items
+                        </a>
+
                         {{-- NEW: Print Button --}}
                         <a href="{{ route('transactions.print', $sale->id) }}" target="_blank" class="btn btn-sm btn-warning fw-bold me-2">
                             <i class="fas fa-print"></i> Print Receipt
