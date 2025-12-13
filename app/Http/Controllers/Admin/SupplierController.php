@@ -63,7 +63,7 @@ class SupplierController extends Controller
         
         // Get Last Purchase Date
         $lastPurchase = $supplier->purchases()->latest('purchase_date')->first();
-        $lastPurchaseDate = $lastPurchase ? $lastPurchase->purchase_date->format('M d, Y') : 'Never';
+        $lastPurchaseDate = $lastPurchase ? \Carbon\Carbon::parse($lastPurchase->purchase_date)->format('M d, Y') : 'Never';
 
         return view('admin.suppliers.show', compact('supplier', 'purchases', 'totalSpent', 'totalTransactions', 'lastPurchaseDate'));
     }
