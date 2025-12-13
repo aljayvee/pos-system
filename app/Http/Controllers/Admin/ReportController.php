@@ -8,6 +8,7 @@ use App\Models\Sale;
 use App\Models\SaleItem;
 use App\Models\Product;
 use App\Models\CustomerCredit;
+use App\Models\SalesReturn; // Import SalesReturn
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
@@ -20,67 +21,69 @@ class ReportController extends Controller
         $type = $request->input('type', 'daily');
         $startDate = $request->input('start_date', Carbon::today()->toDateString());
         $endDate = $request->input('end_date', Carbon::today()->toDateString());
-        $date = $startDate; // For View Compatibility
+        $date = $startDate;
 
         // 2. Multi-Store Context Logic
         $isMultiStore = \App\Models\Setting::where('key', 'enable_multi_store')->value('value') ?? '0';
         $activeStoreId = $this->getActiveStoreId();
-        
-        // Determine Target Store: Default to active, but allow 'all' if selected
         $targetStore = $request->input('store_filter', $activeStoreId);
 
         // 3. Build Query
         $query = Sale::with('user', 'customer')->latest();
+        $returnQuery = SalesReturn::with('sale'); // For calculating returns
 
-        // Apply Store Filter (If not 'all', filter by specific ID)
+        // Apply Store Filter
         if ($targetStore !== 'all') {
             $query->where('store_id', $targetStore);
+            $returnQuery->whereHas('sale', function($q) use ($targetStore) {
+                $q->where('store_id', $targetStore);
+            });
         }
 
         // Apply Date Filter
         if ($type === 'daily') {
             $query->whereDate('created_at', $startDate);
+            $returnQuery->whereDate('created_at', $startDate);
         } elseif ($type === 'weekly') {
             $start = Carbon::parse($startDate)->startOfWeek();
             $end = Carbon::parse($startDate)->endOfWeek();
             $query->whereBetween('created_at', [$start, $end]);
+            $returnQuery->whereBetween('created_at', [$start, $end]);
         } elseif ($type === 'monthly') {
             $query->whereMonth('created_at', Carbon::parse($startDate)->month)
                   ->whereYear('created_at', Carbon::parse($startDate)->year);
-        } elseif ($type === 'custom') {
-            $query->whereBetween('created_at', [
-                Carbon::parse($startDate)->startOfDay(), 
-                Carbon::parse($endDate)->endOfDay()
-            ]);
+            $returnQuery->whereMonth('created_at', Carbon::parse($startDate)->month)
+                        ->whereYear('created_at', Carbon::parse($startDate)->year);
         }
 
         $sales = $query->get();
         $salesIds = $sales->pluck('id');
 
-        // 4. Calculate Financials
-        $total_sales = $sales->sum('total_amount');
+        // 4. Calculate Financials (NET SALES LOGIC)
+        $gross_sales = $sales->sum('total_amount');
+        $total_returns = $returnQuery->sum('refund_amount');
+        $total_sales = $gross_sales - $total_returns; // Net Sales
+
         $total_transactions = $sales->count();
         $cash_sales = $sales->where('payment_method', 'cash')->sum('total_amount');
         $credit_sales = $sales->where('payment_method', 'credit')->sum('total_amount');
         $digital_sales = $sales->where('payment_method', 'digital')->sum('total_amount');
 
-        // Tithes Calculation (10% if enabled)
+        // Tithes (Based on Net)
         $tithesEnabled = \App\Models\Setting::where('key', 'enable_tithes')->value('value') ?? '1'; 
         $tithesAmount = ($tithesEnabled == '1') ? $total_sales * 0.10 : 0;
 
-        // Gross Profit Calculation
+        // Gross Profit Calculation (Sales - Cost - Returns)
         $soldItems = SaleItem::whereIn('sale_id', $salesIds)->with('product')->get();
         $total_cost = 0;
         foreach ($soldItems as $item) {
-            // Use recorded cost if available, otherwise fallback to product master cost
             $itemCost = ($item->cost > 0) ? $item->cost : ($item->product->cost ?? 0);
             $total_cost += ($itemCost * $item->quantity);
         }
-        $gross_profit = $total_sales - $total_cost;
+        // Assuming returns are put back to stock or written off, simpler to deduct refund amount from profit for now
+        $gross_profit = $total_sales - $total_cost; 
 
         // 5. Analytics Data
-        
-        // Top Items
         $topItems = SaleItem::select('product_id', DB::raw('sum(quantity) as total_qty'), DB::raw('sum(price * quantity) as total_revenue'))
             ->whereIn('sale_id', $salesIds)
             ->groupBy('product_id')
@@ -89,7 +92,6 @@ class ReportController extends Controller
             ->take(10)
             ->get();
 
-        // Top Customers
         $topCustomers = Sale::select('customer_id', DB::raw('sum(total_amount) as total_spent'), DB::raw('count(*) as trans_count'))
             ->whereNotNull('customer_id')
             ->whereIn('id', $salesIds)
@@ -99,14 +101,12 @@ class ReportController extends Controller
             ->take(5)
             ->get();
 
-        // Slow Moving Items
         $soldProductIds = \App\Models\SaleItem::whereIn('sale_id', $salesIds)->pluck('product_id')->unique();
         $slowMovingItems = \App\Models\Product::whereNotIn('id', $soldProductIds)
             ->where('stock', '>', 0)
             ->take(10)
             ->get();
 
-        // Sales By Category
         $salesByCategory = SaleItem::select('categories.name', DB::raw('sum(sale_items.price * sale_items.quantity) as total_revenue'))
             ->join('products', 'sale_items.product_id', '=', 'products.id')
             ->join('categories', 'products.category_id', '=', 'categories.id')
@@ -115,11 +115,10 @@ class ReportController extends Controller
             ->orderByDesc('total_revenue')
             ->get();
 
-        // Fetch Stores list for the dropdown
         $stores = \App\Models\Store::all();
 
         return view('admin.reports.index', compact(
-            'sales', 'total_sales', 'total_transactions', 
+            'sales', 'total_sales', 'gross_sales', 'total_returns', 'total_transactions', 
             'cash_sales', 'credit_sales', 'digital_sales',
             'type', 'startDate', 'endDate', 'date',
             'topItems', 'topCustomers', 'salesByCategory', 'slowMovingItems',
@@ -153,13 +152,10 @@ class ReportController extends Controller
         return view('admin.reports.credits', compact('credits', 'totalReceivables'));
     }
 
-    // 4. Forecast Report (FIXED: Logic Restored)
+    // 4. Forecast Report
     public function forecast()
     {
-        // 1. Get Sales Data for Last 30 Days
         $startDate = Carbon::now()->subDays(30);
-        
-        // Fetch products with their sales history
         $products = Product::with(['category', 'saleItems' => function($q) use ($startDate) {
             $q->whereHas('sale', function($sq) use ($startDate) {
                 $sq->where('created_at', '>=', $startDate);
@@ -169,16 +165,9 @@ class ReportController extends Controller
         $forecastData = [];
 
         foreach ($products as $product) {
-            // Calculate Total Sold in last 30 days
             $totalSold = $product->saleItems->sum('quantity');
-            
-            // Average Daily Sales (ADS)
             $ads = $totalSold / 30;
-
-            // Estimated Days Until Stockout
             $daysLeft = ($ads > 0) ? ($product->stock / $ads) : 999;
-
-            // Reorder Recommendation (Target 14 days stock)
             $targetStock = $ads * 14; 
             $reorderQty = ($product->stock < $targetStock) ? ($targetStock - $product->stock) : 0;
 
@@ -197,10 +186,7 @@ class ReportController extends Controller
             }
         }
 
-        // Sort by "Days Left" ascending (Most critical first)
-        usort($forecastData, function ($a, $b) {
-            return $a['days_left'] <=> $b['days_left'];
-        });
+        usort($forecastData, function ($a, $b) { return $a['days_left'] <=> $b['days_left']; });
 
         return view('admin.reports.forecast', compact('forecastData'));
     }
@@ -214,7 +200,7 @@ class ReportController extends Controller
         return 'Healthy';
     }
 
-    // 5. EXPORT FUNCTION
+    // 5. EXPORT FUNCTION (Updated for BIR Tax Columns)
     public function export(Request $request)
     {
         $reportType = $request->input('report_type', 'sales');
@@ -246,36 +232,52 @@ class ReportController extends Controller
     // --- HELPER FUNCTIONS FOR EXPORT ---
 
     private function exportSalesLogic($file, $request) {
-        fputcsv($file, ['Sale ID', 'Date', 'Customer', 'Items', 'Total', 'Payment', 'Profit']);
+        // BIR Sales Book Style Columns
+        fputcsv($file, ['OR Number', 'Date', 'Customer', 'Gross Sales', 'Vatable Sales', 'VAT Amount', 'VAT Exempt', 'Net Sales']);
         
         $storeId = $this->getActiveStoreId();
         $startDate = $request->input('start_date', Carbon::today()->toDateString());
         
-        $sales = Sale::with(['user', 'customer', 'saleItems.product'])
+        // Fetch Settings for Tax Rate
+        $taxRate = (float) (\App\Models\Setting::where('key', 'tax_rate')->value('value') ?? 12);
+        $taxType = \App\Models\Setting::where('key', 'tax_type')->value('value') ?? 'inclusive'; 
+
+        $sales = Sale::with(['user', 'customer'])
                      ->where('store_id', $storeId)
                      ->whereDate('created_at', $startDate)
                      ->get();
 
         foreach ($sales as $sale) {
-            $cost = $sale->saleItems->sum(fn($item) => ($item->cost ?: $item->product->cost ?: 0) * $item->quantity);
-            $profit = $sale->total_amount - $cost;
-            $itemsList = $sale->saleItems->map(fn($i) => "{$i->product->name} ({$i->quantity})")->join(', ');
+            $total = $sale->total_amount;
+            
+            // Tax Logic
+            $vatable = 0;
+            $vatAmount = 0;
+            $vatExempt = 0;
+
+            if ($taxType === 'non_vat') {
+                $vatExempt = $total;
+            } else {
+                // Back-compute VAT (Inclusive)
+                $vatable = $total / (1 + ($taxRate / 100));
+                $vatAmount = $total - $vatable;
+            }
 
             fputcsv($file, [
                 $sale->id,
                 $sale->created_at->format('Y-m-d H:i'),
                 $sale->customer->name ?? 'Walk-in',
-                $itemsList,
-                $sale->total_amount,
-                ucfirst($sale->payment_method),
-                number_format($profit, 2)
+                number_format($total, 2, '.', ''), // Gross
+                number_format($vatable, 2, '.', ''), // Vatable
+                number_format($vatAmount, 2, '.', ''), // VAT
+                number_format($vatExempt, 2, '.', ''), // Exempt
+                number_format($total, 2, '.', '') // Net (assuming no returns on individual line for now)
             ]);
         }
     }
 
     private function exportInventoryLogic($file) {
         fputcsv($file, ['Product', 'Barcode', 'Category', 'Stock', 'Cost', 'Price', 'Status']);
-        
         $storeId = $this->getActiveStoreId();
         $inventory = Product::join('inventories', 'products.id', '=', 'inventories.product_id')
             ->where('inventories.store_id', $storeId)
