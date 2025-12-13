@@ -90,6 +90,10 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->group(function () {
     // Inside 'admin' middleware group
     Route::resource('stores', \App\Http\Controllers\Admin\StoreController::class);
     Route::get('/stores/switch/{id}', [\App\Http\Controllers\Admin\StoreController::class, 'switch'])->name('stores.switch');
+
+    // In routes/web.php inside Admin group
+    Route::get('/reports/inventory', [ReportController::class, 'inventoryReport'])->name('reports.inventory');
+    Route::get('/reports/credits', [ReportController::class, 'creditReport'])->name('reports.credits');
     
 });
 
