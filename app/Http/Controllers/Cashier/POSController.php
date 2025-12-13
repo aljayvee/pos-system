@@ -9,6 +9,7 @@ use App\Models\SaleItem;
 use App\Models\CreditPayment; 
 use App\Models\Customer;
 use App\Models\CustomerCredit;
+use App\Models\Inventory; // <--- IMPORTANT IMPORT
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
@@ -17,40 +18,34 @@ class POSController extends Controller
 {
     public function index()
     {
-        $products = Product::where('stock', '>', 0)->get();
-        $customers = Customer::orderBy('name')->get();
+        // 1. Get Current Active Store (Respects the "Switch Branch" feature)
+        $storeId = $this->getActiveStoreId(); 
 
-        // NEW: Fetch Customers with Total Unpaid Debt (Balance)
+        // 2. Fetch Products and Join with Inventory for THIS Store
+        // We calculate 'stock' based on the inventory table, NOT the products table
+        $products = Product::join('inventories', 'products.id', '=', 'inventories.product_id')
+            ->where('inventories.store_id', $storeId)
+            ->where('inventories.stock', '>', 0) // Only show items available in this branch
+            ->whereNull('products.deleted_at')
+            ->select(
+                'products.*', 
+                'inventories.stock as current_stock' // Alias to ensure we get the branch stock
+            )
+            ->get();
+
+        // 3. Fetch Customers with Total Unpaid Debt
         $customers = Customer::withSum(['credits as balance' => function($q) {
             $q->where('is_paid', false);
         }], 'remaining_balance')->orderBy('name')->get();
 
-        // NEW: Fetch Categories for the filter buttons
-        $categories = \App\Models\Category::has('products')->orderBy('name')->get();
-        // 1. Fetch Customers with their TOTAL UNPAID DEBT
-        $customers = Customer::withSum(['credits as balance' => function($q) {
-            $q->where('is_paid', false);
-        }], 'remaining_balance')
-        ->orderBy('name')
-        ->get();
-
-        // 2. Fetch Customers with Balance
-        $customers = Customer::withSum(['credits as balance' => function($q) {
-            $q->where('is_paid', false);
-        }], 'remaining_balance')
-        ->orderBy('name')
-        ->get();
-
-       // Check if Loyalty is Enabled (Default to '0' / Off)
+        // 4. Fetch Settings & Categories
         $loyaltyEnabled = \App\Models\Setting::where('key', 'enable_loyalty')->value('value') ?? '0';
         $categories = \App\Models\Category::has('products')->orderBy('name')->get();
 
         return view('cashier.index', compact('products', 'customers', 'categories', 'loyaltyEnabled'));
     }
 
-    // ... existing showReceipt method ...
-
-    // NEW: Process Debt Payment (Cashier)
+    // Process Debt Payment
     public function payCredit(Request $request)
     {
         $request->validate([
@@ -63,7 +58,7 @@ class POSController extends Controller
 
         DB::beginTransaction();
         try {
-            // 1. Get Unpaid Credits (Oldest First)
+            // Get Unpaid Credits (Oldest First)
             $credits = CustomerCredit::where('customer_id', $customerId)
                         ->where('is_paid', false)
                         ->orderBy('created_at', 'asc')
@@ -76,7 +71,6 @@ class POSController extends Controller
 
             $totalDebt = $credits->sum('remaining_balance');
             
-            // Allow small buffer for float precision issues
             if ($paymentAmount > $totalDebt + 0.01) { 
                 throw new \Exception("Payment exceeds total debt of ₱" . number_format($totalDebt, 2));
             }
@@ -86,15 +80,11 @@ class POSController extends Controller
             foreach ($credits as $credit) {
                 if ($remainingPayment <= 0) break;
 
-                // Pay off this specific credit record
                 $toPay = min($remainingPayment, $credit->remaining_balance);
 
                 $credit->amount_paid += $toPay;
                 $credit->remaining_balance -= $toPay;
 
-
-
-                
                 if ($credit->remaining_balance <= 0) {
                     $credit->remaining_balance = 0;
                     $credit->is_paid = true;
@@ -102,8 +92,8 @@ class POSController extends Controller
                 $credit->save();
 
                 // Create Log Entry
-                \App\Models\CreditPayment::create([
-                    'customer_credit_id' => $credit->credit_id, // <--- CHANGED from $credit->id to $credit->credit_id
+                CreditPayment::create([
+                    'customer_credit_id' => $credit->id, 
                     'user_id' => Auth::id(),
                     'amount' => $toPay,
                     'payment_date' => now(),
@@ -138,17 +128,18 @@ class POSController extends Controller
 
         DB::beginTransaction();
         try {
-            // 2. FETCH SETTINGS
+            // 2. Identify Current Active Store (Fix for Branch Anomaly)
+            $storeId = $this->getActiveStoreId();
+
+            // 3. Settings & Customer Logic
             $loyaltyEnabled = \App\Models\Setting::where('key', 'enable_loyalty')->value('value') ?? '0';
-            $loyaltyRatio = \App\Models\Setting::where('key', 'loyalty_ratio')->value('value') ?? 100; // Default 100
+            $loyaltyRatio = \App\Models\Setting::where('key', 'loyalty_ratio')->value('value') ?? 100;
             $pointsValue = \App\Models\Setting::where('key', 'points_conversion')->value('value') ?? 1;
 
             $customerId = $request->customer_id;
             $customer = null;
 
-            // 3. RESOLVE CUSTOMER
             if ($customerId === 'new' && $request->payment_method === 'credit') {
-                // Create New Customer
                 $details = $request->input('credit_details');
                 $customer = Customer::create([
                     'name' => $details['name'],
@@ -159,35 +150,30 @@ class POSController extends Controller
                 $customerId = $customer->id;
             } 
             elseif ($customerId && $customerId !== 'walk-in' && $customerId !== 'new') {
-                // Existing Customer
                 $customer = Customer::find($customerId);
             } else {
-                // Walk-in (No ID)
                 $customerId = null;
             }
 
-            // 4. PROCESS LOYALTY REDEMPTION (Use Points)
+            // 4. Loyalty Redemption
             $pointsUsed = 0;
             $pointsDiscount = 0;
-
             if ($loyaltyEnabled == '1' && $customer && $request->points_used > 0) {
                 if ($customer->points >= $request->points_used) {
                     $pointsUsed = $request->points_used;
                     $pointsDiscount = $pointsUsed * $pointsValue;
-                    
-                    // Deduct points immediately
                     $customer->decrement('points', $pointsUsed);
                 } else {
                     throw new \Exception("Customer does not have enough points.");
                 }
             }
 
-            // 5. CREATE SALE RECORD
+            // 5. Create Sale Record (Associated with Current Store)
             $sale = Sale::create([
-                'store_id' => $storeId,
+                'store_id' => $storeId, // <--- Correct Store ID
                 'user_id' => Auth::id(),
                 'customer_id' => $customerId,
-                'total_amount' => $request->total_amount, // Net amount (after discount)
+                'total_amount' => $request->total_amount, 
                 'amount_paid' => $request->payment_method === 'credit' ? 0 : ($request->amount_paid ?? 0),
                 'payment_method' => $request->payment_method,
                 'reference_number' => $request->payment_method === 'digital' ? $request->reference_number : null,
@@ -197,32 +183,23 @@ class POSController extends Controller
 
             // 6. PROCESS INVENTORY & SALE ITEMS
             foreach ($request->cart as $item) {
-                // Lock row to prevent race conditions
-                $product = Product::lockForUpdate()->find($item['id']);
                 
-                if (!$product) {
-                    throw new \Exception("Product ID " . $item['id'] . " not found.");
-                }
-                if ($product->stock < $item['qty']) {
-                    throw new \Exception("Insufficient stock for " . $product->name);
-                }
-
-                // Determine Store ID
-                $storeId = auth()->user()->store_id ?? session('active_store_id', 1);
-
                 // Find Inventory Record for this specific Store
-                $inventory = \App\Models\Inventory::where('product_id', $item['id'])
+                $inventory = Inventory::where('product_id', $item['id'])
                                 ->where('store_id', $storeId)
                                 ->lockForUpdate()
                                 ->first();
 
-                if ($inventory) {
-                   throw new \Exception("Product not available in this branch.");
+                // If product exists globally but not in this branch's inventory
+                if (!$inventory) {
+                    $prod = Product::find($item['id']);
+                    $prodName = $prod ? $prod->name : "Item #".$item['id'];
+                    throw new \Exception("Stock record not found for '{$prodName}' in this branch.");
                 }
 
                 if ($inventory->stock < $item['qty']) {
                     $prodName = $inventory->product->name ?? 'Item';
-                    throw new \Exception("Insufficient stock for $prodName in this branch.");
+                    throw new \Exception("Insufficient stock for '$prodName' in this branch (Available: {$inventory->stock}).");
                 }
 
                 // Deduct Stock from BRANCH Inventory
@@ -234,26 +211,21 @@ class POSController extends Controller
                     'product_id' => $item['id'],
                     'quantity' => $item['qty'],
                     'price' => $item['price'],  
-                    'cost' => $inventory->product->cost ?? 0 // <--- NEW: Store cost at time of sale
+                    'cost' => $inventory->product->cost ?? 0 
                 ]);
             }
 
-            // 7. PROCESS LOYALTY ACCUMULATION (Earn Points)
-            // Logic: Earn points based on the Total Amount Paid / Ratio
+            // 7. Earn Points
             if ($loyaltyEnabled == '1' && $customer) {
-                // Use the configured ratio (e.g., 1 point per 50 pesos)
                 $pointsEarned = floor($request->total_amount / $loyaltyRatio);
-                
                 if ($pointsEarned > 0) {
                     $customer->increment('points', $pointsEarned);
                 }
             }
 
-            // 8. PROCESS CREDIT (If Credit Sale)
+            // 8. Credit Logic
             if ($request->payment_method === 'credit' && $customer) {
                 $dueDate = $request->input('credit_details.due_date');
-                
-                // Update customer info if provided
                 if ($request->input('credit_details.contact') || $request->input('credit_details.address')) {
                     $customer->update([
                         'contact' => $request->input('credit_details.contact') ?? $customer->contact,
@@ -273,8 +245,6 @@ class POSController extends Controller
             }
 
             DB::commit();
-            
-            // Return Success
             return response()->json(['success' => true, 'sale_id' => $sale->id]);
 
         } catch (\Exception $e) {
@@ -283,10 +253,8 @@ class POSController extends Controller
         }
     }
 
-    // --- NEW METHOD: Show Receipt ---
     public function showReceipt(Sale $sale)
     {
-        // Eager load relationships for efficiency
         $sale->load('saleItems.product', 'user', 'customer');
         return view('cashier.receipt', compact('sale'));
     }
