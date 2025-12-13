@@ -387,4 +387,55 @@ class POSController extends Controller
         $sale->load('saleItems.product', 'user', 'customer');
         return view('cashier.receipt', compact('sale'));
     }
+
+    // --- NEW: BIR COMPLIANCE REPORTS (X/Z Reading) ---
+    public function showReading(Request $request, $type = 'x')
+    {
+        $storeId = $this->getActiveStoreId();
+        $date = \Carbon\Carbon::now()->toDateString();
+
+        // 1. Fetch Today's Sales (For X/Z Reading)
+        $todaySales = Sale::where('store_id', $storeId)
+                          ->whereDate('created_at', $date)
+                          ->get();
+
+        // 2. Fetch Aggregates
+        $data = [
+            'type' => strtoupper($type) . '-READING',
+            'date' => now()->format('Y-m-d H:i:s'),
+            'store_name' => \App\Models\Setting::where('key', 'store_name')->value('value'),
+            'tin' => \App\Models\Setting::where('key', 'store_tin')->value('value'),
+            'machine_no' => 'POS-001', // Example Machine ID
+            
+            // Sales Stats
+            'total_sales' => $todaySales->sum('total_amount'),
+            'trans_count' => $todaySales->count(),
+            'beg_or' => $todaySales->first()->id ?? '-',
+            'end_or' => $todaySales->last()->id ?? '-',
+            
+            // Payment Breakdown
+            'cash_sales' => $todaySales->where('payment_method', 'cash')->sum('total_amount'),
+            'card_sales' => $todaySales->where('payment_method', 'digital')->sum('total_amount'), // Assuming digital = card/ewallet
+            'credit_sales' => $todaySales->where('payment_method', 'credit')->sum('total_amount'),
+
+            // Tax Breakdown (Derived)
+            'tax_rate' => 12, // Default 12%
+        ];
+
+        // 3. Compute VAT Values (Back-computation)
+        // Formula: Vatable = Total / 1.12
+        $data['vatable_sales'] = $data['total_sales'] / 1.12;
+        $data['vat_amount'] = $data['total_sales'] - $data['vatable_sales'];
+        $data['vat_exempt'] = 0; // Logic for exempt items can be added later
+
+        // 4. ACCUMULATED GRAND TOTAL (Old GT + Today)
+        // We sum ALL sales from previous days + today
+        $grandTotal = Sale::where('store_id', $storeId)->sum('total_amount');
+        
+        $data['old_accumulated_sales'] = $grandTotal - $data['total_sales'];
+        $data['new_accumulated_sales'] = $grandTotal;
+
+        return view('cashier.reading', compact('data'));
+    }
+
 }

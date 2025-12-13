@@ -17,7 +17,7 @@
                     <span class="badge bg-dark" id="pending-count">0 Pending</span>
                 </div>
             </div>
-
+            
             <div class="card shadow-sm h-100 border-0">
                 <div class="card-header bg-white py-3">
                     <div class="d-flex gap-2">
@@ -30,6 +30,7 @@
                             <i class="fas fa-camera"></i> <span class="d-none d-md-inline">Scan</span>
                         </button>
                         
+                        
                         {{-- NEW: Return Button --}}
                         <button class="btn btn-warning fw-bold" onclick="openReturnModal()">
                             <i class="fas fa-undo"></i> Return
@@ -38,8 +39,23 @@
                         <button class="btn btn-danger fw-bold" onclick="openDebtorList()">
                             <i class="fas fa-hand-holding-usd"></i> Pay Debt
                         </button>
+
+                        {{-- NEW: Reports Dropdown (Add this here) --}}
+                        <div class="dropdown d-inline-block">
+                            <button class="btn btn-outline-dark fw-bold dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-file-invoice"></i> Reports
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="{{ route('cashier.reading', 'x') }}" target="_blank">Print X-Reading (Shift)</a></li>
+                                <li><a class="dropdown-item" href="{{ route('cashier.reading', 'z') }}" target="_blank">Print Z-Reading (End of Day)</a></li>
+                            </ul>
+                        </div>
                     </div>
+                    
+                    
                 </div>
+
+                
 
                 {{-- Categories --}}
                 <div class="px-3 py-2 bg-light border-bottom overflow-auto text-nowrap" style="white-space: nowrap;">

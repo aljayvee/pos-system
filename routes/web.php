@@ -114,6 +114,8 @@ Route::middleware(['auth', 'role:cashier,admin'])->prefix('cashier')->group(func
     // NEW: Return Routes
     Route::get('/return/search', [POSController::class, 'searchSale'])->name('cashier.return.search');
     Route::post('/return/process', [POSController::class, 'processReturn'])->name('cashier.return.process');
+    // NEW: X and Z Reading Route
+    Route::get('/reading/{type}', [POSController::class, 'showReading'])->name('cashier.reading');
 
 });
 
