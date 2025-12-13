@@ -236,8 +236,20 @@ class POSController extends Controller
             'amount_paid' => 'nullable|numeric',
             'reference_number' => 'required_if:payment_method,digital',
             'credit_details.name' => 'required_if:payment_method,credit',
-            'credit_details.due_date' => 'required_if:payment_method,credit|date'
-        ]);
+            'credit_details.due_date' => 'required_if:payment_method,credit|date',
+
+            // NEW: Details required ONLY if creating a NEW Customer
+            'credit_details.name' => 'required_if:customer_id,new',
+            'credit_details.address' => 'required_if:customer_id,new',
+            'credit_details.contact' => 'required_if:customer_id,new',
+        ],
+    [
+        // Custom Error Messages for clarity
+            'credit_details.name.required_if' => 'Customer Name is required.',
+            'credit_details.address.required_if' => 'Full Address is required for new customers.',
+            'credit_details.contact.required_if' => 'Mobile Number is required for new customers.',
+            'credit_details.due_date.required_if' => 'Due Date is required for credit transactions.'
+    ]);
 
         DB::beginTransaction();
         try {
@@ -250,12 +262,15 @@ class POSController extends Controller
             $customerId = $request->customer_id;
             $customer = null;
 
+            // 2. CREATE NEW CUSTOMER WITH FULL DETAILS
             if ($customerId === 'new' && $request->payment_method === 'credit') {
                 $details = $request->input('credit_details');
+                
                 $customer = Customer::create([
+                    'store_id' => $storeId, // Ensure it belongs to the active store
                     'name' => $details['name'],
-                    'address' => $details['address'] ?? null,
-                    'contact' => $details['contact'] ?? null,
+                    'address' => $details['address'], // Now validated as required
+                    'contact' => $details['contact'], // Now validated as required
                     'points' => 0
                 ]);
                 $customerId = $customer->id;
@@ -325,13 +340,18 @@ class POSController extends Controller
                 }
             }
 
+            // 3. CREDIT RECORD CREATION
             if ($request->payment_method === 'credit' && $customer) {
                 $dueDate = $request->input('credit_details.due_date');
-                if ($request->input('credit_details.contact') || $request->input('credit_details.address')) {
-                    $customer->update([
-                        'contact' => $request->input('credit_details.contact') ?? $customer->contact,
-                        'address' => $request->input('credit_details.address') ?? $customer->address,
-                    ]);
+                
+                // Optional: Update contact info for EXISTING customers if provided
+                if ($customerId !== 'new') {
+                    if ($request->input('credit_details.contact') || $request->input('credit_details.address')) {
+                        $customer->update([
+                            'contact' => $request->input('credit_details.contact') ?? $customer->contact,
+                            'address' => $request->input('credit_details.address') ?? $customer->address,
+                        ]);
+                    }
                 }
 
                 CustomerCredit::create([
