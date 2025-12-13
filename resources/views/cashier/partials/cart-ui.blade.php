@@ -1,7 +1,7 @@
 <div class="cart-container h-100 d-flex flex-column bg-light rounded-4 overflow-hidden border-0 shadow-sm">
 
-    {{-- HEADER --}}
-    <div class="p-3 bg-white border-bottom d-flex justify-content-between align-items-center z-1">
+    {{-- 1. FIXED HEADER --}}
+    <div class="p-3 bg-white border-bottom d-flex justify-content-between align-items-center z-1 flex-shrink-0">
         <h6 class="fw-bold m-0 text-dark d-flex align-items-center">
             <i class="fas fa-receipt me-2 text-primary"></i> Current Order
         </h6>
@@ -10,13 +10,13 @@
         </button>
     </div>
 
-    {{-- SCROLLABLE ITEMS --}}
+    {{-- 2. SCROLLABLE BODY (Flex Grow) --}}
     <div class="flex-grow-1 p-3 overflow-y-auto custom-scrollbar" id="cart-items" style="background: #f8fafc;">
-        {{-- JS INJECTED HERE --}}
+        {{-- Javascript injects items here --}}
     </div>
 
-    {{-- FOOTER / TOTALS --}}
-    <div class="p-4 bg-white border-top rounded-top-4 shadow-lg z-2">
+    {{-- 3. FIXED FOOTER (Payment Section) --}}
+    <div class="p-4 bg-white border-top shadow-lg z-2 flex-shrink-0">
         
         {{-- Customer Select --}}
         <div class="mb-3">
@@ -54,9 +54,9 @@
 </div>
 
 <style>
-    /* Utility for Cart */
-    .hover-scale:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(79, 70, 229, 0.2); }
+    /* Styling for the scrollbar */
     .custom-scrollbar::-webkit-scrollbar { width: 6px; }
     .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
     .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+    .hover-scale:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(79, 70, 229, 0.2); }
 </style>
