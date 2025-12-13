@@ -202,13 +202,34 @@
             });
         });
 
+        
+
+        
+
+        // C. SEARCH LOGIC (MOVED HERE TO FIX BUG)
+        const searchInput = document.getElementById('product-search');
+        if (searchInput) {
+            searchInput.addEventListener('keyup', function() {
+                const q = this.value.toLowerCase().trim();
+                const cards = document.querySelectorAll('.product-card-wrapper');
+                
+                cards.forEach(card => {
+                    // Safe check for dataset properties
+                    const name = (card.dataset.name || '').toLowerCase();
+                    const sku = (card.dataset.sku || '').toLowerCase();
+                    
+                    const match = name.includes(q) || sku.includes(q);
+                    card.style.display = match ? 'block' : 'none';
+                });
+            });
+            // Auto-focus on desktop
+            if(window.innerWidth > 768) searchInput.focus();
+        }
+
         updateCartUI();
         updateConnectionStatus();
-
-        // Focus Search
-        if(window.innerWidth > 768 && document.getElementById('product-search')) {
-            document.getElementById('product-search').focus();
-        }
+        window.addEventListener('online', () => { updateConnectionStatus(); syncOfflineData(); });
+        window.addEventListener('offline', updateConnectionStatus);
     });
 
 
@@ -216,10 +237,8 @@
     window.clearCart = function() {
         if(cart.length === 0) return;
         Swal.fire({
-            title: 'Clear Cart?', text: "Remove all items?", icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', confirmButtonText: 'Yes'
-        }).then((res) => {
-            if(res.isConfirmed) { cart = []; updateCartUI(); }
-        });
+            title: 'Clear Cart?', icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', confirmButtonText: 'Yes'
+        }).then((res) => { if(res.isConfirmed) { cart = []; updateCartUI(); } });
     };
 
     // --- 4. CORE POS LOGIC ---
@@ -251,14 +270,8 @@
     window.modifyQty = function(index, change) {
         const item = cart[index];
         const newQty = item.qty + change;
-        
-        if (newQty <= 0) {
-            cart.splice(index, 1);
-        } else if (newQty <= item.max) {
-            item.qty = newQty;
-        } else {
-             Swal.fire({ toast: true, icon: 'warning', title: 'Insufficient Stock', position: 'top-end', showConfirmButton: false, timer: 1000 });
-        }
+        if (newQty <= 0) cart.splice(index, 1);
+        else if (newQty <= item.max) item.qty = newQty;
         updateCartUI();
     };
 
@@ -406,9 +419,7 @@
     };
 
     // --- 6. RETURN LOGIC ---
-    window.openReturnModal = function() {
-        new bootstrap.Modal(document.getElementById('returnModal')).show();
-    };
+    window.openReturnModal = function() { new bootstrap.Modal(document.getElementById('returnModal')).show(); };
 
     window.searchSaleForReturn = function() {
         const q = document.getElementById('return-search').value;
@@ -482,22 +493,7 @@
     };
 
     // --- 7. CAMERA ---
-    window.openCameraModal = function() {
-        new bootstrap.Modal(document.getElementById('cameraModal')).show();
-        if (!html5QrcodeScanner) {
-            html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 }, false);
-            html5QrcodeScanner.render((txt) => {
-                const prod = ALL_PRODUCTS.find(p => p.sku === txt);
-                if(prod) { 
-                    addToCart(prod); 
-                    Swal.fire({toast:true, position:'top', icon:'success', title:'Added '+prod.name, timer:1000, showConfirmButton:false}); 
-                } else { 
-                    playError(); 
-                    Swal.fire({toast:true, position:'top', icon:'error', title:'Item not found', timer:1000, showConfirmButton:false}); 
-                }
-            });
-        }
-    };
+    window.openCameraModal = function() { new bootstrap.Modal(document.getElementById('cameraModal')).show(); if (!html5QrcodeScanner) { html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 }, false); html5QrcodeScanner.render((txt) => { const prod = ALL_PRODUCTS.find(p => p.sku === txt); if(prod) { addToCart(prod); Swal.fire({toast:true, position:'top', icon:'success', title:'Added', timer:1000, showConfirmButton:false}); }}); }};
     window.stopCamera = function() { if(html5QrcodeScanner) html5QrcodeScanner.clear(); };
 
     window.openPaymentModal = function() {
@@ -663,11 +659,7 @@
         document.getElementById('connection-status').className = isOffline ? 'status-offline' : 'status-online';
     }
 
-    function syncOfflineData() {
-        if(!isOffline && localStorage.getItem('offline_queue_sales')) {
-            Swal.fire({toast:true, title:'Syncing...', position:'top-end', showConfirmButton:false, timer:2000});
-        }
-    }
+    function syncOfflineData() { if(!isOffline && localStorage.getItem('offline_queue_sales')) Swal.fire({toast:true, title:'Syncing...', position:'top-end', timer:2000, showConfirmButton:false}); }
 
     function searchSaleForReturn() { /* Return logic */ }
     function submitReturn() { /* Return logic */ }
