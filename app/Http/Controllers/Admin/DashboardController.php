@@ -29,11 +29,11 @@ class DashboardController extends Controller
         // We need to check items sold TODAY and their cost price
         $soldItemsToday = SaleItem::whereHas('sale', function($q) use ($today) {
             $q->whereDate('created_at', $today);
-        })->with('product')->get();
+        })->get();
 
         $totalCostToday = 0;
         foreach($soldItemsToday as $item) {
-            $cost = $item->product->cost ?? 0; // Get cost from product table
+            $cost = $item->cost ?? 0; // Get cost from product table
             $totalCostToday += ($cost * $item->quantity);
         }
         

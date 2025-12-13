@@ -59,8 +59,10 @@ class ReportController extends Controller
         $tithesAmount = ($tithesEnabled == '1') ? $total_sales * 0.10 : 0;
 
         $soldItems = SaleItem::whereIn('sale_id', $salesIds)->with('product')->get();
+
         $total_cost = 0;
         foreach ($soldItems as $item) {
+            $itemCost = ($item->cost > 0) ? $item->cost : ($item->product->cost ?? 0);
             $cost = $item->product->cost ?? 0;
             $total_cost += ($cost * $item->quantity);
         }

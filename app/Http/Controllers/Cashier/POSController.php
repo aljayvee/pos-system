@@ -214,7 +214,8 @@ class POSController extends Controller
                     'sale_id' => $sale->id,
                     'product_id' => $product->id,
                     'quantity' => $item['qty'],
-                    'price' => $product->price
+                    'price' => $product->price,
+                    'cost' => $product->cost, // <--- NEW: Store cost at time of sale
                 ]);
             }
 
