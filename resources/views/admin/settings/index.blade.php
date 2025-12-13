@@ -5,7 +5,7 @@
     <h2 class="mb-4"><i class="fas fa-cogs text-secondary"></i> System Settings</h2>
 
     <div class="row">
-        {{-- LEFT COLUMN: Configuration Forms (Store & PayMongo) --}}
+        {{-- LEFT COLUMN: Configuration Forms --}}
         <div class="col-md-8">
             <form action="{{ route('settings.update') }}" method="POST">
                 @csrf
@@ -37,12 +37,72 @@
                             <label class="form-label fw-bold">Receipt Footer Message</label>
                             <input type="text" name="receipt_footer" class="form-control" 
                                    value="{{ $settings['receipt_footer'] ?? 'Thank you for your purchase!' }}">
-                            <div class="form-text">Shown at the bottom of the receipt.</div>
                         </div>
                     </div>
                 </div>
 
-                {{-- 2. LOYALTY PROGRAM --}}
+                {{-- 2. NEW: BIR / GOVERNMENT COMPLIANCE --}}
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-secondary text-white">
+                        <i class="fas fa-file-contract me-2"></i> BIR / Government Compliance (Tax)
+                    </div>
+                    <div class="card-body">
+                        {{-- Toggle Switch --}}
+                        <div class="form-check form-switch mb-3">
+                            <input type="hidden" name="enable_tax" value="0">
+                            <input class="form-check-input" type="checkbox" id="taxSwitch" name="enable_tax" value="1" 
+                                {{ ($settings['enable_tax'] ?? '0') == '1' ? 'checked' : '' }}
+                                onchange="toggleTaxFields()">
+                            <label class="form-check-label fw-bold" for="taxSwitch">Enable VAT & BIR Details on Receipt</label>
+                        </div>
+
+                        <div id="tax-fields" style="display: {{ ($settings['enable_tax'] ?? '0') == '1' ? 'block' : 'none' }};">
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold small">TIN (Tax Identification Number)</label>
+                                    <div class="input-group">
+                                        <input type="password" name="store_tin" id="store_tin" class="form-control" 
+                                               value="{{ $settings['store_tin'] ?? '' }}" placeholder="000-000-000-000">
+                                        <button class="btn btn-outline-secondary" type="button" onclick="toggleVisibility('store_tin')">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                    </div>
+                                    <div class="form-text text-danger small">* Hidden for security</div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold small">Business Permit / DTI No.</label>
+                                    <div class="input-group">
+                                        <input type="password" name="business_permit" id="business_permit" class="form-control" 
+                                               value="{{ $settings['business_permit'] ?? '' }}" placeholder="Permit Number">
+                                        <button class="btn btn-outline-secondary" type="button" onclick="toggleVisibility('business_permit')">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                    </div>
+                                    <div class="form-text text-danger small">* Hidden for security</div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <label class="form-label fw-bold small">VAT Rate (%)</label>
+                                    <input type="number" name="tax_rate" class="form-control" 
+                                           value="{{ $settings['tax_rate'] ?? '12' }}" min="0" max="100">
+                                    <div class="form-text">Standard PH VAT is 12%</div>
+                                </div>
+                                <div class="col-md-8">
+                                    <label class="form-label fw-bold small">Tax Type</label>
+                                    <select name="tax_type" class="form-select">
+                                        <option value="inclusive" {{ ($settings['tax_type'] ?? '') == 'inclusive' ? 'selected' : '' }}>VAT Inclusive (Price already includes Tax)</option>
+                                        <option value="exclusive" {{ ($settings['tax_type'] ?? '') == 'exclusive' ? 'selected' : '' }}>VAT Exclusive (Add Tax to Total)</option>
+                                        <option value="non_vat" {{ ($settings['tax_type'] ?? '') == 'non_vat' ? 'selected' : '' }}>Non-VAT Registered</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- 3. LOYALTY PROGRAM --}}
                 <div class="card shadow-sm mb-4">
                     <div class="card-header bg-warning text-dark">
                         <i class="fas fa-star me-2"></i> Loyalty Program
@@ -76,7 +136,7 @@
                     </div>
                 </div>
 
-                {{-- 3. FEATURES & TOGGLES (Includes PayMongo) --}}
+                {{-- 4. FEATURES & TOGGLES --}}
                 <div class="card shadow-sm mb-4">
                     <div class="card-header bg-dark text-white">
                         <i class="fas fa-toggle-on me-2"></i> Features & Toggles
@@ -120,9 +180,6 @@
                                 <input type="text" name="paymongo_public_key" class="form-control form-control-sm" 
                                        value="{{ $settings['paymongo_public_key'] ?? '' }}" placeholder="pk_test_...">
                             </div>
-                            <div class="alert alert-info small py-2">
-                                <i class="fas fa-info-circle"></i> Use "Test Keys" (sk_test, pk_test) for development.
-                            </div>
                         </div>
 
                         <hr>
@@ -146,7 +203,6 @@
                     </div>
                 </div>
 
-                {{-- SAVE BUTTON (Now only submits the settings form) --}}
                 <div class="d-grid mb-5">
                     <button type="submit" class="btn btn-primary btn-lg fw-bold">
                         <i class="fas fa-save me-2"></i> Save All Settings
@@ -155,7 +211,7 @@
             </form>
         </div>
 
-        {{-- RIGHT COLUMN: Data Management (Separate Form) --}}
+        {{-- RIGHT COLUMN: Data Management --}}
         <div class="col-md-4">
             <div class="card shadow-sm mb-4">
                 <div class="card-header bg-danger text-white">
@@ -163,21 +219,17 @@
                 </div>
                 <div class="card-body">
                     <p class="small text-muted">Create a backup or restore data.</p>
-                    
                     <div class="d-grid mb-3">
                         <a href="{{ route('settings.backup') }}" class="btn btn-outline-dark">
                             <i class="fas fa-download me-2"></i> Download Backup (.sql)
                         </a>
                     </div>
-
                     <hr>
-
                     <form action="{{ route('settings.restore') }}" method="POST" enctype="multipart/form-data" 
                           onsubmit="return confirm('WARNING: This will WIPE all current data. Continue?');">
                         @csrf
                         <label class="form-label fw-bold text-danger small">Restore Database</label>
                         <input type="file" name="backup_file" class="form-control form-control-sm mb-2" required accept=".sql">
-                        
                         <div class="d-grid">
                             <button type="submit" class="btn btn-danger btn-sm">
                                 <i class="fas fa-upload me-1"></i> Upload & Restore
@@ -197,9 +249,22 @@
     }
 
     function toggleStoreManagement() {
-    const isChecked = document.getElementById('multiStoreSwitch').checked;
-    document.getElementById('store-management-link').style.display = isChecked ? 'block' : 'none';
-}
+        const isChecked = document.getElementById('multiStoreSwitch').checked;
+        document.getElementById('store-management-link').style.display = isChecked ? 'block' : 'none';
+    }
 
+    function toggleTaxFields() {
+        const isChecked = document.getElementById('taxSwitch').checked;
+        document.getElementById('tax-fields').style.display = isChecked ? 'block' : 'none';
+    }
+
+    function toggleVisibility(id) {
+        const input = document.getElementById(id);
+        if (input.type === "password") {
+            input.type = "text";
+        } else {
+            input.type = "password";
+        }
+    }
 </script>
 @endsection
