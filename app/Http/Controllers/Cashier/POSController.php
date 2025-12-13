@@ -34,6 +34,13 @@ class POSController extends Controller
         ->orderBy('name')
         ->get();
 
+        // 2. Fetch Customers with Balance
+        $customers = Customer::withSum(['credits as balance' => function($q) {
+            $q->where('is_paid', false);
+        }], 'remaining_balance')
+        ->orderBy('name')
+        ->get();
+
        // Check if Loyalty is Enabled (Default to '0' / Off)
         $loyaltyEnabled = \App\Models\Setting::where('key', 'enable_loyalty')->value('value') ?? '0';
         $categories = \App\Models\Category::has('products')->orderBy('name')->get();

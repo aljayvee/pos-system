@@ -87,7 +87,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->group(function () {
 });
 
 // CASHIER Routes (Protected)
-Route::middleware(['auth', 'role:cashier'])->prefix('cashier')->group(function () {
+Route::middleware(['auth', 'role:cashier,admin'])->prefix('cashier')->group(function () {
     Route::get('/pos', [POSController::class, 'index'])->name('cashier.pos');
     Route::post('/transaction', [POSController::class, 'store'])->name('cashier.store');
     Route::get('/receipt/{sale}', [POSController::class, 'showReceipt'])->name('cashier.receipt');
