@@ -317,4 +317,37 @@ class ReportController extends Controller
             ]);
         }
     }
+
+    public function vatReport(Request $request)
+    {
+        $storeId = $this->getActiveStoreId();
+        $start = $request->input('start_date', Carbon::now()->startOfMonth());
+        $end = $request->input('end_date', Carbon::now()->endOfMonth());
+
+        // 1. Calculate OUTPUT VAT (Sales)
+        $salesData = Sale::where('store_id', $storeId)
+            ->whereBetween('created_at', [$start, $end])
+            ->selectRaw('
+                SUM(total_amount) as gross_sales,
+                SUM(vatable_sales) as vatable_sales,
+                SUM(output_vat) as output_vat
+            ')->first();
+
+        // 2. Calculate INPUT VAT (Purchases)
+        $purchaseData = \App\Models\Purchase::where('store_id', $storeId)
+            ->whereBetween('purchase_date', [$start, $end])
+            ->selectRaw('
+                SUM(total_cost) as total_purchases,
+                SUM(input_vat) as input_vat
+            ')->first();
+
+        // 3. Compute Payable
+        $outputVat = $salesData->output_vat ?? 0;
+        $inputVat = $purchaseData->input_vat ?? 0;
+        $netPayable = $outputVat - $inputVat;
+
+        return view('admin.reports.vat', compact(
+            'salesData', 'purchaseData', 'netPayable', 'start', 'end'
+        ));
+    }
 }

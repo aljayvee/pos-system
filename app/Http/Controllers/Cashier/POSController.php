@@ -255,6 +255,35 @@ class POSController extends Controller
         try {
             $storeId = $this->getActiveStoreId();
 
+            // 1. FETCH SETTINGS
+            $taxType = \App\Models\Setting::where('key', 'tax_type')->value('value') ?? 'inclusive'; // 'inclusive', 'exclusive', or 'non_vat'
+            $taxRate = 0.12; // 12% standard
+
+            // 2. CALCULATE VAT
+            $rawTotal = $request->total_amount;
+            $vatableSales = 0;
+            $outputVat = 0;
+            $finalTotal = $rawTotal;
+
+            if ($taxType === 'inclusive') {
+                // Example: 112 pesos. Vatable = 100. VAT = 12.
+                $vatableSales = $rawTotal / (1 + $taxRate);
+                $outputVat = $rawTotal - $vatableSales;
+                $finalTotal = $rawTotal;
+            } 
+            elseif ($taxType === 'exclusive') {
+                // Example: 100 pesos. VAT = 12. Final to Pay = 112.
+                $vatableSales = $rawTotal;
+                $outputVat = $rawTotal * $taxRate;
+                $finalTotal = $rawTotal + $outputVat;
+            }
+            else {
+                // Non-VAT
+                $vatableSales = $rawTotal;
+                $outputVat = 0;
+                $finalTotal = $rawTotal;
+            }
+
             $loyaltyEnabled = \App\Models\Setting::where('key', 'enable_loyalty')->value('value') ?? '0';
             $loyaltyRatio = \App\Models\Setting::where('key', 'loyalty_ratio')->value('value') ?? 100;
             $pointsValue = \App\Models\Setting::where('key', 'points_conversion')->value('value') ?? 1;
@@ -295,7 +324,9 @@ class POSController extends Controller
                 'store_id' => $storeId,
                 'user_id' => Auth::id(),
                 'customer_id' => $customerId,
-                'total_amount' => $request->total_amount, 
+                'total_amount' => $finalTotal, 
+                'vatable_sales' => $vatableSales,
+                'output_vat' => $outputVat,
                 'amount_paid' => $request->payment_method === 'credit' ? 0 : ($request->amount_paid ?? 0),
                 'payment_method' => $request->payment_method,
                 'reference_number' => $request->payment_method === 'digital' ? $request->reference_number : null,

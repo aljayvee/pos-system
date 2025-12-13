@@ -28,7 +28,19 @@
             @endforeach
         </select>
 
-        {{-- Totals --}}
+        {{-- NEW: Subtotal Row --}}
+        <div class="d-flex justify-content-between align-items-center mb-1 small text-secondary">
+            <span>Subtotal</span>
+            <span class="fw-bold">₱<span id="subtotal-display">0.00</span></span>
+        </div>
+
+        {{-- NEW: VAT Row (Hidden by default, toggled by JS) --}}
+        <div id="tax-row" class="d-flex justify-content-between align-items-center mb-2 small text-muted" style="display:none !important;">
+            <span>VAT (12%)</span>
+            <span>₱<span id="tax-display">0.00</span></span>
+        </div>
+
+        {{-- Grand Total --}}
         <div class="d-flex justify-content-between align-items-center mb-3">
             <h3 class="fw-bold m-0">Total</h3>
             <h2 class="fw-bold text-primary m-0">₱<span class="total-amount-display">0.00</span></h2>

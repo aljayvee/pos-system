@@ -161,10 +161,13 @@
 
 <script>
     // --- 1. CONFIGURATION ---
+    // --- 1. CONFIGURATION ---
     const CONFIG = {
         pointsValue: Number("{{ \App\Models\Setting::where('key', 'points_conversion')->value('value') ?? 1 }}"),
         loyaltyEnabled: Number("{{ \App\Models\Setting::where('key', 'enable_loyalty')->value('value') ?? 0 }}"),
         paymongoEnabled: Number("{{ \App\Models\Setting::where('key', 'enable_paymongo')->value('value') ?? 0 }}"),
+        // ADD THIS NEW LINE:
+        taxType: "{{ \App\Models\Setting::where('key', 'tax_type')->value('value') ?? 'inclusive' }}", 
         csrfToken: document.querySelector('meta[name="csrf-token"]').getAttribute('content')
     };
 
@@ -282,7 +285,6 @@
 
     function updateCartUI() {
         localStorage.setItem('pos_cart', JSON.stringify(cart));
-        
         let html = '';
         let subtotal = 0;
         
@@ -305,14 +307,40 @@
             });
         }
 
+        // 1. Inject Items HTML
         document.querySelectorAll('#cart-items').forEach(el => el.innerHTML = html);
 
-        const total = subtotal; // Add loyalty discount logic here if needed
+        // 2. VAT / Tax Logic
+        let grandTotal = subtotal;
+        let taxAmt = 0;
+        
+        // UI Elements
+        const subtotalEl = document.getElementById('subtotal-display');
+        const taxRow = document.getElementById('tax-row');
+        const taxEl = document.getElementById('tax-display');
 
-        document.querySelectorAll('.total-amount-display').forEach(el => el.innerText = total.toFixed(2));
-        if(document.getElementById('mobile-total-display')) document.getElementById('mobile-total-display').innerText = total.toFixed(2);
+        if (CONFIG.taxType === 'exclusive') {
+            // Exclusive: Add 12% on top
+            taxAmt = subtotal * 0.12;
+            grandTotal = subtotal + taxAmt;
+            
+            // Show Breakdown
+            if(taxRow) taxRow.style.setProperty('display', 'flex', 'important');
+            if(taxEl) taxEl.innerText = taxAmt.toFixed(2);
+        } else {
+            // Inclusive or Non-VAT: Hide Tax Row (already in price)
+            if(taxRow) taxRow.style.display = 'none';
+        }
+
+        // 3. Update Displays
+        if(subtotalEl) subtotalEl.innerText = subtotal.toFixed(2);
+        
+        document.querySelectorAll('.total-amount-display').forEach(el => el.innerText = grandTotal.toFixed(2));
+        
+        // Sync Mobile Footer & Modal
+        if(document.getElementById('mobile-total-display')) document.getElementById('mobile-total-display').innerText = grandTotal.toFixed(2);
         if(document.getElementById('mobile-cart-count')) document.getElementById('mobile-cart-count').innerText = cart.length + ' Items';
-        if(document.getElementById('modal-total')) document.getElementById('modal-total').innerText = total.toFixed(2);
+        if(document.getElementById('modal-total')) document.getElementById('modal-total').innerText = grandTotal.toFixed(2);
     }
 
     // --- 5. SEARCH & FILTER ---

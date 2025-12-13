@@ -58,6 +58,14 @@ class PurchaseController extends Controller
                 $supplierId = $supplier->id;
             }
 
+            // 2. Calculate Costs
+            $totalGross = 0;
+            foreach ($request->items as $item) {
+                $totalGross += ($item['quantity'] * $item['unit_cost']);
+            }
+
+
+
             // 2. Create Purchase Record linked to Store
             $purchase = Purchase::create([
                 'store_id' => $storeId, // <--- Link to Branch
@@ -67,6 +75,30 @@ class PurchaseController extends Controller
                 'total_cost' => 0
             ]);
 
+            // 3. INPUT VAT CALCULATION
+            // Formula: Input VAT = Total / 1.12 * 0.12 (if inclusive)
+            // If the supplier is Non-VAT, Input VAT is 0.
+            $isVatSupplier = true; // Ideally, add a checkbox in the form for this
+            $inputVat = 0;
+            $netCost = $totalGross;
+
+            if ($isVatSupplier) {
+                $netCost = $totalGross / 1.12; 
+                $inputVat = $totalGross - $netCost;
+            }
+
+            // 4. Create Purchase Record with VAT Info
+            $purchase = Purchase::create([
+                'store_id' => $storeId,
+                'user_id' => Auth::id(),
+                'supplier_id' => $supplierId,
+                'purchase_date' => $request->purchase_date,
+                'total_cost' => $totalGross, // The amount you actually paid
+                'input_vat' => $inputVat,    // The tax credit you claim
+                'is_vat_registered_supplier' => $isVatSupplier
+            ]);
+
+            
             $totalCost = 0;
 
             foreach ($request->items as $itemData) {
