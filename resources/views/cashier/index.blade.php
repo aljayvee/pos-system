@@ -325,17 +325,20 @@
     });
 
     // --- RESTORED: DEBT FUNCTIONS ---
+    // --- 1. REPLACED: Open Debtor List (With Search Data) ---
     window.openDebtorList = function() {
-        const modal = new bootstrap.Modal(document.getElementById('debtorListModal'));
-        modal.show();
-
-        // 1. Select the list container
-        const listContainer = document.querySelector('#debtorListModal .list-group');
+        // Show Modal
+        new bootstrap.Modal(document.getElementById('debtorListModal')).show();
         
-        // 2. Show Loading State
-        listContainer.innerHTML = '<div class="text-center p-4 text-muted"><i class="fas fa-spinner fa-spin fa-2x"></i><p class="mt-2">Updating list...</p></div>';
+        // Reset Search Input
+        const searchInput = document.getElementById('debtor-search');
+        if(searchInput) searchInput.value = '';
 
-        // 3. Fetch Fresh Data
+        // Show Loading
+        const listContainer = document.querySelector('#debtorListModal .list-group');
+        listContainer.innerHTML = '<div class="text-center p-4 text-muted"><i class="fas fa-spinner fa-spin"></i> Loading...</div>';
+
+        // Fetch Data
         fetch("{{ route('cashier.debtors') }}")
             .then(res => res.json())
             .then(data => {
@@ -346,35 +349,76 @@
                     return;
                 }
 
-                // 4. Rebuild List
+                // Render List
                 data.forEach(c => {
-                    const balance = parseFloat(c.balance).toLocaleString('en-US', {minimumFractionDigits: 2});
-                    
                     const btn = document.createElement('button');
+                    // Note: We include 'debtor-row' class for the search selector
                     btn.className = 'list-group-item list-group-item-action d-flex justify-content-between align-items-center debtor-row';
-                    btn.dataset.name = c.name.toLowerCase();
+                    
+                    // IMPORTANT: Store lowercase name for easy searching
+                    btn.dataset.name = (c.name || '').toLowerCase();
+                    
                     btn.onclick = () => openDebtPaymentModal(c.id, c.name, c.balance);
                     
                     btn.innerHTML = `
                         <span class="fw-bold">${c.name}</span>
-                        <span class="badge bg-danger rounded-pill">₱${balance}</span>
+                        <span class="badge bg-danger rounded-pill">₱${parseFloat(c.balance).toFixed(2)}</span>
                     `;
-                    
                     listContainer.appendChild(btn);
                 });
             })
             .catch(err => {
                 console.error(err);
-                listContainer.innerHTML = '<div class="text-center text-danger p-3">Failed to load list. Please refresh.</div>';
+                listContainer.innerHTML = '<div class="text-center text-danger p-3">Failed to load list.</div>';
             });
     };
 
+    // --- 2. REPLACED: Filter Debtors (Robust Logic) ---
     window.filterDebtors = function() {
-        const q = document.getElementById('debtor-search').value.toLowerCase();
-        document.querySelectorAll('.debtor-row').forEach(row => {
-            row.style.display = row.dataset.name.includes(q) ? 'flex' : 'none';
+        const input = document.getElementById('debtor-search');
+        if (!input) return;
+
+        const q = input.value.toLowerCase().trim();
+        const rows = document.querySelectorAll('#debtorListModal .debtor-row');
+
+        rows.forEach(row => {
+            // Search in the data attribute OR the visible text
+            const name = row.dataset.name || row.innerText.toLowerCase();
+            
+            if (name.includes(q)) {
+                // Show item (Restore Flexbox)
+                row.classList.remove('d-none');
+                row.classList.add('d-flex');
+            } else {
+                // Hide item
+                row.classList.remove('d-flex');
+                row.classList.add('d-none');
+            }
         });
-        
+    };
+
+    // --- 2. REPLACED: Filter Debtors (Robust Logic) ---
+    window.filterDebtors = function() {
+        const input = document.getElementById('debtor-search');
+        if (!input) return;
+
+        const q = input.value.toLowerCase().trim();
+        const rows = document.querySelectorAll('#debtorListModal .debtor-row');
+
+        rows.forEach(row => {
+            // Search in the data attribute OR the visible text
+            const name = row.dataset.name || row.innerText.toLowerCase();
+            
+            if (name.includes(q)) {
+                // Show item (Restore Flexbox)
+                row.classList.remove('d-none');
+                row.classList.add('d-flex');
+            } else {
+                // Hide item
+                row.classList.remove('d-flex');
+                row.classList.add('d-none');
+            }
+        });
     };
 
     window.openDebtPaymentModal = function(id, name, balance) {
