@@ -74,6 +74,8 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->group(function () {
     Route::post('/settings', [SettingsController::class, 'update'])->name('settings.update');
     // NEW: Route to reveal sensitive data
     Route::post('/settings/reveal', [SettingsController::class, 'reveal'])->name('settings.reveal');
+    // Inside admin middleware group
+    Route::post('/settings/verify-disable-bir', [SettingsController::class, 'verifyDisableBir'])->name('settings.verify_disable_bir');
 
     // Backup & Restore
     Route::get('/settings/backup', [BackupController::class, 'download'])->name('settings.backup');

@@ -39,6 +39,12 @@
                                    value="{{ $settings['receipt_footer'] ?? 'Thank you for your purchase!' }}">
                         </div>
                     </div>
+                    <hr>
+                    <div class="d-grid mb-3">
+                        <button type="submit" class="btn btn-primary btn-sm fw-bold">
+                            <i class="fas fa-save me-2"></i> Save Store Settings
+                        </button>
+                    </div>
                 </div>
 
                 {{-- 2. BIR / GOVERNMENT COMPLIANCE --}}
@@ -46,32 +52,33 @@
                     <div class="card-header bg-secondary text-white">
                         <i class="fas fa-file-contract me-2"></i> BIR / Government Compliance (Tax)
                     </div>
-                    
-                    @if(session('warning'))
-                            <div class="alert alert-warning fw-bold"><i class="fas fa-exclamation-triangle me-2"></i> {{ session('warning') }}</div>
-                    @endif
                     <div class="card-body">
                         {{-- Toggle Switch --}}
                         <div class="form-check form-switch mb-3">
                             <input type="hidden" name="enable_tax" value="0">
+                            {{-- Logic: onchange triggers the intelligent handler --}}
                             <input class="form-check-input" type="checkbox" id="taxSwitch" name="enable_tax" value="1" 
                                 {{ ($settings['enable_tax'] ?? '0') == '1' ? 'checked' : '' }}
-                                onchange="toggleTaxFields()">
+                                onchange="handleTaxSwitchChange(this)">
                             <label class="form-check-label fw-bold" for="taxSwitch">Enable VAT & BIR Details on Receipt</label>
                         </div>
-                        
 
                         <div id="tax-fields" style="display: {{ ($settings['enable_tax'] ?? '0') == '1' ? 'block' : 'none' }};">
                             <div class="row mb-3">
                                 <div class="col-md-6">
                                     <label class="form-label fw-bold small">TIN (Tax Identification Number)</label>
                                     <div class="input-group">
-                                        {{-- Note: Value is EMPTY by default for security. Placeholder indicates if set. --}}
+                                        {{-- 
+                                            LOGIC FIX: 
+                                            1. If value exists, it is READONLY (cannot delete/edit).
+                                            2. Placeholder shows "Saved".
+                                        --}}
                                         <input type="password" name="store_tin" id="store_tin" class="form-control" 
                                                value="" 
-                                               placeholder="{{ !empty($settings['store_tin']) ? '******** (Hidden)' : '000-000-000' }}">
+                                               placeholder="{{ !empty($settings['store_tin']) ? '******** (Saved)' : 'Enter TIN' }}"
+                                               {{ !empty($settings['store_tin']) ? 'readonly' : '' }}>
                                         
-                                        <button class="btn btn-outline-secondary" type="button" onclick="requestReveal('store_tin')">
+                                        <button class="btn btn-outline-secondary" type="button" id="btn-tin" onclick="handleSecretToggle('store_tin', 'btn-tin')">
                                             <i class="fas fa-eye"></i>
                                         </button>
                                     </div>
@@ -81,9 +88,10 @@
                                     <div class="input-group">
                                         <input type="password" name="business_permit" id="business_permit" class="form-control" 
                                                value="" 
-                                               placeholder="{{ !empty($settings['business_permit']) ? '******** (Hidden)' : 'Permit Number' }}">
+                                               placeholder="{{ !empty($settings['business_permit']) ? '******** (Saved)' : 'Enter Permit No.' }}"
+                                               {{ !empty($settings['business_permit']) ? 'readonly' : '' }}>
                                         
-                                        <button class="btn btn-outline-secondary" type="button" onclick="requestReveal('business_permit')">
+                                        <button class="btn btn-outline-secondary" type="button" id="btn-permit" onclick="handleSecretToggle('business_permit', 'btn-permit')">
                                             <i class="fas fa-eye"></i>
                                         </button>
                                     </div>
@@ -99,15 +107,57 @@
                                 <div class="col-md-8">
                                     <label class="form-label fw-bold small">Tax Type</label>
                                     <select name="tax_type" class="form-select">
-                                        <option value="inclusive" {{ ($settings['tax_type'] ?? '') == 'inclusive' ? 'selected' : '' }}>VAT Inclusive (Price includes Tax)</option>
-                                        <option value="exclusive" {{ ($settings['tax_type'] ?? '') == 'exclusive' ? 'selected' : '' }}>VAT Exclusive (Add Tax to Total)</option>
+                                        <option value="inclusive" {{ ($settings['tax_type'] ?? '') == 'inclusive' ? 'selected' : '' }}>VAT Inclusive</option>
+                                        <option value="exclusive" {{ ($settings['tax_type'] ?? '') == 'exclusive' ? 'selected' : '' }}>VAT Exclusive</option>
                                         <option value="non_vat" {{ ($settings['tax_type'] ?? '') == 'non_vat' ? 'selected' : '' }}>Non-VAT Registered</option>
                                     </select>
                                 </div>
                             </div>
                         </div>
                     </div>
+                    <hr>
+                    <div class="d-grid mb-3">
+                                <button type="submit" class="btn btn-primary btn-sm fw-bold">
+                                    <i class="fas fa-save me-2"></i> Save Tax Settings
+                                </button>
+                    </div>
                 </div>
+
+                {{-- STRICT DISABLE VERIFICATION MODAL --}}
+<div class="modal fade" id="disableVerificationModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog">
+        <div class="modal-content border-danger">
+            <div class="modal-header bg-danger text-white">
+                <h6 class="modal-title fw-bold"><i class="fas fa-shield-alt me-2"></i>Security Check: Disable Compliance</h6>
+                <button type="button" class="btn-close btn-close-white" onclick="cancelDisable()"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-warning small mb-3">
+                    <i class="fas fa-exclamation-circle me-1"></i> 
+                    To turn off BIR Compliance, you must verify your identity and credentials.
+                </div>
+                
+                <div class="mb-2">
+                    <label class="small fw-bold">Admin Password</label>
+                    <input type="password" id="verify-pass" class="form-control">
+                </div>
+                <div class="mb-2">
+                    <label class="small fw-bold">Enter Current TIN ID</label>
+                    <input type="text" id="verify-tin" class="form-control" placeholder="Verify TIN">
+                </div>
+                <div class="mb-3">
+                    <label class="small fw-bold">Enter Business Permit ID</label>
+                    <input type="text" id="verify-permit" class="form-control" placeholder="Verify Permit">
+                </div>
+                <div id="verify-error" class="text-danger small fw-bold text-center mb-2"></div>
+                
+                <button type="button" class="btn btn-danger w-100 fw-bold" onclick="processDisable()">
+                    CONFIRM & DISABLE
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 
                 {{-- SECURITY MODAL (Add this at the bottom of content section) --}}
                 <div class="modal fade" id="securityModal" tabindex="-1">
@@ -163,6 +213,12 @@
                                 </div>
                             </div>
                         </div>
+                    </div>
+                    <hr>
+                     <div class="d-grid mb-3">
+                                <button type="submit" class="btn btn-primary btn-sm fw-bold">
+                                    <i class="fas fa-save me-2"></i> Save Loyalty Settings
+                                </button>
                     </div>
                 </div>
 
@@ -224,20 +280,21 @@
                             </label>
                         </div>
 
-                        <div id="store-management-link" class="mb-3 ps-4" style="display: {{ ($settings['enable_multi_store'] ?? '0') == '1' ? 'block' : 'none' }};">
+                        <div id="store-management-link" class="mb-2 ps-4" style="display: {{ ($settings['enable_multi_store'] ?? '0') == '1' ? 'block' : 'none' }};">
                             <a href="{{ route('stores.index') }}" class="btn btn-sm btn-outline-primary">
                                 <i class="fas fa-store-alt me-1"></i> Manage Stores & Branches
                             </a>
                         </div>
-
                     </div>
-                </div>
-
-                <div class="d-grid mb-5">
-                    <button type="submit" class="btn btn-primary btn-lg fw-bold">
-                        <i class="fas fa-save me-2"></i> Save All Settings
+                    <hr>
+                        <div class="d-grid mb-3">
+                    <button type="submit" class="btn btn-primary btn-sm fw-bold">
+                        <i class="fas fa-save me-2"></i> Save Feature Settings
                     </button>
                 </div>
+                </div>
+
+                
                 
             </form>
         </div>
@@ -269,64 +326,57 @@
                     </form>
                 </div>
             </div>
+           
         </div>
     </div>
 </div>
 
 <script>
-    // 1. Simple Visibility Toggles
-    function togglePaymongoFields() {
-        const isChecked = document.getElementById('paymongoSwitch').checked;
-        document.getElementById('paymongo-fields').style.display = isChecked ? 'block' : 'none';
-    }
-
-    function toggleStoreManagement() {
-        const isChecked = document.getElementById('multiStoreSwitch').checked;
-        document.getElementById('store-management-link').style.display = isChecked ? 'block' : 'none';
-    }
-
-    function toggleTaxFields() {
-        const isChecked = document.getElementById('taxSwitch').checked;
-        document.getElementById('tax-fields').style.display = isChecked ? 'block' : 'none';
-    }
-
-    // 2. Form Submission Validation
-    document.querySelector('form').addEventListener('submit', function(event) {
-        const taxSwitch = document.getElementById('taxSwitch');
-        
-        if (taxSwitch.checked) {
-            const tinInput = document.getElementById('store_tin');
-            const permitInput = document.getElementById('business_permit');
-            
-            // Check if empty AND not holding a saved value (placeholder)
-            const tinEmpty = tinInput.value.trim() === '' && !tinInput.placeholder.includes('Hidden');
-            const permitEmpty = permitInput.value.trim() === '' && !permitInput.placeholder.includes('Hidden');
-
-            if (tinEmpty || permitEmpty) {
-                event.preventDefault(); // Stop Saving
-                alert("Wait! To enable BIR Tax Compliance, you must enter both the TIN and Business Permit Number.");
-                tinInput.focus();
-            }
-        }
-    });
-
-    // 3. Security Reveal Logic
     let securityModal;
+    let disableModal;
 
     document.addEventListener('DOMContentLoaded', function() {
         securityModal = new bootstrap.Modal(document.getElementById('securityModal'));
+        disableModal = new bootstrap.Modal(document.getElementById('disableVerificationModal'));
         
-        // Allow Enter key in modal
-        document.getElementById('admin-password').addEventListener('keyup', function(e) {
-            if (e.key === 'Enter') verifyAndReveal();
-        });
+        // Enter key support
+        document.getElementById('admin-password').addEventListener('keyup', e => { if(e.key === 'Enter') verifyAndReveal(); });
     });
 
+    // --- 1. TOGGLE LOGIC (SHOW / HIDE / READONLY) ---
+    function handleSecretToggle(fieldId, btnId) {
+        const input = document.getElementById(fieldId);
+        const icon = document.querySelector(`#${btnId} i`);
+
+        // CASE A: It is Hidden & Saved (Readonly) -> REQUEST REVEAL
+        if (input.readOnly && input.placeholder.includes('Saved')) {
+            requestReveal(fieldId); // Open Password Modal
+        } 
+        // CASE B: It is Revealed -> HIDE IT BACK
+        else if (!input.readOnly && input.value !== '') {
+            input.value = ''; // Clear plain text
+            input.type = 'password';
+            input.readOnly = true; // Lock it again
+            input.placeholder = '******** (Saved)';
+            icon.className = 'fas fa-eye'; // Reset Icon
+        }
+        // CASE C: It is New/Empty (Not Saved) -> Standard Toggle
+        else {
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.className = 'fas fa-eye-slash';
+            } else {
+                input.type = 'password';
+                icon.className = 'fas fa-eye';
+            }
+        }
+    }
+
+    // --- 2. REVEAL LOGIC (AJAX) ---
     function requestReveal(fieldId) {
         document.getElementById('target-field-id').value = fieldId;
         document.getElementById('admin-password').value = '';
         document.getElementById('password-error').style.display = 'none';
-        
         securityModal.show();
         setTimeout(() => document.getElementById('admin-password').focus(), 500);
     }
@@ -340,35 +390,111 @@
 
         fetch("{{ route('settings.reveal') }}", {
             method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "X-CSRF-TOKEN": document.querySelector('input[name="_token"]').value
-            },
+            headers: { "Content-Type": "application/json", "X-CSRF-TOKEN": document.querySelector('input[name="_token"]').value },
             body: JSON.stringify({ password: password, key: fieldKey })
         })
         .then(res => res.json())
         .then(data => {
             if (data.success) {
+                // UNLOCK THE FIELD
                 const input = document.getElementById(fieldKey);
-                input.value = data.value;
+                input.value = data.value; // Show decrypted value
                 input.type = "text"; 
+                input.readOnly = false; // ALLOW EDITING/DELETING
+                
+                // Update Icon to "Slash" (Hide)
+                const btnId = fieldKey === 'store_tin' ? 'btn-tin' : 'btn-permit';
+                document.querySelector(`#${btnId} i`).className = 'fas fa-eye-slash';
+                
                 securityModal.hide();
             } else {
                 errorMsg.innerText = data.message || "Incorrect Password";
                 errorMsg.style.display = 'block';
             }
-        })
-        .catch(err => {
-            console.error(err);
-            errorMsg.innerText = "Server Error";
-            errorMsg.style.display = 'block';
         });
     }
 
-    function toggleVisibility(id) {
-        // Deprecated simple toggle, forwarded to secure reveal if needed, 
-        // or kept for non-sensitive fields if any.
-        // For TIN/Permit, we use requestReveal().
+    // --- 3. SWITCH LOGIC (STRICT OFF) ---
+    function handleTaxSwitchChange(el) {
+        if (el.checked) {
+            // Turning ON: Just show fields
+            document.getElementById('tax-fields').style.display = 'block';
+        } else {
+            // Turning OFF: STOP! Verify first.
+            el.checked = true; // Force it back ON visually
+            disableModal.show();
+        }
     }
+
+    function cancelDisable() {
+        disableModal.hide();
+        // Switch remains ON (checked)
+    }
+
+    function processDisable() {
+        const pass = document.getElementById('verify-pass').value;
+        const tin = document.getElementById('verify-tin').value;
+        const permit = document.getElementById('verify-permit').value;
+        const errorEl = document.getElementById('verify-error');
+
+        if(!pass || !tin || !permit) {
+            errorEl.innerText = "All fields are required.";
+            return;
+        }
+
+        errorEl.innerText = "Verifying...";
+
+        fetch("{{ route('settings.verify_disable_bir') }}", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "X-CSRF-TOKEN": document.querySelector('input[name="_token"]').value },
+            body: JSON.stringify({ password: pass, tin: tin, permit: permit })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if(data.success) {
+                // Success: Turn OFF
+                const switchEl = document.getElementById('taxSwitch');
+                switchEl.checked = false; // Physically uncheck
+                document.getElementById('tax-fields').style.display = 'none'; // Hide UI
+                disableModal.hide();
+                
+                // Clear Verification Fields
+                document.getElementById('verify-pass').value = '';
+                document.getElementById('verify-tin').value = '';
+                document.getElementById('verify-permit').value = '';
+            } else {
+                errorEl.innerText = data.message;
+            }
+        })
+        .catch(() => errorEl.innerText = "Server Error.");
+    }
+
+    // Standard Toggles
+    function togglePaymongoFields() {
+        const isChecked = document.getElementById('paymongoSwitch').checked;
+        document.getElementById('paymongo-fields').style.display = isChecked ? 'block' : 'none';
+    }
+    function toggleStoreManagement() {
+        const isChecked = document.getElementById('multiStoreSwitch').checked;
+        document.getElementById('store-management-link').style.display = isChecked ? 'block' : 'none';
+    }
+    
+    // Form Save Validation
+    document.querySelector('form').addEventListener('submit', function(event) {
+        const taxSwitch = document.getElementById('taxSwitch');
+        if (taxSwitch.checked) {
+            const tinInput = document.getElementById('store_tin');
+            const permitInput = document.getElementById('business_permit');
+            
+            // Allow if value is set OR placeholder implies saved data
+            const tinOk = tinInput.value.trim() !== '' || tinInput.placeholder.includes('Saved');
+            const permitOk = permitInput.value.trim() !== '' || permitInput.placeholder.includes('Saved');
+
+            if (!tinOk || !permitOk) {
+                event.preventDefault();
+                alert("Please enter TIN and Business Permit to save.");
+            }
+        }
+    });
 </script>
 @endsection

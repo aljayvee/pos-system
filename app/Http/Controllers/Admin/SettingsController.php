@@ -133,4 +133,52 @@ class SettingsController extends Controller
 
         return back()->with('success', 'Settings updated successfully.');
     }
+
+    // Add this new method
+    public function verifyDisableBir(Request $request)
+    {
+        $request->validate([
+            'password' => 'required',
+            'tin' => 'required',
+            'permit' => 'required'
+        ]);
+
+        $storeId = $this->getActiveStoreId();
+        $user = auth()->user();
+
+        // 1. Check Admin Password
+        if (!\Illuminate\Support\Facades\Hash::check($request->password, $user->password)) {
+            return response()->json(['success' => false, 'message' => 'Incorrect Admin Password.']);
+        }
+
+        // 2. Fetch Stored Credentials
+        $storedTinEnc = \App\Models\Setting::where('store_id', $storeId)->where('key', 'store_tin')->value('value');
+        $storedPermitEnc = \App\Models\Setting::where('store_id', $storeId)->where('key', 'business_permit')->value('value');
+
+        try {
+            $storedTin = \Illuminate\Support\Facades\Crypt::decryptString($storedTinEnc);
+            $storedPermit = \Illuminate\Support\Facades\Crypt::decryptString($storedPermitEnc);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => 'Data error. Credentials invalid.']);
+        }
+
+        // 3. Compare (Case insensitive)
+        if (trim($request->tin) !== $storedTin) {
+            return response()->json(['success' => false, 'message' => 'TIN ID does not match our records.']);
+        }
+
+        if (trim($request->permit) !== $storedPermit) {
+            return response()->json(['success' => false, 'message' => 'Business Permit does not match our records.']);
+        }
+
+        // 4. Log Success
+        \App\Models\ActivityLog::create([
+            'store_id' => $storeId,
+            'user_id' => $user->id,
+            'action' => 'Compliance Update',
+            'description' => 'Disabling BIR Tax Compliance'
+        ]);
+
+        return response()->json(['success' => true]);
+    }
 }
