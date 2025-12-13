@@ -18,8 +18,8 @@ class ReportController extends Controller
     {
         // 1. Filter Parameters
         $type = $request->input('type', 'daily');
-        $startDate = $request->input('start_date', \Carbon\Carbon::today()->toDateString());
-        $endDate = $request->input('end_date', \Carbon\Carbon::today()->toDateString());
+        $startDate = $request->input('start_date', Carbon::today()->toDateString());
+        $endDate = $request->input('end_date', Carbon::today()->toDateString());
         $date = $startDate; // For View Compatibility
 
         // 2. Multi-Store Context Logic
@@ -41,16 +41,16 @@ class ReportController extends Controller
         if ($type === 'daily') {
             $query->whereDate('created_at', $startDate);
         } elseif ($type === 'weekly') {
-            $start = \Carbon\Carbon::parse($startDate)->startOfWeek();
-            $end = \Carbon\Carbon::parse($startDate)->endOfWeek();
+            $start = Carbon::parse($startDate)->startOfWeek();
+            $end = Carbon::parse($startDate)->endOfWeek();
             $query->whereBetween('created_at', [$start, $end]);
         } elseif ($type === 'monthly') {
-            $query->whereMonth('created_at', \Carbon\Carbon::parse($startDate)->month)
-                  ->whereYear('created_at', \Carbon\Carbon::parse($startDate)->year);
+            $query->whereMonth('created_at', Carbon::parse($startDate)->month)
+                  ->whereYear('created_at', Carbon::parse($startDate)->year);
         } elseif ($type === 'custom') {
             $query->whereBetween('created_at', [
-                \Carbon\Carbon::parse($startDate)->startOfDay(), 
-                \Carbon\Carbon::parse($endDate)->endOfDay()
+                Carbon::parse($startDate)->startOfDay(), 
+                Carbon::parse($endDate)->endOfDay()
             ]);
         }
 
@@ -124,7 +124,7 @@ class ReportController extends Controller
             'type', 'startDate', 'endDate', 'date',
             'topItems', 'topCustomers', 'salesByCategory', 'slowMovingItems',
             'tithesAmount', 'tithesEnabled', 'gross_profit',
-            'stores', 'targetStore', 'isMultiStore' // New Consolidated Reporting Variables
+            'stores', 'targetStore', 'isMultiStore'
         ));
     }
 
@@ -153,11 +153,65 @@ class ReportController extends Controller
         return view('admin.reports.credits', compact('credits', 'totalReceivables'));
     }
 
-    // 4. Forecast Report (Optional)
+    // 4. Forecast Report (FIXED: Logic Restored)
     public function forecast()
     {
-        // ... (Keep existing forecast logic if you have it, or leave empty for now) ...
-        return view('admin.reports.forecast'); // Ensure this view exists or redirect
+        // 1. Get Sales Data for Last 30 Days
+        $startDate = Carbon::now()->subDays(30);
+        
+        // Fetch products with their sales history
+        $products = Product::with(['category', 'saleItems' => function($q) use ($startDate) {
+            $q->whereHas('sale', function($sq) use ($startDate) {
+                $sq->where('created_at', '>=', $startDate);
+            });
+        }])->get();
+
+        $forecastData = [];
+
+        foreach ($products as $product) {
+            // Calculate Total Sold in last 30 days
+            $totalSold = $product->saleItems->sum('quantity');
+            
+            // Average Daily Sales (ADS)
+            $ads = $totalSold / 30;
+
+            // Estimated Days Until Stockout
+            $daysLeft = ($ads > 0) ? ($product->stock / $ads) : 999;
+
+            // Reorder Recommendation (Target 14 days stock)
+            $targetStock = $ads * 14; 
+            $reorderQty = ($product->stock < $targetStock) ? ($targetStock - $product->stock) : 0;
+
+            if ($totalSold > 0 || $product->stock <= $product->reorder_point) {
+                $forecastData[] = [
+                    'id' => $product->id,
+                    'name' => $product->name,
+                    'category' => $product->category->name ?? '-',
+                    'stock' => $product->stock,
+                    'total_sold_30d' => $totalSold,
+                    'ads' => number_format($ads, 2),
+                    'days_left' => number_format($daysLeft, 1),
+                    'status' => $this->getStockStatus($daysLeft, $product->stock, $product->reorder_point),
+                    'reorder_qty' => ceil($reorderQty)
+                ];
+            }
+        }
+
+        // Sort by "Days Left" ascending (Most critical first)
+        usort($forecastData, function ($a, $b) {
+            return $a['days_left'] <=> $b['days_left'];
+        });
+
+        return view('admin.reports.forecast', compact('forecastData'));
+    }
+
+    private function getStockStatus($daysLeft, $stock, $reorderPoint)
+    {
+        if ($stock == 0) return 'Out of Stock';
+        if ($stock <= $reorderPoint) return 'Critical Level';
+        if ($daysLeft <= 3) return 'Critical (Runs out < 3 days)';
+        if ($daysLeft <= 7) return 'Low (Runs out < 1 week)';
+        return 'Healthy';
     }
 
     // 5. EXPORT FUNCTION
@@ -196,8 +250,6 @@ class ReportController extends Controller
         
         $storeId = $this->getActiveStoreId();
         $startDate = $request->input('start_date', Carbon::today()->toDateString());
-        // For simplicity in export, we just grab "Daily" sales of the selected start_date
-        // You can expand this to respect the 'type' filter if needed.
         
         $sales = Sale::with(['user', 'customer', 'saleItems.product'])
                      ->where('store_id', $storeId)
