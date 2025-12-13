@@ -184,6 +184,7 @@ class POSController extends Controller
 
             // 5. CREATE SALE RECORD
             $sale = Sale::create([
+                'store_id' => $storeId,
                 'user_id' => Auth::id(),
                 'customer_id' => $customerId,
                 'total_amount' => $request->total_amount, // Net amount (after discount)
@@ -209,23 +210,31 @@ class POSController extends Controller
                 // Determine Store ID
                 $storeId = auth()->user()->store_id ?? session('active_store_id', 1);
 
-                // Update Inventory Record directly
-                $inventory = \App\Models\Inventory::where('product_id', $product->id)
+                // Find Inventory Record for this specific Store
+                $inventory = \App\Models\Inventory::where('product_id', $item['id'])
                                 ->where('store_id', $storeId)
+                                ->lockForUpdate()
                                 ->first();
 
                 if ($inventory) {
-                    if ($inventory->stock < $item['qty']) throw new \Exception("Insufficient stock in this branch.");
-                    $inventory->decrement('stock', $item['qty']);
+                   throw new \Exception("Product not available in this branch.");
                 }
+
+                if ($inventory->stock < $item['qty']) {
+                    $prodName = $inventory->product->name ?? 'Item';
+                    throw new \Exception("Insufficient stock for $prodName in this branch.");
+                }
+
+                // Deduct Stock from BRANCH Inventory
+                $inventory->decrement('stock', $item['qty']);
 
                 // Create Sale Item
                 SaleItem::create([
                     'sale_id' => $sale->id,
-                    'product_id' => $product->id,
+                    'product_id' => $item['id'],
                     'quantity' => $item['qty'],
-                    'price' => $product->price,
-                    'cost' => $product->cost, // <--- NEW: Store cost at time of sale
+                    'price' => $item['price'],  
+                    'cost' => $inventory->product->cost ?? 0 // <--- NEW: Store cost at time of sale
                 ]);
             }
 

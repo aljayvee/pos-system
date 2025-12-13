@@ -16,6 +16,11 @@ class ReportController extends Controller
 {
     public function index(Request $request)
     {
+
+        // 1. Get Context
+        $multiStoreEnabled = Setting::where('key', 'enable_multi_store')->value('value') ?? '0';
+        $storeId = ($multiStoreEnabled == '1') ? session('active_store_id', auth()->user()->store_id ?? 1) : 1;
+
         // 1. Get Filters
         $type = $request->input('type', 'daily');
         $startDate = $request->input('start_date', Carbon::today()->toDateString());
@@ -25,8 +30,10 @@ class ReportController extends Controller
         // COMPATIBILITY FIX: Define $date for backward compatibility with the View
         $date = $startDate; 
 
-        // 2. Build Query
-        $query = Sale::with('user', 'customer')->latest();
+        // 2. Build Query with Store Filter
+        $query = Sale::with('user', 'customer')
+                     ->where('store_id', $storeId) // <--- FILTER HERE
+                     ->latest();
 
         if ($type === 'daily') {
             $query->whereDate('created_at', $startDate);
