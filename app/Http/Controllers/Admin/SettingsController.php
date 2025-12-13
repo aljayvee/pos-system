@@ -22,10 +22,7 @@ class SettingsController extends Controller
         $data = $request->except('_token');
 
         foreach ($data as $key => $value) {
-            Setting::updateOrCreate(
-                ['key' => $key],
-                ['value' => $value]
-            );
+            Setting::updateOrCreate(['key' => $key], ['value' => $value]);
         }
 
         // LOG ACTION
