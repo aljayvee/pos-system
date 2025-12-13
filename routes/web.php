@@ -117,6 +117,10 @@ Route::middleware(['auth', 'role:cashier,admin'])->prefix('cashier')->group(func
     // NEW: X and Z Reading Route
     Route::get('/reading/{type}', [POSController::class, 'showReading'])->name('cashier.reading');
 
+    // ... inside 'cashier' prefix group ...
+    Route::get('/debtors', [POSController::class, 'getDebtors'])->name('cashier.debtors');
+
+
 });
 
 // Authenticated User Routes (Profile)

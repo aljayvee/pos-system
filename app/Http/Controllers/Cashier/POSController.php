@@ -369,6 +369,26 @@ class POSController extends Controller
         return view('cashier.receipt', compact('sale'));
     }
 
+    // --- API: Get Latest Debtors ---
+    public function getDebtors()
+    {
+        $storeId = $this->getActiveStoreId();
+
+        $debtors = Customer::withSum(['credits as balance' => function($q) use ($storeId) {
+            $q->where('is_paid', false)
+              ->whereHas('sale', function($q2) use ($storeId) {
+                  $q2->where('store_id', $storeId);
+              });
+        }], 'remaining_balance')
+        ->get()
+        ->filter(function($customer) {
+            return $customer->balance > 0; // Only return people with debt
+        })
+        ->values(); // Reset array keys for JSON
+
+        return response()->json($debtors);
+    }
+
     // --- NEW: BIR COMPLIANCE REPORTS (X/Z Reading) ---
     public function showReading(Request $request, $type = 'x')
     {

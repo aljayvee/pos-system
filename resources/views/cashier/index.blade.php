@@ -313,7 +313,47 @@
 
     // --- RESTORED: DEBT FUNCTIONS ---
     window.openDebtorList = function() {
-        new bootstrap.Modal(document.getElementById('debtorListModal')).show();
+        const modal = new bootstrap.Modal(document.getElementById('debtorListModal'));
+        modal.show();
+
+        // 1. Select the list container
+        const listContainer = document.querySelector('#debtorListModal .list-group');
+        
+        // 2. Show Loading State
+        listContainer.innerHTML = '<div class="text-center p-4 text-muted"><i class="fas fa-spinner fa-spin fa-2x"></i><p class="mt-2">Updating list...</p></div>';
+
+        // 3. Fetch Fresh Data
+        fetch("{{ route('cashier.debtors') }}")
+            .then(res => res.json())
+            .then(data => {
+                listContainer.innerHTML = ''; // Clear loading
+
+                if (data.length === 0) {
+                    listContainer.innerHTML = '<div class="text-center p-4 text-muted">No outstanding debts found.</div>';
+                    return;
+                }
+
+                // 4. Rebuild List
+                data.forEach(c => {
+                    const balance = parseFloat(c.balance).toLocaleString('en-US', {minimumFractionDigits: 2});
+                    
+                    const btn = document.createElement('button');
+                    btn.className = 'list-group-item list-group-item-action d-flex justify-content-between align-items-center debtor-row';
+                    btn.dataset.name = c.name.toLowerCase();
+                    btn.onclick = () => openDebtPaymentModal(c.id, c.name, c.balance);
+                    
+                    btn.innerHTML = `
+                        <span class="fw-bold">${c.name}</span>
+                        <span class="badge bg-danger rounded-pill">₱${balance}</span>
+                    `;
+                    
+                    listContainer.appendChild(btn);
+                });
+            })
+            .catch(err => {
+                console.error(err);
+                listContainer.innerHTML = '<div class="text-center text-danger p-3">Failed to load list. Please refresh.</div>';
+            });
     };
 
     window.filterDebtors = function() {
