@@ -1,14 +1,16 @@
 @extends('cashier.layout')
 
 @section('content')
-{{-- Import QR Code Library --}}
+{{-- Import QR & Barcode Libraries --}}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 
 <div class="container-fluid p-3">
     <div class="row g-3">
         
+        {{-- LEFT COLUMN: PRODUCTS & SEARCH --}}
         <div class="col-md-7">
+            {{-- Offline Alert --}}
             <div id="offline-alert" class="alert alert-warning mb-3 shadow-sm" style="display: none;">
                 <div class="d-flex justify-content-between align-items-center">
                     <span><i class="fas fa-wifi-slash me-2"></i> <strong>Offline Mode.</strong> Sales saved locally.</span>
@@ -27,12 +29,19 @@
                         <button class="btn btn-outline-dark" onclick="openCameraModal()">
                             <i class="fas fa-camera"></i> <span class="d-none d-md-inline">Scan</span>
                         </button>
+                        
+                        {{-- NEW: Return Button --}}
+                        <button class="btn btn-warning fw-bold" onclick="openReturnModal()">
+                            <i class="fas fa-undo"></i> Return
+                        </button>
+
                         <button class="btn btn-danger fw-bold" onclick="openDebtorList()">
                             <i class="fas fa-hand-holding-usd"></i> Pay Debt
                         </button>
                     </div>
                 </div>
 
+                {{-- Categories --}}
                 <div class="px-3 py-2 bg-light border-bottom overflow-auto text-nowrap" style="white-space: nowrap;">
                     <button class="btn btn-dark rounded-pill me-1 category-filter active" onclick="filterCategory('all', this)">All</button>
                     @foreach($categories as $cat)
@@ -41,6 +50,7 @@
                     @endforeach
                 </div>
 
+                {{-- Product Grid --}}
                 <div class="card-body p-0 overflow-auto" style="height: 70vh;">
                     <div class="row g-2 p-3" id="product-list">
                         @foreach($products as $product)
@@ -53,10 +63,10 @@
                                     <h6 class="fw-bold text-dark mb-1 text-truncate">{{ $product->name }}</h6>
                                     <span class="badge bg-light text-dark border mb-1">{{ ucfirst($product->unit) }}</span>
                                     <h5 class="text-primary fw-bold mb-0">₱{{ number_format($product->price, 2) }}</h5>
-                                    {{-- Use the dynamic reorder_point from the database --}}
-                                    @if($product->stock <= $product->reorder_point)
+                                    
+                                    @if($product->current_stock <= ($product->reorder_point ?? 10))
                                         <small class="text-danger fw-bold d-block">
-                                            <i class="fas fa-exclamation-circle"></i> Low Stock: {{ $product->stock }}
+                                            <i class="fas fa-exclamation-circle"></i> Low: {{ $product->current_stock }}
                                         </small>
                                     @endif
                                 </div>
@@ -71,6 +81,7 @@
             </div>
         </div>
 
+        {{-- RIGHT COLUMN: CART & CHECKOUT --}}
         <div class="col-md-5">
             <div class="card shadow-sm h-100 border-0 d-flex flex-column">
                 <div class="card-header bg-primary text-white py-3 d-flex justify-content-between align-items-center">
@@ -86,7 +97,10 @@
                     </ul>
                 </div>
 
+                {{-- Cart Footer --}}
                 <div class="card-footer bg-light p-3 border-top">
+                    
+                    {{-- Loyalty --}}
                     <div id="redemption-section" class="mb-3 p-2 border rounded bg-white" style="display: none;">
                         <div class="d-flex justify-content-between align-items-center mb-2">
                             <span class="small fw-bold text-warning"><i class="fas fa-star"></i> Use Points?</span>
@@ -104,7 +118,7 @@
                     </div>
 
                     <div class="mb-3">
-                        <label class="small fw-bold text-muted">CUSTOMER TYPE</label>
+                        <label class="small fw-bold text-muted">CUSTOMER</label>
                         <select id="customer-id" class="form-select form-select-lg">
                             <option value="walk-in" data-points="0">Walk-in Customer</option>
                             <option value="new" data-points="0">+ New Customer (Credit/Utang)</option>
@@ -119,7 +133,7 @@
                                 @endforeach
                             </optgroup>
                         </select>
-                        {{-- DEBT INFO --}}
+                        {{-- Debt Alert --}}
                         <div id="debt-section" class="mt-2 p-2 bg-danger bg-opacity-10 border border-danger rounded d-flex justify-content-between align-items-center" style="display: none;">
                             <div>
                                 <small class="text-danger fw-bold d-block">Outstanding Balance</small>
@@ -135,12 +149,12 @@
                         <label class="small fw-bold text-muted">PAYMENT METHOD</label>
                         <select id="payment-method" class="form-select form-select-lg" onchange="toggleFlow()">
                             <option value="cash">Cash Payment</option>
-                            <option value="digital">Digital Wallet (Gcash/Maya)</option>
+                            <option value="digital">Digital Wallet</option>
                             <option value="credit" id="opt-credit" disabled>Credit (Utang)</option>
                         </select>
                     </div>
 
-                    {{-- CASH --}}
+                    {{-- Payment Flows --}}
                     <div id="flow-cash" class="mb-3">
                         <div class="input-group input-group-lg">
                             <span class="input-group-text">₱</span>
@@ -149,7 +163,6 @@
                         <small class="text-success fw-bold d-block mt-1">Change: <span id="change-display">₱0.00</span></small>
                     </div>
 
-                    {{-- DIGITAL (PAYMONGO) --}}
                     <div id="flow-digital" class="mb-3" style="display: none;">
                         @if(\App\Models\Setting::where('key', 'enable_paymongo')->value('value') == '1')
                             <div class="d-grid gap-2">
@@ -167,11 +180,6 @@
                         @endif
                     </div>
 
-                    {{-- CREDIT --}}
-                    <div id="flow-credit" style="display: none;">
-                        <div class="alert alert-info py-2 small"><i class="fas fa-info-circle"></i> Enter customer details in popup.</div>
-                    </div>
-
                     <button class="btn btn-success w-100 btn-lg fw-bold" onclick="handlePayNow()">
                         <i class="fas fa-check-circle me-2"></i> PAY NOW
                     </button>
@@ -181,6 +189,61 @@
     </div>
 </div>
 
+{{-- ================= MODALS ================= --}}
+
+{{-- 1. NEW: Return / Refund Modal --}}
+<div class="modal fade" id="returnModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title"><i class="fas fa-undo me-2"></i> Process Return / Refund</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                {{-- Search Step --}}
+                <div class="input-group mb-3">
+                    <input type="text" id="return-search" class="form-control" placeholder="Scan Receipt or Enter Sale ID">
+                    <button class="btn btn-dark" onclick="searchSaleForReturn()">Search</button>
+                </div>
+
+                {{-- Results Area --}}
+                <div id="return-results" style="display: none;">
+                    <div class="alert alert-light border d-flex justify-content-between">
+                        <span><strong>Sale ID:</strong> <span id="ret-sale-id"></span></span>
+                        <span><strong>Customer:</strong> <span id="ret-customer"></span></span>
+                        <span><strong>Total:</strong> ₱<span id="ret-total"></span></span>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Product</th>
+                                    <th>Price</th>
+                                    <th>Sold</th>
+                                    <th>Returned</th>
+                                    <th>Return Qty</th>
+                                    <th>Condition</th>
+                                </tr>
+                            </thead>
+                            <tbody id="return-items-body"></tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="text-end mt-3">
+                        <h5 class="fw-bold text-danger">Total Refund: ₱<span id="total-refund">0.00</span></h5>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button class="btn btn-warning fw-bold" onclick="submitReturn()">Confirm Return</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{-- 2. Debtor List Modal --}}
 <div class="modal fade" id="debtorListModal" tabindex="-1">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
@@ -211,6 +274,7 @@
     </div>
 </div>
 
+{{-- 3. Debt Payment Modal --}}
 <div class="modal fade" id="debtPaymentModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -242,6 +306,7 @@
     </div>
 </div>
 
+{{-- 4. Credit Details Modal --}}
 <div class="modal fade" id="creditModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -263,6 +328,17 @@
     </div>
 </div>
 
+{{-- 5. Camera Scan Modal --}}
+<div class="modal fade" id="cameraModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title">Scan Barcode</h5><button class="btn-close" data-bs-dismiss="modal" onclick="stopCamera()"></button></div>
+            <div class="modal-body"><div id="reader" style="width: 100%;"></div></div>
+        </div>
+    </div>
+</div>
+
+{{-- 6. QR Payment Modal (PayMongo) --}}
 <div class="modal fade" id="qrPaymentModal" tabindex="-1" data-bs-backdrop="static">
     <div class="modal-dialog modal-sm">
         <div class="modal-content">
@@ -280,15 +356,6 @@
     </div>
 </div>
 
-<div class="modal fade" id="cameraModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header"><h5 class="modal-title">Scan Barcode</h5><button class="btn-close" data-bs-dismiss="modal" onclick="stopCamera()"></button></div>
-            <div class="modal-body"><div id="reader" style="width: 100%;"></div></div>
-        </div>
-    </div>
-</div>
-
 <style>
     .product-item:hover { transform: translateY(-3px); background-color: #f8f9fa; }
     ::-webkit-scrollbar { width: 6px; }
@@ -297,10 +364,10 @@
 </style>
 
 <script>
-    // --- CONFIGURATION ---
+    // --- GLOBAL CONFIG ---
     const pointsValue = {{ \App\Models\Setting::where('key', 'points_conversion')->value('value') ?? 1 }};
     const loyaltyEnabled = {{ \App\Models\Setting::where('key', 'enable_loyalty')->value('value') ?? 0 }};
-    const paymongoEnabled = {{ \App\Models\Setting::where('key', 'enable_paymongo')->value('value') ?? 0 }}; //
+    const paymongoEnabled = {{ \App\Models\Setting::where('key', 'enable_paymongo')->value('value') ?? 0 }};
     
     let cart = JSON.parse(localStorage.getItem('pos_cart')) || [];
     let html5QrcodeScanner = null;
@@ -315,267 +382,116 @@
         toggleFlow();
     };
 
-    // --- PAYMONGO LOGIC ---
-    function generatePaymentLink() {
-        const amountStr = document.getElementById('total-amount').innerText.replace(/,/g, '');
-        const amount = parseFloat(amountStr);
+    // --- RETURN LOGIC (NEW) ---
+    function openReturnModal() {
+        new bootstrap.Modal(document.getElementById('returnModal')).show();
+        document.getElementById('return-results').style.display = 'none';
+        document.getElementById('return-search').value = '';
+    }
 
-        if(amount < 100) {
-            alert("Minimum amount for online payment is ₱100.00. Please add more items.");
-            return;
-        }
+    function searchSaleForReturn() {
+        const q = document.getElementById('return-search').value;
+        if (!q) return;
 
-        const btn = document.querySelector('#flow-digital button');
-        const statusDiv = document.getElementById('digital-status');
-        const origText = btn.innerHTML;
-        
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Connecting...';
-        btn.disabled = true;
-        if(statusDiv) statusDiv.innerText = "Contacting PayMongo...";
+        fetch("{{ route('cashier.return.search') }}?query=" + q)
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('return-results').style.display = 'block';
+                    document.getElementById('ret-sale-id').innerText = data.sale.id;
+                    document.getElementById('ret-customer').innerText = data.sale.customer;
+                    document.getElementById('ret-total').innerText = data.sale.total;
 
-        fetch("{{ route('payment.create') }}", {
-            method: "POST",
-            headers: { 
-                "Content-Type": "application/json", 
-                "Accept": "application/json", 
-                "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute('content') 
-            },
-            body: JSON.stringify({ amount: amount })
-        })
-        .then(async res => {
-            if (!res.ok) throw new Error(`API Error (${res.status})`); 
-            return res.json();
-        })
-        .then(data => {
-            btn.innerHTML = origText;
-            btn.disabled = false;
-            if(statusDiv) statusDiv.innerText = "Click to generate payment link";
+                    const tbody = document.getElementById('return-items-body');
+                    tbody.innerHTML = '';
 
-            if(data.success) {
-                const qrAmt = document.getElementById('qr-amount');
-                const qrDiv = document.getElementById('qrcode');
-                if(qrAmt) qrAmt.innerText = amountStr;
-                if(qrDiv) {
-                    qrDiv.innerHTML = "";
-                    new QRCode(qrDiv, { text: data.checkout_url, width: 180, height: 180 });
+                    data.items.forEach(item => {
+                        if(item.available_qty > 0) {
+                            tbody.innerHTML += `
+                                <tr data-id="${item.product_id}" data-price="${item.price}">
+                                    <td>${item.name}</td>
+                                    <td>₱${item.price}</td>
+                                    <td>${item.sold_qty}</td>
+                                    <td>${item.returned_qty}</td>
+                                    <td>
+                                        <input type="number" class="form-control ret-qty" 
+                                            min="0" max="${item.available_qty}" value="0" 
+                                            onchange="calcRefund()">
+                                        <small class="text-muted">Max: ${item.available_qty}</small>
+                                    </td>
+                                    <td>
+                                        <select class="form-select ret-condition">
+                                            <option value="good">Good (Restock)</option>
+                                            <option value="damaged">Damaged (Dispose)</option>
+                                        </select>
+                                    </td>
+                                </tr>
+                            `;
+                        }
+                    });
+                    if(tbody.innerHTML === '') tbody.innerHTML = '<tr><td colspan="6" class="text-center">All items in this sale have been returned.</td></tr>';
+                } else {
+                    alert(data.message);
                 }
+            });
+    }
 
-                const modalEl = document.getElementById('qrPaymentModal');
-                const modal = new bootstrap.Modal(modalEl);
-                modal.show();
-
-                modalEl.addEventListener('hidden.bs.modal', () => { isPolling = false; });
-
-                document.getElementById('paymongo-id').value = data.id;
-                document.getElementById('reference-number').value = data.reference_number;
-
-                startPolling(data.id);
-            } else {
-                alert("Payment Error: " + data.message);
-            }
-        })
-        .catch(err => {
-            console.error(err);
-            btn.innerHTML = origText;
-            btn.disabled = false;
-            alert(err.message);
+    function calcRefund() {
+        let total = 0;
+        document.querySelectorAll('#return-items-body tr').forEach(row => {
+            const price = parseFloat(row.getAttribute('data-price'));
+            const qty = parseInt(row.querySelector('.ret-qty').value) || 0;
+            total += price * qty;
         });
+        document.getElementById('total-refund').innerText = total.toFixed(2);
     }
 
-    function startPolling(id) {
-        isPolling = true;
-        checkPaymentStatus(id);
-    }
-
-    function checkPaymentStatus(id) {
-        if (!isPolling) return; 
-
-        fetch(`/cashier/payment/check/${id}`)
-        .then(r => r.json())
-        .then(d => {
-            if(d.status === 'paid') {
-                isPolling = false; 
-                
-                const statusEl = document.getElementById('payment-status');
-                const spinner = document.getElementById('payment-spinner');
-                
-                if(statusEl) {
-                    statusEl.className = 'text-success fw-bold';
-                    statusEl.innerText = 'PAYMENT RECEIVED!';
-                }
-                if(spinner) spinner.style.display = 'none';
-
-                setTimeout(() => {
-                    bootstrap.Modal.getInstance(document.getElementById('qrPaymentModal')).hide();
-                    confirmTransaction('digital'); // Auto-save on success
-                }, 1500);
-            } else {
-                if(isPolling) setTimeout(() => checkPaymentStatus(id), 5000);
-            }
-        })
-        .catch(err => {
-            if(isPolling) setTimeout(() => checkPaymentStatus(id), 10000);
-        });
-    }
-
-    // --- POS CORE LOGIC ---
-    function handlePayNow() {
-        if (cart.length === 0) { alert("Cart is empty!"); return; }
+    function submitReturn() {
+        const saleId = document.getElementById('ret-sale-id').innerText;
+        let items = [];
         
-        const method = document.getElementById('payment-method').value;
-
-        // --- FIX: Block Digital Payment if Manual Click ---
-        if (method === 'digital' && paymongoEnabled == 1) {
-            alert("Digital Payment is active. Please click 'Generate QR' and wait for the customer to pay.\n\nThe system will automatically complete the sale once payment is detected.");
-            return; // STOP HERE
-        }
-        // -------------------------------------------------
-
-        if (method === 'credit') {
-            new bootstrap.Modal(document.getElementById('creditModal')).show();
-        } else if (confirm("Process Payment?")) {
-            confirmTransaction(method);
-        }
-    }
-
-    // --- EXISTING LOGIC (Unchanged) ---
-    document.getElementById('customer-id').addEventListener('change', function() {
-        const type = this.value;
-        const paySelect = document.getElementById('payment-method');
-        const creditOpt = document.getElementById('opt-credit');
-        const selectedOption = this.options[this.selectedIndex];
-
-        Array.from(paySelect.options).forEach(opt => opt.disabled = false);
-
-        if (type === 'new') {
-            creditOpt.disabled = false; paySelect.value = 'credit';
-            Array.from(paySelect.options).forEach(opt => { if(opt.value !== 'credit') opt.disabled = true; });
-        } 
-        else if (type === 'walk-in') {
-            creditOpt.disabled = true; 
-            if(paySelect.value === 'credit') paySelect.value = 'cash';
-        }
-
-        currentCustomerPoints = parseInt(selectedOption.getAttribute('data-points') || 0);
-        const badge = document.getElementById('redemption-section');
-        const availPoints = document.getElementById('avail-points');
-        const debtSection = document.getElementById('debt-section');
-        const balance = parseFloat(selectedOption.getAttribute('data-balance') || 0);
-
-        if (loyaltyEnabled == 1 && type !== 'walk-in' && type !== 'new') {
-            if(availPoints) availPoints.innerText = currentCustomerPoints;
-            if(badge) badge.style.display = 'block';
-        } else {
-            if(badge) badge.style.display = 'none';
-        }
-
-        if (debtSection) {
-            if (balance > 0) {
-                debtSection.style.display = 'flex';
-                document.getElementById('customer-balance').innerText = balance.toLocaleString(undefined, {minimumFractionDigits: 2});
-            } else {
-                debtSection.style.display = 'none';
+        document.querySelectorAll('#return-items-body tr').forEach(row => {
+            const qty = parseInt(row.querySelector('.ret-qty').value) || 0;
+            if (qty > 0) {
+                items.push({
+                    product_id: row.getAttribute('data-id'),
+                    quantity: qty,
+                    condition: row.querySelector('.ret-condition').value,
+                    reason: 'POS Return'
+                });
             }
-        }
-        toggleFlow();
-    });
-
-    function openDebtModal() {
-        const select = document.getElementById('customer-id');
-        const name = select.options[select.selectedIndex].text;
-        const balance = document.getElementById('customer-balance').innerText;
-        openDebtPaymentModal(select.value, name, balance.replace(/,/g,'')); 
-    }
-
-    function openDebtorList() { new bootstrap.Modal(document.getElementById('debtorListModal')).show(); }
-    function filterDebtors() {
-        const query = document.getElementById('debtor-search').value.toLowerCase();
-        document.querySelectorAll('.debtor-row').forEach(row => {
-            row.style.display = row.getAttribute('data-name').includes(query) ? '' : 'none';
         });
-    }
-    
-    function openDebtPaymentModal(id, name, balance) {
-        const listEl = document.getElementById('debtorListModal');
-        const listModal = bootstrap.Modal.getInstance(listEl);
-        if(listModal) {
-            listModal.hide();
-            listEl.addEventListener('hidden.bs.modal', () => showPayModal(id, name, balance), {once:true});
-        } else {
-            showPayModal(id, name, balance);
-        }
-    }
 
-    function showPayModal(id, name, balance) {
-        document.getElementById('pay-debt-customer-id').value = id;
-        document.getElementById('pay-debt-name').innerText = name;
-        document.getElementById('pay-debt-balance').innerText = parseFloat(balance).toFixed(2);
-        document.getElementById('pay-debt-amount').value = '';
-        document.getElementById('pay-debt-tendered').value = '';
-        document.getElementById('pay-debt-change').innerText = '0.00';
-        new bootstrap.Modal(document.getElementById('debtPaymentModal')).show();
-    }
+        if (items.length === 0) { alert("Please enter a quantity to return."); return; }
+        if(!confirm("Process this return? Inventory will be updated.")) return;
 
-    function calcDebtChange() {
-        const amount = parseFloat(document.getElementById('pay-debt-amount').value) || 0;
-        const tendered = parseFloat(document.getElementById('pay-debt-tendered').value) || 0;
-        const change = tendered - amount;
-        document.getElementById('pay-debt-change').innerText = change >= 0 ? change.toFixed(2) : '0.00';
-    }
-
-    function processDebtPayment() {
-        const id = document.getElementById('pay-debt-customer-id').value;
-        const amount = document.getElementById('pay-debt-amount').value;
-        if(!amount || amount <= 0) { alert("Enter valid amount"); return; }
-
-        const payload = { customer_id: id, amount: amount };
-
-        // 1. Check Offline Status Immediately
-        if (!navigator.onLine) {
-            saveOfflinePayment(payload);
-            return;
-        }
-
-        // 2. Attempt Online Payment
-        fetch("{{ route('cashier.credit.pay') }}", {
+        fetch("{{ route('cashier.return.process') }}", {
             method: "POST",
             headers: { 
                 "Content-Type": "application/json", 
                 "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute('content') 
             },
-            body: JSON.stringify(payload)
+            body: JSON.stringify({ sale_id: saleId, items: items })
         })
         .then(res => res.json())
         .then(data => {
-            if(data.success) { alert("Payment Collected!"); location.reload(); } 
-            else { alert("Error: " + data.message); }
-        })
-        .catch(err => {
-            // 3. Fallback to Offline if Network Fails
-            console.warn("Network error, saving offline", err);
-            saveOfflinePayment(payload);
+            if (data.success) {
+                alert("Return Processed Successfully!");
+                location.reload();
+            } else {
+                alert("Error: " + data.message);
+            }
         });
     }
 
-    // NEW: Save Payment to Local Storage
-    function saveOfflinePayment(data) {
-        let queue = JSON.parse(localStorage.getItem('offline_payments')) || [];
-        queue.push(data);
-        localStorage.setItem('offline_payments', JSON.stringify(queue));
-        
-        // Close modal and alert user
-        bootstrap.Modal.getInstance(document.getElementById('debtPaymentModal')).hide();
-        alert("Offline Mode: Payment saved locally. It will sync automatically when online.");
-        updateOnlineStatus(); // Update the pending count badge
-    }
-
+    // --- POS LOGIC (Existing) ---
     function addToCart(product) {
         const item = cart.find(i => i.id === product.id);
         if (item) {
-            if(item.qty < product.stock) item.qty++;
+            if(item.qty < product.current_stock) item.qty++;
             else { alert('Not enough stock!'); return; }
         } else {
-            if(product.stock > 0) cart.push({ id: product.id, name: product.name, price: parseFloat(product.price), qty: 1, max_stock: product.stock, unit: product.unit });
+            if(product.current_stock > 0) cart.push({ id: product.id, name: product.name, price: parseFloat(product.price), qty: 1, max_stock: product.current_stock, unit: product.unit });
             else { alert('Out of stock!'); return; }
         }
         updateCartUI();
@@ -590,19 +506,30 @@
         updateCartUI();
     }
 
+    function removeFromCart(id) {
+        cart = cart.filter(i => i.id !== id);
+        updateCartUI();
+    }
+
     function updateCartUI() {
         localStorage.setItem('pos_cart', JSON.stringify(cart));
         const list = document.getElementById('cart-items');
         list.innerHTML = '';
         if (cart.length === 0) list.innerHTML = '<li class="list-group-item text-center text-muted mt-5 border-0">Cart is empty</li>';
+        
+        let subtotal = 0;
         cart.forEach(item => {
+            subtotal += item.price * item.qty;
             list.innerHTML += `
                 <li class="list-group-item d-flex justify-content-between align-items-center bg-transparent">
                     <div><h6 class="m-0 fw-bold">${item.name}</h6><small class="text-muted">${item.unit||''} ₱${item.price} x ${item.qty}</small></div>
                     <div class="d-flex align-items-center"><span class="text-success fw-bold me-3">₱${(item.price * item.qty).toFixed(2)}</span>
-                    <div class="btn-group btn-group-sm"><button class="btn btn-outline-secondary" onclick="updateQty(${item.id}, -1)">-</button><button class="btn btn-outline-secondary" onclick="updateQty(${item.id}, 1)">+</button></div></div>
+                    <div class="btn-group btn-group-sm me-2"><button class="btn btn-outline-secondary" onclick="updateQty(${item.id}, -1)">-</button><button class="btn btn-outline-secondary" onclick="updateQty(${item.id}, 1)">+</button></div>
+                    <button class="btn btn-sm btn-outline-danger py-0" onclick="removeFromCart(${item.id})">&times;</button>
+                    </div>
                 </li>`;
         });
+        document.getElementById('total-amount').innerText = subtotal.toFixed(2);
         calculateTotalWithPoints();
     }
 
@@ -612,9 +539,8 @@
         let subtotal = 0;
         cart.forEach(item => subtotal += item.price * item.qty);
         const pointsInputEl = document.getElementById('points-to-use');
-        let pointsInput = 0;
         if (pointsInputEl) {
-            pointsInput = parseInt(pointsInputEl.value) || 0;
+            let pointsInput = parseInt(pointsInputEl.value) || 0;
             if(pointsInput > currentCustomerPoints) pointsInput = currentCustomerPoints;
             let discount = pointsInput * pointsValue;
             if(discount > subtotal) discount = subtotal;
@@ -625,19 +551,74 @@
         calculateChange();
     }
 
-    function toggleFlow() {
-        const method = document.getElementById('payment-method').value;
-        ['cash', 'digital', 'credit'].forEach(m => {
-            const el = document.getElementById('flow-'+m);
-            if(el) el.style.display = (method === m) ? 'block' : 'none';
+    function calculateChange() {
+         const t = parseFloat(document.getElementById('total-amount').innerText.replace(/,/g, '')) || 0;
+         const p = parseFloat(document.getElementById('amount-paid').value) || 0;
+         const change = p - t;
+         document.getElementById('change-display').innerText = change >= 0 ? '₱' + change.toFixed(2) : 'Invalid';
+    }
+
+    // --- PAYMONGO LOGIC ---
+    function generatePaymentLink() {
+        const amountStr = document.getElementById('total-amount').innerText.replace(/,/g, '');
+        const amount = parseFloat(amountStr);
+        if(amount < 100) { alert("Minimum for online payment is ₱100.00"); return; }
+
+        const btn = document.querySelector('#flow-digital button');
+        const origText = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Connecting...'; btn.disabled = true;
+
+        fetch("{{ route('payment.create') }}", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Accept": "application/json", "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute('content') },
+            body: JSON.stringify({ amount: amount })
+        })
+        .then(async res => { if (!res.ok) throw new Error("API Error"); return res.json(); })
+        .then(data => {
+            btn.innerHTML = origText; btn.disabled = false;
+            if(data.success) {
+                document.getElementById('qr-amount').innerText = amountStr;
+                const qrDiv = document.getElementById('qrcode'); qrDiv.innerHTML = "";
+                new QRCode(qrDiv, { text: data.checkout_url, width: 180, height: 180 });
+                new bootstrap.Modal(document.getElementById('qrPaymentModal')).show();
+                document.getElementById('paymongo-id').value = data.id;
+                document.getElementById('reference-number').value = data.reference_number;
+                startPolling(data.id);
+            } else { alert("Payment Error: " + data.message); }
+        })
+        .catch(err => { btn.innerHTML = origText; btn.disabled = false; alert(err.message); });
+    }
+
+    function startPolling(id) { isPolling = true; checkPaymentStatus(id); }
+    function checkPaymentStatus(id) {
+        if (!isPolling) return; 
+        fetch(`/cashier/payment/check/${id}`)
+        .then(r => r.json())
+        .then(d => {
+            if(d.status === 'paid') {
+                isPolling = false; 
+                document.getElementById('payment-status').innerText = 'PAYMENT RECEIVED!';
+                document.getElementById('payment-status').className = 'text-success fw-bold';
+                setTimeout(() => {
+                    bootstrap.Modal.getInstance(document.getElementById('qrPaymentModal')).hide();
+                    confirmTransaction('digital');
+                }, 1500);
+            } else { if(isPolling) setTimeout(() => checkPaymentStatus(id), 5000); }
         });
     }
 
-    function calculateChange() {
-        const total = parseFloat(document.getElementById('total-amount').innerText.replace(/,/g, '')) || 0;
-        const paid = parseFloat(document.getElementById('amount-paid').value) || 0;
-        const change = paid - total;
-        document.getElementById('change-display').innerText = change >= 0 ? '₱' + change.toFixed(2) : 'Invalid';
+    // --- PAYMENT & TRANSACTION LOGIC ---
+    function handlePayNow() {
+        if (cart.length === 0) { alert("Cart is empty!"); return; }
+        const method = document.getElementById('payment-method').value;
+        if (method === 'digital' && paymongoEnabled == 1) {
+            alert("Please generate QR and wait for payment."); return;
+        }
+        if (method === 'credit') {
+            new bootstrap.Modal(document.getElementById('creditModal')).show();
+        } else if (confirm("Process Payment?")) {
+            confirmTransaction(method);
+        }
     }
 
     function confirmTransaction(method) {
@@ -650,14 +631,10 @@
              creditData = { name: name, address: document.getElementById('credit-address').value, contact: document.getElementById('credit-contact').value, due_date: dueDate };
         }
         
-        let pointsUsed = 0;
-        const pointsInputEl = document.getElementById('points-to-use');
-        if(pointsInputEl) pointsUsed = parseInt(pointsInputEl.value) || 0;
-
         const data = {
             cart: cart,
             total_amount: document.getElementById('total-amount').innerText.replace(/,/g, ''),
-            points_used: pointsUsed,
+            points_used: parseInt(document.getElementById('points-to-use').value) || 0,
             amount_paid: method === 'cash' ? document.getElementById('amount-paid').value : 0,
             payment_method: method,
             customer_id: customerVal,
@@ -683,79 +660,120 @@
         .catch(err => { saveOffline(data); });
     }
 
-    // --- UTILS ---
+    // --- DEBT LOGIC ---
+    function openDebtModal() {
+        const select = document.getElementById('customer-id');
+        const name = select.options[select.selectedIndex].text;
+        const balance = document.getElementById('customer-balance').innerText;
+        openDebtPaymentModal(select.value, name, balance.replace(/,/g,'')); 
+    }
+    function openDebtorList() { new bootstrap.Modal(document.getElementById('debtorListModal')).show(); }
+    function filterDebtors() {
+        const query = document.getElementById('debtor-search').value.toLowerCase();
+        document.querySelectorAll('.debtor-row').forEach(row => {
+            row.style.display = row.getAttribute('data-name').includes(query) ? '' : 'none';
+        });
+    }
+    function openDebtPaymentModal(id, name, balance) {
+        const listEl = document.getElementById('debtorListModal');
+        const listModal = bootstrap.Modal.getInstance(listEl);
+        if(listModal) {
+            listModal.hide();
+            listEl.addEventListener('hidden.bs.modal', () => showPayModal(id, name, balance), {once:true});
+        } else { showPayModal(id, name, balance); }
+    }
+    function showPayModal(id, name, balance) {
+        document.getElementById('pay-debt-customer-id').value = id;
+        document.getElementById('pay-debt-name').innerText = name;
+        document.getElementById('pay-debt-balance').innerText = parseFloat(balance).toFixed(2);
+        new bootstrap.Modal(document.getElementById('debtPaymentModal')).show();
+    }
+    function calcDebtChange() {
+        const amount = parseFloat(document.getElementById('pay-debt-amount').value) || 0;
+        const tendered = parseFloat(document.getElementById('pay-debt-tendered').value) || 0;
+        document.getElementById('pay-debt-change').innerText = (tendered - amount).toFixed(2);
+    }
+    function processDebtPayment() {
+        const id = document.getElementById('pay-debt-customer-id').value;
+        const amount = document.getElementById('pay-debt-amount').value;
+        if(!amount || amount <= 0) { alert("Enter valid amount"); return; }
+        
+        const payload = { customer_id: id, amount: amount };
+        if (!navigator.onLine) { saveOfflinePayment(payload); return; }
+
+        fetch("{{ route('cashier.credit.pay') }}", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute('content') },
+            body: JSON.stringify(payload)
+        })
+        .then(res => res.json())
+        .then(data => {
+            if(data.success) { alert("Payment Collected!"); location.reload(); } 
+            else { alert("Error: " + data.message); }
+        })
+        .catch(err => { saveOfflinePayment(payload); });
+    }
+
+    // --- OFFLINE/SYNC LOGIC ---
     window.addEventListener('online', updateOnlineStatus);
     window.addEventListener('offline', updateOnlineStatus);
-    // UPDATED: Check both Sales and Payments queues
     function updateOnlineStatus() {
-        const salesQueue = JSON.parse(localStorage.getItem('offline_sales')) || [];
-        const payQueue = JSON.parse(localStorage.getItem('offline_payments')) || [];
-        const totalPending = salesQueue.length + payQueue.length;
-
+        const totalPending = (JSON.parse(localStorage.getItem('offline_sales')) || []).length + (JSON.parse(localStorage.getItem('offline_payments')) || []).length;
         const alertBox = document.getElementById('offline-alert');
-        const countSpan = document.getElementById('pending-count');
-
         if (!navigator.onLine) { 
             alertBox.style.display = 'block'; 
-            alertBox.className = 'alert alert-warning mb-3 shadow-sm';
-            if(countSpan) countSpan.innerText = totalPending + ' Pending'; 
-        } 
-        else if (totalPending > 0) { 
-            alertBox.style.display = 'block'; 
+            document.getElementById('pending-count').innerText = totalPending + ' Pending'; 
+        } else if (totalPending > 0) { 
+            alertBox.style.display = 'block';
             alertBox.className = 'alert alert-info mb-3 shadow-sm';
-            alertBox.innerHTML = `
-                <div class="d-flex justify-content-between align-items-center">
-                    <span><i class="fas fa-sync fa-spin me-2"></i> <strong>Online!</strong> Syncing ${totalPending} records...</span>
-                </div>`;
+            alertBox.innerHTML = `<span><i class="fas fa-sync fa-spin me-2"></i> Syncing...</span>`;
             syncOfflineData(); 
-        } 
-        else { 
-            alertBox.style.display = 'none'; 
-        }
+        } else { alertBox.style.display = 'none'; }
     }
     function saveOffline(data) {
         let queue = JSON.parse(localStorage.getItem('offline_sales')) || [];
         queue.push(data); localStorage.setItem('offline_sales', JSON.stringify(queue)); localStorage.removeItem('pos_cart');
         alert("Saved Offline!"); location.reload();
     }
-    // UPDATED: Sync Process
+    function saveOfflinePayment(data) {
+        let queue = JSON.parse(localStorage.getItem('offline_payments')) || [];
+        queue.push(data); localStorage.setItem('offline_payments', JSON.stringify(queue));
+        alert("Payment Saved Offline!"); location.reload();
+    }
     async function syncOfflineData() {
         const csrf = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+        let sales = JSON.parse(localStorage.getItem('offline_sales')) || [];
+        let payments = JSON.parse(localStorage.getItem('offline_payments')) || [];
         
-        // 1. Sync Sales
-        let salesQueue = JSON.parse(localStorage.getItem('offline_sales')) || [];
-        if (salesQueue.length > 0) {
-            for (let i = 0; i < salesQueue.length; i++) {
-                try {
-                    await fetch("{{ route('cashier.store') }}", { 
-                        method: "POST", 
-                        headers: { "Content-Type": "application/json", "X-CSRF-TOKEN": csrf }, 
-                        body: JSON.stringify(salesQueue[i]) 
-                    });
-                } catch(e) { console.error("Sync Sale Error", e); }
-            }
-            localStorage.removeItem('offline_sales');
-        }
-
-        // 2. Sync Payments (NEW)
-        let payQueue = JSON.parse(localStorage.getItem('offline_payments')) || [];
-        if (payQueue.length > 0) {
-            for (let i = 0; i < payQueue.length; i++) {
-                try {
-                    await fetch("{{ route('cashier.credit.pay') }}", { 
-                        method: "POST", 
-                        headers: { "Content-Type": "application/json", "X-CSRF-TOKEN": csrf }, 
-                        body: JSON.stringify(payQueue[i]) 
-                    });
-                } catch(e) { console.error("Sync Payment Error", e); }
-            }
-            localStorage.removeItem('offline_payments');
-        }
-
-        // Done
-        alert("Sync Complete! All offline data has been uploaded.");
-        location.reload();
+        for (let s of sales) await fetch("{{ route('cashier.store') }}", { method: "POST", headers: { "Content-Type": "application/json", "X-CSRF-TOKEN": csrf }, body: JSON.stringify(s) });
+        for (let p of payments) await fetch("{{ route('cashier.credit.pay') }}", { method: "POST", headers: { "Content-Type": "application/json", "X-CSRF-TOKEN": csrf }, body: JSON.stringify(p) });
+        
+        localStorage.removeItem('offline_sales'); localStorage.removeItem('offline_payments');
+        alert("Sync Complete!"); location.reload();
     }
+
+    // --- UI HELPERS ---
+    function toggleFlow() {
+        const m = document.getElementById('payment-method').value;
+        document.getElementById('flow-cash').style.display = (m==='cash')?'block':'none';
+        document.getElementById('flow-digital').style.display = (m==='digital')?'block':'none';
+    }
+    document.getElementById('customer-id').addEventListener('change', function() {
+        const type = this.value;
+        const bal = this.options[this.selectedIndex].getAttribute('data-balance');
+        document.getElementById('debt-section').style.display = (bal > 0) ? 'flex' : 'none';
+        if(bal > 0) document.getElementById('customer-balance').innerText = parseFloat(bal).toLocaleString(undefined, {minimumFractionDigits: 2});
+        
+        currentCustomerPoints = parseInt(this.options[this.selectedIndex].getAttribute('data-points') || 0);
+        document.getElementById('avail-points').innerText = currentCustomerPoints;
+        document.getElementById('redemption-section').style.display = (loyaltyEnabled && type !== 'walk-in' && type !== 'new') ? 'block' : 'none';
+        
+        const paySelect = document.getElementById('payment-method');
+        const creditOpt = document.getElementById('opt-credit');
+        if (type === 'new') { creditOpt.disabled = false; paySelect.value = 'credit'; } 
+        else { creditOpt.disabled = true; if(paySelect.value === 'credit') paySelect.value = 'cash'; }
+        toggleFlow();
+    });
     
     // Barcode Search
     document.getElementById('product-search').addEventListener('keypress', function (e) {

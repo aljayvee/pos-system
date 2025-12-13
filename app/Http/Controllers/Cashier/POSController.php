@@ -121,6 +121,128 @@ class POSController extends Controller
         }
     }
 
+    // --- NEW: Search Sale for Return ---
+    public function searchSale(Request $request)
+    {
+        $request->validate(['query' => 'required']);
+        $q = $request->query('query');
+
+        // Find Sale by ID or Reference Number
+        // We load items and check how many have already been returned
+        $sale = Sale::with(['saleItems.product', 'customer'])
+                    ->where('id', $q)
+                    ->orWhere('reference_number', $q)
+                    ->first();
+
+        if (!$sale) {
+            return response()->json(['success' => false, 'message' => 'Sale not found.']);
+        }
+
+        // Calculate returnable quantities
+        $items = $sale->saleItems->map(function($item) {
+            $returned = SalesReturn::where('sale_id', $item->sale_id)
+                                   ->where('product_id', $item->product_id)
+                                   ->sum('quantity');
+            
+            return [
+                'product_id' => $item->product_id,
+                'name' => $item->product->name,
+                'sold_qty' => $item->quantity,
+                'price' => $item->price,
+                'returned_qty' => $returned,
+                'available_qty' => $item->quantity - $returned
+            ];
+        });
+
+        return response()->json([
+            'success' => true,
+            'sale' => [
+                'id' => $sale->id,
+                'date' => $sale->created_at->format('M d, Y h:i A'),
+                'customer' => $sale->customer ? $sale->customer->name : 'Walk-in',
+                'total' => $sale->total_amount,
+                'payment_method' => ucfirst($sale->payment_method)
+            ],
+            'items' => $items
+        ]);
+    }
+
+    // --- NEW: Process Return ---
+    public function processReturn(Request $request)
+    {
+        $request->validate([
+            'sale_id' => 'required|exists:sales,id',
+            'items' => 'required|array',
+            'items.*.product_id' => 'required|exists:products,id',
+            'items.*.quantity' => 'required|integer|min:1',
+            'items.*.condition' => 'required|in:good,damaged',
+        ]);
+
+        $saleId = $request->sale_id;
+        $storeId = $this->getActiveStoreId(); // Identify Current Store for restocking
+
+        DB::beginTransaction();
+        try {
+            foreach ($request->items as $itemData) {
+                $pid = $itemData['product_id'];
+                $qty = $itemData['quantity'];
+                
+                // 1. Verify Item and Qty
+                $saleItem = SaleItem::where('sale_id', $saleId)->where('product_id', $pid)->firstOrFail();
+                $alreadyReturned = SalesReturn::where('sale_id', $saleId)->where('product_id', $pid)->sum('quantity');
+
+                if (($qty + $alreadyReturned) > $saleItem->quantity) {
+                    throw new \Exception("Cannot return more than sold qty for {$saleItem->product->name}");
+                }
+
+                // 2. Calculate Refund
+                $refundAmount = $saleItem->price * $qty;
+
+                // 3. Create Record
+                SalesReturn::create([
+                    'sale_id' => $saleId,
+                    'product_id' => $pid,
+                    'user_id' => Auth::id(),
+                    'quantity' => $qty,
+                    'refund_amount' => $refundAmount,
+                    'condition' => $itemData['condition'],
+                    'reason' => $itemData['reason'] ?? 'Customer Return'
+                ]);
+
+                // 4. Restock Inventory (Only if condition is GOOD)
+                // IMPORTANT: We restock to the CURRENT branch's inventory
+                if ($itemData['condition'] === 'good') {
+                    $inventory = Inventory::firstOrCreate(
+                        ['product_id' => $pid, 'store_id' => $storeId],
+                        ['stock' => 0, 'reorder_point' => 10]
+                    );
+                    $inventory->increment('stock', $qty);
+                }
+
+                // 5. Adjust Credit (If original sale was credit)
+                $sale = Sale::find($saleId);
+                if ($sale->payment_method === 'credit' && $sale->customer_id) {
+                    $credit = CustomerCredit::where('sale_id', $saleId)->first();
+                    if ($credit) {
+                        $credit->remaining_balance -= $refundAmount;
+                        if ($credit->remaining_balance <= 0) {
+                            $credit->remaining_balance = 0;
+                            $credit->is_paid = true;
+                        }
+                        $credit->save();
+                    }
+                }
+            }
+
+            DB::commit();
+            return response()->json(['success' => true, 'message' => 'Return processed successfully.']);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
+    }
+
     public function store(Request $request)
     {
         // 1. VALIDATION

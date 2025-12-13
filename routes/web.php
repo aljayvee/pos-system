@@ -107,6 +107,10 @@ Route::middleware(['auth', 'role:cashier,admin'])->prefix('cashier')->group(func
     Route::post('/payment/create', [\App\Http\Controllers\Cashier\PaymentController::class, 'createSource'])->name('payment.create');
     Route::get('/payment/check/{id}', [\App\Http\Controllers\Cashier\PaymentController::class, 'checkStatus'])->name('payment.check');
 
+    // NEW: Return Routes
+    Route::get('/return/search', [POSController::class, 'searchSale'])->name('cashier.return.search');
+    Route::post('/return/process', [POSController::class, 'processReturn'])->name('cashier.return.process');
+
 });
 
 // Authenticated User Routes (Profile)
