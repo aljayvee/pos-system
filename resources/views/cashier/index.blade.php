@@ -179,8 +179,8 @@
         loyaltyEnabled: Number("{{ \App\Models\Setting::where('key', 'enable_loyalty')->value('value') ?? 0 }}"),
         paymongoEnabled: Number("{{ \App\Models\Setting::where('key', 'enable_paymongo')->value('value') ?? 0 }}"),
         
-        // --- NEW: Pass Tax Settings to JS ---
-        birEnabled: Number("{{ $birEnabled ?? 0 }}"), 
+        // --- VITAL FIX: Pass the Master Switch Status ---
+        birEnabled: Number("{{ $birEnabled ?? 0 }}"),
         taxType: "{{ \App\Models\Setting::where('key', 'tax_type')->value('value') ?? 'inclusive' }}",
 
         csrfToken: document.querySelector('meta[name="csrf-token"]').getAttribute('content')
@@ -326,28 +326,29 @@
 
         document.querySelectorAll('#cart-items').forEach(el => el.innerHTML = html);
 
-        // 2. TAX VISIBILITY LOGIC
+        // 2. TAX LOGIC (THE FIX)
         let grandTotal = subtotal;
         let taxAmt = 0;
         
         const subtotalEl = document.getElementById('subtotal-display');
-        const taxRow = document.getElementById('tax-row'); // The row showing "VAT (12%)"
+        const taxRow = document.getElementById('tax-row'); 
         const taxEl = document.getElementById('tax-display');
 
-        // LOGIC: Only show if Master Switch is ON (1) AND Type is 'Exclusive'
+        // OLD BUGGY LOGIC: if (CONFIG.taxType === 'exclusive') ...
+        // NEW FIXED LOGIC: Check Master Switch AND Tax Type
         if (CONFIG.birEnabled === 1 && CONFIG.taxType === 'exclusive') {
             taxAmt = subtotal * 0.12; 
             grandTotal = subtotal + taxAmt;
             
-            // Show the row
+            // Show the row because feature is ON
             if(taxRow) taxRow.style.setProperty('display', 'flex', 'important');
             if(taxEl) taxEl.innerText = taxAmt.toFixed(2);
         } else {
-            // FORCE HIDE if toggle is Off
-            if(taxRow) taxRow.style.display = 'none';
+            // FORCE HIDE because feature is OFF (regardless of other settings)
+            if(taxRow) taxRow.style.display = 'hide';
         }
 
-        // 3. Update Text
+        // 3. Update Displays
         if(subtotalEl) subtotalEl.innerText = subtotal.toFixed(2);
 
         document.querySelectorAll('.total-amount-display').forEach(el => el.innerText = grandTotal.toFixed(2));
