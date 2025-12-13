@@ -20,8 +20,14 @@ class Product extends Model
     'unit', 
     'reorder_point',
     'image', 
-    'reorder_point'
+    'reorder_point',
+    'expiration_date'
 ];
+
+    // Optional: Tell Laravel this is a date so it formats correctly
+    protected $casts = [
+        'expiration_date' => 'date',
+    ];
 
     public function category()
     {

@@ -62,7 +62,15 @@
                     </div>
                 </div>
 
-               
+               {{-- NEW: Expiration Date Input --}}
+                    <div class="mb-3">
+                        <label class="form-label">Expiration Date (Optional)</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-calendar-alt"></i></span>
+                            <input type="date" name="expiration_date" class="form-control">
+                        </div>
+                        <small class="text-muted">Leave blank if item is non-perishable.</small>
+                    </div>
 
                 <div class="row">
                     <div class="col-md-6 mb-3">

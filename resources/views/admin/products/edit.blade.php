@@ -65,6 +65,11 @@
                                 <input type="number" name="stock" class="form-control" value="{{ $product->stock }}">
                             </div>
                             <div class="col-md-6 mb-3">
+                                <label class="form-label">Expiration Date</label>
+                                <input type="date" name="expiration_date" class="form-control" 
+                                    value="{{ $product->expiration_date ? $product->expiration_date->format('Y-m-d') : '' }}">
+                            </div>
+                            <div class="col-md-6 mb-3">
                                 <label class="form-label">Reorder Point</label>
                                 <input type="number" name="reorder_point" class="form-control" value="{{ $product->reorder_point }}">
                             </div>

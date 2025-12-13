@@ -169,6 +169,7 @@ class ProductController extends Controller
             'sku' => 'nullable|string|unique:products,sku', // <--- New
             'stock' => 'integer|min:0',
             'reorder_point' => 'nullable|integer|min:0',
+            'expiration_date' => 'nullable|date', // <--- ADD THIS
         ]);
 
         $product = Product::create($request->all());
@@ -203,6 +204,7 @@ class ProductController extends Controller
             'category_id' => 'required|exists:categories,id',
             'sku' => 'nullable|unique:products,sku,' . $product->id,
             'reorder_point' => 'nullable|integer|min:0',
+            'expiration_date' => 'nullable|date', // <--- ADD THIS
             
         ]);
 
