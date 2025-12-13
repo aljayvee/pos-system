@@ -66,7 +66,7 @@ class ProductController extends Controller
     // 1. Show List
    public function index(Request $request)
     {
-        $query = Product::with('category')->latest();
+        $query = Product::with('category');
 
         // 0. Filter: Show Archived (Trash)
         if ($request->has('archived')) {
@@ -76,10 +76,8 @@ class ProductController extends Controller
         // 1. Search Filter (Name or SKU)
         if ($request->filled('search')) {
             $search = $request->search;
-            $query->where(function($q) use ($search) {
-                $q->where('name', 'like', "%$search%")
-                  ->orWhere('sku', 'like', "%$search%");
-            });
+            $query->where('name', 'like', '%' . $request->search . '%')
+              ->orWhere('sku', 'like', '%' . $request->search . '%');
         }
 
         // 2. Category Filter
@@ -92,10 +90,10 @@ class ProductController extends Controller
             $query->whereColumn('stock', '<=', 'reorder_point');
         }
 
-        $products = $query->paginate(10)->withQueryString(); // Keep filters in pagination links
+        $products = $query->latest()->paginate(10); // Keep filters in pagination links
         
         // Fetch categories for the dropdown
-        $categories = \App\Models\Category::orderBy('name')->get();
+        $categories = \App\Models\Category::all();
 
         return view('admin.products.index', compact('products', 'categories'));
     }
@@ -103,7 +101,7 @@ class ProductController extends Controller
     // NEW: Restore Archived Product
     public function restore($id)
     {
-        $product = Product::onlyTrashed()->findOrFail($id);
+        $product = Product::withTrashed()->findOrFail($id);
         $product->restore();
 
         return back()->with('success', 'Product restored successfully.');
@@ -112,7 +110,13 @@ class ProductController extends Controller
     // NEW: Force Delete (Permanent)
     public function forceDelete($id)
     {
-        $product = Product::onlyTrashed()->findOrFail($id);
+        $product = Product::withTrashed()->findOrFail($id);
+
+        // Optional: Check for relationships before hard delete
+        if($product->saleItems()->exists() || $product->purchaseItems()->exists()) {
+            return back()->with('error', 'Cannot permanently delete. This item has sales history.');
+        }
+
         $product->forceDelete(); // Permanently remove from DB
 
         return back()->with('success', 'Product permanently deleted.');

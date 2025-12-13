@@ -97,7 +97,7 @@
                         <th>Price</th>
                         <th>Stock Level</th>
                         <th>Status</th>
-                        <th>Actions</th>
+                        <th class="text-center">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -121,7 +121,7 @@
                                 <span class="badge bg-success">Good</span>
                             @endif
                         </td>
-                        <td>
+                        <td class="text-center">
                             @if(request('archived'))
                                 {{-- ARCHIVED MODE: Show Restore & Force Delete --}}
                                 <form action="{{ route('products.restore', $product->id) }}" method="POST" class="d-inline">
@@ -138,25 +138,28 @@
                                     </button>
                                 </form>
                             @else
-                                {{-- ACTIVE MODE: Show Edit, Barcode, & Archive --}}
-                                <a href="{{ route('products.edit', $product->id) }}" class="btn btn-sm btn-outline-primary">
-                                    <i class="fas fa-edit"></i>
-                                </a>
-
-                                {{-- BARCODE BUTTON (Condition: Feature ON + Product has SKU) --}}
+                                {{-- ACTIVE MODE: Show Barcode, Edit, & Archive --}}
+                                
+                                {{-- 1. BARCODE BUTTON (Condition: Feature ON + Product has SKU) --}}
                                 @if($barcodeEnabled == '1' && $product->sku)
                                     <a href="{{ route('products.barcode', $product->id) }}" 
                                        target="_blank" 
-                                       class="btn btn-sm btn-outline-dark" 
+                                       class="btn btn-sm btn-dark me-1" 
                                        title="Print Barcode">
                                         <i class="fas fa-barcode"></i>
                                     </a>
                                 @endif
 
+                                {{-- 2. EDIT BUTTON (Links to separate Edit page) --}}
+                                <a href="{{ route('products.edit', $product->id) }}" class="btn btn-sm btn-outline-primary me-1" title="Edit">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+
+                                {{-- 3. ARCHIVE BUTTON --}}
                                 <form action="{{ route('products.destroy', $product->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Archive this product?');">
                                     @csrf @method('DELETE')
                                     <button class="btn btn-sm btn-outline-danger" title="Archive">
-                                        <i class="fas fa-trash"></i>
+                                        <i class="fas fa-archive"></i>
                                     </button>
                                 </form>
                             @endif
@@ -178,6 +181,7 @@
         </div>
     </div>
 
+    {{-- IMPORT MODAL --}}
     <div class="modal fade" id="importModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
