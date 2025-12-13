@@ -392,60 +392,73 @@ class POSController extends Controller
         return view('cashier.receipt', compact('sale'));
     }
 
-    // --- NEW: BIR COMPLIANCE REPORTS (X/Z Reading) ---
     public function showReading(Request $request, $type = 'x')
     {
         $storeId = $this->getActiveStoreId();
         $date = \Carbon\Carbon::now()->toDateString();
 
-        // 1. Fetch Today's Sales (For X/Z Reading)
+        // 1. Fetch Today's Gross Sales
         $todaySales = Sale::where('store_id', $storeId)
                           ->whereDate('created_at', $date)
                           ->get();
 
-        // 2. Fetch & Decrypt TIN
+        // 2. Fetch Today's Returns (Refunds)
+        // We join with Sales to ensure we only get returns for this store
+        $todayReturns = SalesReturn::whereDate('sales_returns.created_at', $date)
+                            ->whereHas('sale', function($q) use ($storeId) {
+                                $q->where('store_id', $storeId);
+                            })
+                            ->sum('refund_amount');
+
+        // 3. Decrypt TIN
         $rawTin = \App\Models\Setting::where('key', 'store_tin')->value('value');
         try {
             $tin = $rawTin ? \Illuminate\Support\Facades\Crypt::decryptString($rawTin) : '000-000-000';
         } catch (\Exception $e) {
-            $tin = $rawTin; // Fallback if plain text
+            $tin = $rawTin;
         }
 
-        // 2. Fetch Aggregates
+        // 4. Calculate Stats
+        $grossSales = $todaySales->sum('total_amount');
+        $netSales = $grossSales - $todayReturns;
+
         $data = [
             'type' => strtoupper($type) . '-READING',
             'date' => now()->format('Y-m-d H:i:s'),
             'store_name' => \App\Models\Setting::where('key', 'store_name')->value('value'),
             'tin' => $tin,
-            'machine_no' => 'POS-001', // Example Machine ID
+            'machine_no' => 'POS-' . str_pad($storeId, 3, '0', STR_PAD_LEFT),
             
             // Sales Stats
-            'total_sales' => $todaySales->sum('total_amount'),
+            'gross_sales' => $grossSales,
+            'returns' => $todayReturns,
+            'net_sales' => $netSales,
             'trans_count' => $todaySales->count(),
             'beg_or' => $todaySales->first()->id ?? '-',
             'end_or' => $todaySales->last()->id ?? '-',
             
-            // Payment Breakdown
+            // Breakdown (Based on Gross for simplicity, or adjust if refunds are payment-specific)
             'cash_sales' => $todaySales->where('payment_method', 'cash')->sum('total_amount'),
-            'card_sales' => $todaySales->where('payment_method', 'digital')->sum('total_amount'), // Assuming digital = card/ewallet
+            'card_sales' => $todaySales->where('payment_method', 'digital')->sum('total_amount'),
             'credit_sales' => $todaySales->where('payment_method', 'credit')->sum('total_amount'),
-
-            // Tax Breakdown (Derived)
-            'tax_rate' => 12, // Default 12%
         ];
 
-        // 3. Compute VAT Values (Back-computation)
-        // Formula: Vatable = Total / 1.12
-        $data['vatable_sales'] = $data['total_sales'] / 1.12;
-        $data['vat_amount'] = $data['total_sales'] - $data['vatable_sales'];
-        $data['vat_exempt'] = 0; // Logic for exempt items can be added later
+        // 5. Tax Breakdown (Based on NET Sales)
+        $taxRate = 12; 
+        $data['vatable_sales'] = $netSales / 1.12; 
+        $data['vat_amount'] = $netSales - $data['vatable_sales'];
+        $data['vat_exempt'] = 0;
 
-        // 4. ACCUMULATED GRAND TOTAL (Old GT + Today)
-        // We sum ALL sales from previous days + today
-        $grandTotal = Sale::where('store_id', $storeId)->sum('total_amount');
+        // 6. Accumulators (Running Total)
+        // Grand Total should include ALL valid sales minus returns over time
+        // For simplicity in this system, we sum all Sales (Total) minus all Returns (Total)
+        $totalHistoricalSales = Sale::where('store_id', $storeId)->sum('total_amount');
+        $totalHistoricalReturns = SalesReturn::whereHas('sale', fn($q) => $q->where('store_id', $storeId))->sum('refund_amount');
         
-        $data['old_accumulated_sales'] = $grandTotal - $data['total_sales'];
+        $grandTotal = $totalHistoricalSales - $totalHistoricalReturns;
+
         $data['new_accumulated_sales'] = $grandTotal;
+        $data['old_accumulated_sales'] = $grandTotal - $netSales;
 
         return view('cashier.reading', compact('data'));
     }
