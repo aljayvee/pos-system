@@ -112,19 +112,26 @@
                 </div>
 
                 {{-- Buttons --}}
-                <div class="col-md-3 d-flex gap-2">
-                    <button type="submit" class="btn btn-primary w-100 fw-bold">
+
+                <div class="col-md-3 d-flex gap-3">
+                    <button type="submit" class="btn btn-primary w-400 fw-bold">
                         <i class="fas fa-filter me-1"></i> Filter
                     </button>
                     
                     {{-- Export Button (Maintains filters) --}}
-                    <a href="{{ route('reports.export', request()->all()) }}" class="btn btn-success w-100 fw-bold">
+                    <a href="{{ route('reports.export', request()->all()) }}" class="btn btn-success w-400 fw-bold">
                         <i class="fas fa-file-csv me-1"></i> Export
                     </a>
                     {{-- Add this button next to the Export button --}}
-                        <button type="button" onclick="window.print()" class="btn btn-secondary w-100 fw-bold">
+                        <button type="button" onclick="window.print()" class="btn btn-secondary w-400 fw-bold">
                             <i class="fas fa-print me-1"></i> Print / PDF
                         </button>
+                       <div class="col-md-12 mt-2">
+                            <a href="{{ route('reports.forecast') }}" class="btn btn-outline-primary w-100">
+                                <i class="fas fa-magic me-1"></i> View Inventory Forecast & Buying Recommendations
+                            </a>
+                        </div>
+                        
                 </div>
             </form>
         </div>

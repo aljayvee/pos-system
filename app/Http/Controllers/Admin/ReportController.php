@@ -170,4 +170,69 @@ class ReportController extends Controller
 
         return response()->stream($callback, 200, $headers);
     }
+
+    // NEW: Inventory Forecasting & Reorder Recommendations
+    public function forecast()
+    {
+        // 1. Get Sales Data for Last 30 Days
+        $startDate = \Carbon\Carbon::now()->subDays(30);
+        
+        // Fetch all products that are active
+        $products = \App\Models\Product::with(['category', 'saleItems' => function($q) use ($startDate) {
+            $q->whereHas('sale', function($sq) use ($startDate) {
+                $sq->where('created_at', '>=', $startDate);
+            });
+        }])->get();
+
+        $forecastData = [];
+
+        foreach ($products as $product) {
+            // Calculate Total Sold in last 30 days
+            $totalSold = $product->saleItems->sum('quantity');
+            
+            // Average Daily Sales (ADS)
+            $ads = $totalSold / 30;
+
+            // Estimated Days Until Stockout
+            // If ADS is 0, stock lasts "forever" (999)
+            $daysLeft = ($ads > 0) ? ($product->stock / $ads) : 999;
+
+            // Reorder Recommendation
+            // Logic: Maintain enough stock for 14 days (2 weeks safety buffer)
+            $targetStock = $ads * 14; 
+            $reorderQty = ($product->stock < $targetStock) ? ($targetStock - $product->stock) : 0;
+
+            // Only add to list if relevant (selling items or low stock)
+            if ($totalSold > 0 || $product->stock <= $product->reorder_point) {
+                $forecastData[] = [
+                    'id' => $product->id,
+                    'name' => $product->name,
+                    'category' => $product->category->name ?? '-',
+                    'stock' => $product->stock,
+                    'total_sold_30d' => $totalSold,
+                    'ads' => number_format($ads, 2),
+                    'days_left' => number_format($daysLeft, 1),
+                    'status' => $this->getStockStatus($daysLeft, $product->stock, $product->reorder_point),
+                    'reorder_qty' => ceil($reorderQty)
+                ];
+            }
+        }
+
+        // Sort by "Days Left" ascending (Most critical first)
+        usort($forecastData, function ($a, $b) {
+            return $a['days_left'] <=> $b['days_left'];
+        });
+
+        return view('admin.reports.forecast', compact('forecastData'));
+    }
+
+    private function getStockStatus($daysLeft, $stock, $reorderPoint)
+    {
+        if ($stock == 0) return 'Out of Stock';
+        if ($stock <= $reorderPoint) return 'Critical Level';
+        if ($daysLeft <= 3) return 'Critical (Runs out < 3 days)';
+        if ($daysLeft <= 7) return 'Low (Runs out < 1 week)';
+        return 'Healthy';
+    }
+
 }

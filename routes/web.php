@@ -83,6 +83,9 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->group(function () {
     // Returns
     Route::get('/transactions/{sale}/return', [ReturnController::class, 'create'])->name('admin.transactions.return');
     Route::post('/transactions/{sale}/return', [ReturnController::class, 'store'])->name('admin.transactions.process_return');
+
+    // Inside 'admin' middleware group
+    Route::get('/reports/forecast', [ReportController::class, 'forecast'])->name('reports.forecast');
     
 });
 
