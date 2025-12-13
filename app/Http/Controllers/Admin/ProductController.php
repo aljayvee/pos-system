@@ -133,7 +133,8 @@ class ProductController extends Controller
             'price' => 'required|numeric',
             'unit' => 'required|string|max:20', // New validation
             'category_id' => 'required|exists:categories,id',
-            'sku' => 'nullable|unique:products,sku',
+            'cost' => 'nullable|numeric|min:0',
+            'sku' => 'nullable|string|unique:products,sku', // <--- New
             'stock' => 'integer|min:0',
             'reorder_point' => 'nullable|integer|min:0'
         ]);
@@ -158,7 +159,8 @@ class ProductController extends Controller
             'price' => 'required|numeric',
             'category_id' => 'required|exists:categories,id',
             'sku' => 'nullable|unique:products,sku,' . $product->id,
-            'reorder_point' => 'nullable|integer|min:0'
+            'reorder_point' => 'nullable|integer|min:0',
+            'sku' => 'nullable|string|unique:products,sku,' . $id, // Ignore current product ID
         ]);
 
         $product->update($request->all());
@@ -169,6 +171,8 @@ class ProductController extends Controller
     // NEW: Generate Barcode Label (With Toggle Check)
     public function printBarcode(\App\Models\Product $product)
     {
+
+        $product = Product::findOrFail($id);
         // 1. Check if feature is enabled
         $isEnabled = \App\Models\Setting::where('key', 'enable_barcode')->value('value') ?? '0';
         

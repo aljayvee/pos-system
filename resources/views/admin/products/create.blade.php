@@ -42,10 +42,27 @@
                     <input type="number" step="0.01" name="price" class="form-control" required>
                 </div>
 
-                <div class="mb-3">
-                    <label class="form-label">Initial Stock</label>
-                    <input type="number" name="stock" class="form-control" value="0">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">Selling Price (SRP)</label>
+                        <div class="input-group">
+                            <span class="input-group-text">₱</span>
+                            <input type="number" step="0.01" name="price" class="form-control" required>
+                        </div>
+                    </div>
+                    
+                    {{-- NEW: Cost Price --}}
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold text-muted">Cost Price (Puhunan)</label>
+                        <div class="input-group">
+                            <span class="input-group-text">₱</span>
+                            <input type="number" step="0.01" name="cost" class="form-control">
+                        </div>
+                        <small class="text-muted">Required for Profit calculation.</small>
+                    </div>
                 </div>
+
+               
 
                 <div class="row">
                     <div class="col-md-6 mb-3">
@@ -59,10 +76,12 @@
                     </div>
                 </div>
 
+
                 <div class="mb-3">
-                    <label class="form-label">Barcode / SKU (Optional)</label>
+                    <label class="form-label">Barcode / SKU (if available)</label>
                     <div class="input-group">
-                        <input type="text" id="sku-input" name="sku" class="form-control" placeholder="Scan or type barcode...">
+                        <span class="input-group-text"><i class="fas fa-barcode"></i></span>
+                        <input type="text" name="sku" class="form-control" placeholder="Scan or enter code">
                         
                         <button type="button" class="btn btn-outline-secondary" onclick="openScanner()">
                             <i class="fas fa-camera"></i> Scan
