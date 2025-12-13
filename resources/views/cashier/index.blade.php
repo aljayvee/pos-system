@@ -528,17 +528,45 @@
         const amount = document.getElementById('pay-debt-amount').value;
         if(!amount || amount <= 0) { alert("Enter valid amount"); return; }
 
+        const payload = { customer_id: id, amount: amount };
+
+        // 1. Check Offline Status Immediately
+        if (!navigator.onLine) {
+            saveOfflinePayment(payload);
+            return;
+        }
+
+        // 2. Attempt Online Payment
         fetch("{{ route('cashier.credit.pay') }}", {
             method: "POST",
-            headers: { "Content-Type": "application/json", "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute('content') },
-            body: JSON.stringify({ customer_id: id, amount: amount })
+            headers: { 
+                "Content-Type": "application/json", 
+                "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute('content') 
+            },
+            body: JSON.stringify(payload)
         })
         .then(res => res.json())
         .then(data => {
             if(data.success) { alert("Payment Collected!"); location.reload(); } 
             else { alert("Error: " + data.message); }
         })
-        .catch(err => alert("Error: " + err));
+        .catch(err => {
+            // 3. Fallback to Offline if Network Fails
+            console.warn("Network error, saving offline", err);
+            saveOfflinePayment(payload);
+        });
+    }
+
+    // NEW: Save Payment to Local Storage
+    function saveOfflinePayment(data) {
+        let queue = JSON.parse(localStorage.getItem('offline_payments')) || [];
+        queue.push(data);
+        localStorage.setItem('offline_payments', JSON.stringify(queue));
+        
+        // Close modal and alert user
+        bootstrap.Modal.getInstance(document.getElementById('debtPaymentModal')).hide();
+        alert("Offline Mode: Payment saved locally. It will sync automatically when online.");
+        updateOnlineStatus(); // Update the pending count badge
     }
 
     function addToCart(product) {
@@ -658,26 +686,75 @@
     // --- UTILS ---
     window.addEventListener('online', updateOnlineStatus);
     window.addEventListener('offline', updateOnlineStatus);
+    // UPDATED: Check both Sales and Payments queues
     function updateOnlineStatus() {
-        const queue = JSON.parse(localStorage.getItem('offline_sales')) || [];
+        const salesQueue = JSON.parse(localStorage.getItem('offline_sales')) || [];
+        const payQueue = JSON.parse(localStorage.getItem('offline_payments')) || [];
+        const totalPending = salesQueue.length + payQueue.length;
+
         const alertBox = document.getElementById('offline-alert');
-        if (!navigator.onLine) { alertBox.style.display = 'block'; document.getElementById('pending-count').innerText = queue.length + ' Pending'; } 
-        else if (queue.length > 0) { alertBox.style.display = 'block'; alertBox.classList.replace('alert-warning', 'alert-info'); alertBox.innerHTML = `<span>Online! Syncing ${queue.length}...</span> <button class="btn btn-sm btn-light" onclick="syncOfflineSales()">Sync</button>`; syncOfflineSales(); } 
-        else { alertBox.style.display = 'none'; }
+        const countSpan = document.getElementById('pending-count');
+
+        if (!navigator.onLine) { 
+            alertBox.style.display = 'block'; 
+            alertBox.className = 'alert alert-warning mb-3 shadow-sm';
+            if(countSpan) countSpan.innerText = totalPending + ' Pending'; 
+        } 
+        else if (totalPending > 0) { 
+            alertBox.style.display = 'block'; 
+            alertBox.className = 'alert alert-info mb-3 shadow-sm';
+            alertBox.innerHTML = `
+                <div class="d-flex justify-content-between align-items-center">
+                    <span><i class="fas fa-sync fa-spin me-2"></i> <strong>Online!</strong> Syncing ${totalPending} records...</span>
+                </div>`;
+            syncOfflineData(); 
+        } 
+        else { 
+            alertBox.style.display = 'none'; 
+        }
     }
     function saveOffline(data) {
         let queue = JSON.parse(localStorage.getItem('offline_sales')) || [];
         queue.push(data); localStorage.setItem('offline_sales', JSON.stringify(queue)); localStorage.removeItem('pos_cart');
         alert("Saved Offline!"); location.reload();
     }
-    async function syncOfflineSales() {
-        let queue = JSON.parse(localStorage.getItem('offline_sales')) || [];
-        if (queue.length === 0) return;
+    // UPDATED: Sync Process
+    async function syncOfflineData() {
         const csrf = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-        for (let i = 0; i < queue.length; i++) {
-            await fetch("{{ route('cashier.store') }}", { method: "POST", headers: { "Content-Type": "application/json", "X-CSRF-TOKEN": csrf }, body: JSON.stringify(queue[i]) });
+        
+        // 1. Sync Sales
+        let salesQueue = JSON.parse(localStorage.getItem('offline_sales')) || [];
+        if (salesQueue.length > 0) {
+            for (let i = 0; i < salesQueue.length; i++) {
+                try {
+                    await fetch("{{ route('cashier.store') }}", { 
+                        method: "POST", 
+                        headers: { "Content-Type": "application/json", "X-CSRF-TOKEN": csrf }, 
+                        body: JSON.stringify(salesQueue[i]) 
+                    });
+                } catch(e) { console.error("Sync Sale Error", e); }
+            }
+            localStorage.removeItem('offline_sales');
         }
-        localStorage.removeItem('offline_sales'); alert("Sync Complete!"); location.reload();
+
+        // 2. Sync Payments (NEW)
+        let payQueue = JSON.parse(localStorage.getItem('offline_payments')) || [];
+        if (payQueue.length > 0) {
+            for (let i = 0; i < payQueue.length; i++) {
+                try {
+                    await fetch("{{ route('cashier.credit.pay') }}", { 
+                        method: "POST", 
+                        headers: { "Content-Type": "application/json", "X-CSRF-TOKEN": csrf }, 
+                        body: JSON.stringify(payQueue[i]) 
+                    });
+                } catch(e) { console.error("Sync Payment Error", e); }
+            }
+            localStorage.removeItem('offline_payments');
+        }
+
+        // Done
+        alert("Sync Complete! All offline data has been uploaded.");
+        location.reload();
     }
     
     // Barcode Search
