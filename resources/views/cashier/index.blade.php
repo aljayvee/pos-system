@@ -526,15 +526,16 @@
         disp.className = change >= 0 ? 'fw-bold text-success fs-5' : 'fw-bold text-danger fs-5';
     };
 
-    window.processPayment = async function() {
+    window.processPayment = function() {
         const method = document.querySelector('input[name="paymethod"]:checked').value;
         const total = parseFloat(document.getElementById('modal-total').innerText.replace(',',''));
         
         if (method === 'cash') {
             const paid = parseFloat(document.getElementById('amount-paid').value) || 0;
-            if (paid < total) return Swal.fire('Error', 'Insufficient Cash', 'error');
-        }
+            if (paid < total) return Swal.fire('Error', 'Insufficient Cash Payment', 'error');
+        } 
 
+        // --- CAPTURE DETAILS ---
         const payload = {
             cart: cart,
             total_amount: total,
@@ -544,38 +545,63 @@
             reference_number: document.getElementById('reference-number')?.value,
             credit_details: method === 'credit' ? {
                 name: document.getElementById('credit-name')?.value,
-                due_date: document.getElementById('credit-due-date')?.value
+                due_date: document.getElementById('credit-due-date')?.value,
+                contact: document.getElementById('credit-contact')?.value,
+                address: document.getElementById('credit-address')?.value
             } : null
         };
 
+        // Offline Check
         if (isOffline) { saveToOfflineQueue(payload); return; }
 
         Swal.showLoading();
+        
+        // --- REQUEST WITH FIXED HEADERS ---
         fetch("{{ route('cashier.store') }}", {
             method: "POST",
-            headers: { "Content-Type": "application/json", "X-CSRF-TOKEN": CONFIG.csrfToken },
+            headers: { 
+                "Content-Type": "application/json", 
+                "Accept": "application/json", // <--- CRITICAL FIX
+                "X-CSRF-TOKEN": CONFIG.csrfToken 
+            },
             body: JSON.stringify(payload)
         })
-        .then(res => res.json())
+        .then(async res => {
+            const data = await res.json();
+            // Handle Validation Errors (422) or Server Errors (500)
+            if (!res.ok) {
+                throw new Error(data.message || 'Server Error');
+            }
+            return data;
+        })
         .then(data => {
             if (data.success) {
                 bootstrap.Modal.getInstance(document.getElementById('paymentModal')).hide();
-                
                 Swal.fire({
                     icon: 'success', title: 'Paid!', showCancelButton: true, confirmButtonText: 'Receipt', cancelButtonText: 'New Sale'
                 }).then((r) => {
-                    // FIX: CLEAR CART PROPERLY
                     cart = [];
                     localStorage.removeItem('pos_cart');
                     updateCartUI(); 
-                    document.getElementById('customer-id').value = 'walk-in'; // Reset customer
-                    currentCustomer = { id: 'walk-in', points: 0, balance: 0 }; // Reset state
+                    document.getElementById('customer-id').value = 'walk-in'; 
+                    currentCustomer = { id: 'walk-in', points: 0, balance: 0 };
 
                     if (r.isConfirmed) window.open(`/cashier/receipt/${data.sale_id}`, '_blank', 'width=400,height=600');
                 });
-            } else Swal.fire('Failed', data.message, 'error');
+            } else {
+                throw new Error(data.message);
+            }
         })
-        .catch(() => saveToOfflineQueue(payload));
+        .catch(err => {
+            console.error(err);
+            // Only save offline if it's actually a NETWORK error, not a Validation error
+            if (err.message.toLowerCase().includes('fetch') || err.message.toLowerCase().includes('network')) {
+                saveToOfflineQueue(payload);
+            } else {
+                // Show the specific validation error (e.g., "Full Name is required")
+                Swal.fire('Validation Error', err.message, 'warning');
+            }
+        });
     };
 
     function saveToOfflineQueue(data) {
