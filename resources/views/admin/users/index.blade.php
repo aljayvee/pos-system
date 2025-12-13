@@ -43,12 +43,17 @@
                         </td>
                         <td>{{ $user->created_at->format('M d, Y') }}</td>
                         <td>
+                            {{-- NEW: Edit Button --}}
+                                <a href="{{ route('users.edit', $user->id) }}" class="btn btn-sm btn-warning col-md-3" title="Edit User" >
+                                    <i class="fas fa-edit"></i>
+                                </a>
                             <div class="btn-group">
-                                <button class="btn btn-sm btn-outline-primary" 
+                                 
+                                <!--<button class="btn btn-sm btn-outline-primary" 
                                         data-bs-toggle="modal" 
                                         data-bs-target="#editUserModal-{{ $user->id }}">
                                     <i class="fas fa-edit"></i>
-                                </button>
+                                </button>-->
 
                                 <form action="{{ route('users.toggle', $user->id) }}" method="POST">
                                     @csrf
@@ -57,10 +62,7 @@
                                     </button>
                                 </form>
 
-                                {{-- NEW: Edit Button --}}
-                                <a href="{{ route('users.edit', $user->id) }}" class="btn btn-sm btn-warning" title="Edit User">
-                                    <i class="fas fa-edit"></i>
-                                </a>
+                               
                                 
                                 <form action="{{ route('users.destroy', $user->id) }}" method="POST" onsubmit="return confirm('Permanently delete this user?');" class="ms-1">
                                     @csrf @method('DELETE')
@@ -70,7 +72,7 @@
                                 </form>
                             </div>
 
-                            <div class="modal fade" id="editUserModal-{{ $user->id }}" tabindex="-1">
+                            <!--<div class="modal fade" id="editUserModal-{{ $user->id }}" tabindex="-1">
                                 <div class="modal-dialog">
                                     <form action="{{ route('users.update', $user->id) }}" method="POST">
                                         @csrf @method('PUT')
@@ -116,7 +118,7 @@
                                         </div>
                                     </form>
                                 </div>
-                            </div>
+                            </div>-->
                             </td>
                     </tr>
                     @empty
