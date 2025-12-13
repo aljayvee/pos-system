@@ -283,407 +283,102 @@
     // from the previous version into this script block.
     
     // ... [Insert previous Payment/Sync logic here] ...
-    // --- CONFIGURATION ---
-    const CONFIG = {
-        pointsValue: {{ \App\Models\Setting::where('key', 'points_conversion')->value('value') ?? 1 }},
-        loyaltyEnabled: {{ \App\Models\Setting::where('key', 'enable_loyalty')->value('value') ?? 0 }},
-        paymongoEnabled: {{ \App\Models\Setting::where('key', 'enable_paymongo')->value('value') ?? 0 }},
-        csrfToken: document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-    };
 
-    // --- STATE MANAGEMENT ---
-    let cart = JSON.parse(localStorage.getItem('pos_cart')) || [];
-    let currentCustomer = { id: 'walk-in', points: 0, balance: 0 };
-    let html5QrcodeScanner = null;
-    let isOffline = !navigator.onLine;
+    // --- MISSING RETURN LOGIC ---
+    function searchSaleForReturn() {
+        const q = document.getElementById('return-search').value;
+        if (!q) return Swal.fire('Error', 'Please enter a Sale ID', 'error');
 
-    // --- INITIALIZATION ---
-    document.addEventListener('DOMContentLoaded', () => {
-        updateCartUI();
-        updateConnectionStatus();
-        window.addEventListener('online', () => { updateConnectionStatus(); syncOfflineData(); });
-        window.addEventListener('offline', () => updateConnectionStatus());
-        
-        // Auto-focus search on load (if desktop)
-        if(window.innerWidth > 768) document.getElementById('product-search').focus();
-    });
+        fetch(`{{ url('/cashier/return/search') }}?query=${q}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('return-results').style.display = 'block';
+                    const tbody = document.getElementById('return-items-body');
+                    tbody.innerHTML = '';
 
-    // --- SOUND FX ---
-    function playBeep() { document.getElementById('beep-sound').cloneNode(true).play().catch(()=>{}); }
-    function playError() { document.getElementById('error-sound').cloneNode(true).play().catch(()=>{}); }
-
-    // --- OFFLINE / SYNC ENGINE ---
-    function updateConnectionStatus() {
-        isOffline = !navigator.onLine;
-        const statusEl = document.getElementById('connection-status');
-        const banner = document.getElementById('offline-banner');
-        
-        if (isOffline) {
-            statusEl.className = 'status-offline';
-            banner.style.display = 'block';
-            updatePendingCount();
-        } else {
-            statusEl.className = 'status-online';
-            banner.style.display = 'none';
-        }
+                    data.items.forEach(item => {
+                        if(item.available_qty > 0) {
+                            tbody.innerHTML += `
+                                <tr data-id="${item.product_id}" data-price="${item.price}">
+                                    <td>${item.name}</td>
+                                    <td>${item.sold_qty}</td>
+                                    <td>₱${item.price}</td>
+                                    <td>
+                                        <input type="number" class="form-control ret-qty" 
+                                            min="0" max="${item.available_qty}" value="0" 
+                                            onchange="calcRefund()">
+                                        <small class="text-muted">Max: ${item.available_qty}</small>
+                                    </td>
+                                    <td>
+                                        <select class="form-select ret-condition">
+                                            <option value="good">Good (Restock)</option>
+                                            <option value="damaged">Damaged</option>
+                                        </select>
+                                    </td>
+                                </tr>`;
+                        }
+                    });
+                    if(tbody.innerHTML === '') tbody.innerHTML = '<tr><td colspan="5" class="text-center">All items in this sale have already been returned.</td></tr>';
+                } else {
+                    Swal.fire('Not Found', data.message, 'error');
+                }
+            })
+            .catch(err => Swal.fire('Error', 'Could not find sale.', 'error'));
     }
 
-    function updatePendingCount() {
-        const sales = JSON.parse(localStorage.getItem('offline_queue_sales')) || [];
-        document.getElementById('pending-count').innerText = sales.length;
-    }
-
-    function saveToOfflineQueue(data) {
-        let queue = JSON.parse(localStorage.getItem('offline_queue_sales')) || [];
-        data.offline_id = Date.now(); // Unique ID for offline tracking
-        queue.push(data);
-        localStorage.setItem('offline_queue_sales', JSON.stringify(queue));
-        updatePendingCount();
-        
-        Swal.fire({
-            icon: 'info',
-            title: 'Saved Offline',
-            text: 'Transaction saved locally. Will sync when online.',
-            timer: 2000,
-            showConfirmButton: false
+    function calcRefund() {
+        let total = 0;
+        document.querySelectorAll('#return-items-body tr').forEach(row => {
+            const price = parseFloat(row.getAttribute('data-price'));
+            const qty = parseInt(row.querySelector('.ret-qty').value) || 0;
+            total += price * qty;
         });
-        
-        resetPOS();
+        document.getElementById('total-refund').innerText = total.toFixed(2);
     }
 
-    async function syncOfflineData() {
-        if (isOffline) return;
+    function submitReturn() {
+        const saleId = document.getElementById('return-search').value; // Or store ID hidden
+        let items = [];
         
-        let queue = JSON.parse(localStorage.getItem('offline_queue_sales')) || [];
-        if (queue.length === 0) return;
+        document.querySelectorAll('#return-items-body tr').forEach(row => {
+            const qty = parseInt(row.querySelector('.ret-qty').value) || 0;
+            if (qty > 0) {
+                items.push({
+                    product_id: row.getAttribute('data-id'),
+                    quantity: qty,
+                    condition: row.querySelector('.ret-condition').value,
+                    reason: 'POS Return'
+                });
+            }
+        });
 
-        const statusEl = document.getElementById('connection-status');
-        statusEl.className = 'status-syncing'; // Pulse effect
+        if (items.length === 0) return Swal.fire('Error', 'Please enter a quantity to return.', 'warning');
 
-        const Toast = Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 3000 });
-        Toast.fire({ icon: 'info', title: 'Syncing ' + queue.length + ' transactions...' });
-
-        let newQueue = [];
-        let successCount = 0;
-
-        for (const transaction of queue) {
-            try {
-                const response = await fetch("{{ route('cashier.store') }}", {
+        Swal.fire({
+            title: 'Confirm Return?',
+            text: "Inventory will be updated.",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, Refund'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                fetch("{{ route('cashier.return.process') }}", {
                     method: "POST",
                     headers: { "Content-Type": "application/json", "X-CSRF-TOKEN": CONFIG.csrfToken },
-                    body: JSON.stringify(transaction)
+                    body: JSON.stringify({ sale_id: saleId, items: items })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        Swal.fire('Success', 'Return processed!', 'success').then(() => location.reload());
+                    } else {
+                        Swal.fire('Error', data.message, 'error');
+                    }
                 });
-                
-                const result = await response.json();
-                if (!result.success) throw new Error(result.message);
-                successCount++;
-            } catch (error) {
-                console.error("Sync failed for ID " + transaction.offline_id, error);
-                // Keep failed item in queue to try again or alert user
-                // Optional: You could add an 'error' flag to the item
-                newQueue.push(transaction); 
             }
-        }
-
-        localStorage.setItem('offline_queue_sales', JSON.stringify(newQueue));
-        updatePendingCount();
-        statusEl.className = 'status-online';
-
-        if(newQueue.length === 0) {
-            Swal.fire('Synced!', `Successfully uploaded ${successCount} transactions.`, 'success');
-        } else {
-            Swal.fire('Partial Sync', `${successCount} uploaded. ${newQueue.length} failed (Stock issues?).`, 'warning');
-        }
-    }
-
-    // --- CORE POS LOGIC ---
-    function addToCart(product) {
-        const existing = cart.find(i => i.id === product.id);
-        if (existing) {
-            if (existing.qty < product.current_stock) {
-                existing.qty++;
-                playBeep();
-            } else {
-                playError();
-                const Toast = Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 1500 });
-                Toast.fire({ icon: 'warning', title: 'Max stock reached' });
-                return;
-            }
-        } else {
-            if (product.current_stock > 0) {
-                cart.push({ ...product, qty: 1, max: product.current_stock });
-                playBeep();
-            } else {
-                playError();
-                return;
-            }
-        }
-        updateCartUI();
-    }
-
-    function updateCartUI() {
-        localStorage.setItem('pos_cart', JSON.stringify(cart));
-        const list = document.getElementById('cart-items');
-        list.innerHTML = '';
-        
-        let subtotal = 0;
-
-        if (cart.length === 0) {
-            list.innerHTML = `<div class="text-center text-muted mt-5"><i class="fas fa-basket-shopping fa-3x mb-3 opacity-25"></i><p>Cart is empty</p></div>`;
-            document.getElementById('pay-btn-amount').innerText = "0.00";
-            document.getElementById('total-amount').innerText = "0.00";
-            return;
-        }
-
-        cart.forEach((item, index) => {
-            subtotal += item.price * item.qty;
-            list.innerHTML += `
-                <div class="cart-item d-flex justify-content-between align-items-center">
-                    <div style="width: 40%">
-                        <div class="fw-bold text-dark text-truncate">${item.name}</div>
-                        <div class="small text-muted">₱${item.price}</div>
-                    </div>
-                    <div class="d-flex align-items-center bg-light rounded px-2">
-                        <button class="btn btn-sm text-primary fw-bold px-2" onclick="modifyQty(${index}, -1)">-</button>
-                        <span class="mx-2 fw-bold">${item.qty}</span>
-                        <button class="btn btn-sm text-primary fw-bold px-2" onclick="modifyQty(${index}, 1)">+</button>
-                    </div>
-                    <div class="fw-bold text-end" style="width: 20%">₱${(item.price * item.qty).toFixed(2)}</div>
-                    <button class="btn btn-sm text-danger ms-2" onclick="removeItem(${index})">&times;</button>
-                </div>`;
-        });
-
-        document.getElementById('subtotal-amount').innerText = subtotal.toFixed(2);
-        calculateFinalTotal(subtotal);
-    }
-
-    function modifyQty(index, change) {
-        const item = cart[index];
-        const newQty = item.qty + change;
-        if (newQty > 0 && newQty <= item.max) {
-            item.qty = newQty;
-        } else if (newQty > item.max) {
-             Swal.fire({ toast: true, position: 'top-end', icon: 'warning', title: 'Insufficient Stock', timer: 1000, showConfirmButton: false });
-        }
-        updateCartUI();
-    }
-
-    function removeItem(index) {
-        cart.splice(index, 1);
-        updateCartUI();
-    }
-
-    function clearCart() {
-        if(cart.length > 0) {
-            Swal.fire({
-                title: 'Clear Cart?', text: "Remove all items?", icon: 'warning', showCancelButton: true, confirmButtonColor: '#ef4444', confirmButtonText: 'Yes, Clear'
-            }).then((result) => { if (result.isConfirmed) { cart = []; updateCartUI(); } });
-        }
-    }
-
-    function calculateFinalTotal(subtotal) {
-        // Loyalty Logic
-        let discount = 0;
-        const pointsInput = document.getElementById('points-to-use');
-        if (pointsInput && CONFIG.loyaltyEnabled) {
-            let used = parseInt(pointsInput.value) || 0;
-            if (used > currentCustomer.points) used = currentCustomer.points;
-            discount = used * CONFIG.pointsValue;
-            if (discount > subtotal) discount = subtotal;
-            
-            document.getElementById('discount-display').innerText = discount.toFixed(2);
-            document.getElementById('avail-points').innerText = currentCustomer.points;
-        }
-        
-        const total = subtotal - discount;
-        document.getElementById('total-amount').innerText = total.toFixed(2);
-        document.getElementById('pay-btn-amount').innerText = total.toFixed(2);
-        document.getElementById('modal-total').innerText = total.toFixed(2);
-    }
-
-    // --- PAYMENT FLOW ---
-    function openPaymentModal() {
-        if (cart.length === 0) return Swal.fire('Cart is Empty', 'Please add items first.', 'warning');
-        
-        // Reset Modal State
-        document.getElementById('amount-paid').value = '';
-        document.getElementById('change-display').innerText = '₱0.00';
-        document.getElementById('pm-cash').checked = true;
-        toggleFlow();
-        
-        new bootstrap.Modal(document.getElementById('paymentModal')).show();
-        setTimeout(() => document.getElementById('amount-paid').focus(), 500);
-    }
-
-    function toggleFlow() {
-        const method = document.querySelector('input[name="paymethod"]:checked').value;
-        document.getElementById('flow-cash').style.display = method === 'cash' ? 'block' : 'none';
-        document.getElementById('flow-digital').style.display = method === 'digital' ? 'block' : 'none';
-        document.getElementById('flow-credit').style.display = method === 'credit' ? 'block' : 'none';
-    }
-
-    function calculateChange() {
-        const total = parseFloat(document.getElementById('modal-total').innerText.replace(',',''));
-        const paid = parseFloat(document.getElementById('amount-paid').value) || 0;
-        const change = paid - total;
-        document.getElementById('change-display').innerText = change >= 0 ? '₱' + change.toFixed(2) : 'Invalid';
-        document.getElementById('change-display').className = change >= 0 ? 'fw-bold text-success fs-5' : 'fw-bold text-danger fs-5';
-    }
-
-    async function processPayment() {
-        const method = document.querySelector('input[name="paymethod"]:checked').value;
-        const total = parseFloat(document.getElementById('modal-total').innerText.replace(',',''));
-        
-        // Validation
-        if (method === 'cash') {
-            const paid = parseFloat(document.getElementById('amount-paid').value) || 0;
-            if (paid < total) return Swal.fire('Error', 'Insufficient Cash Payment', 'error');
-        } else if (method === 'credit') {
-            if (!document.getElementById('credit-name').value) return Swal.fire('Error', 'Debtor Name is required', 'error');
-        }
-
-        // Build Payload
-        const payload = {
-            cart: cart,
-            total_amount: total,
-            payment_method: method,
-            customer_id: document.getElementById('customer-id').value,
-            points_used: parseInt(document.getElementById('points-to-use')?.value) || 0,
-            amount_paid: method === 'cash' ? document.getElementById('amount-paid').value : 0,
-            reference_number: document.getElementById('reference-number')?.value,
-            credit_details: method === 'credit' ? {
-                name: document.getElementById('credit-name').value,
-                due_date: document.getElementById('credit-due-date').value,
-                contact: document.getElementById('credit-contact').value,
-                address: document.getElementById('credit-address').value
-            } : null
-        };
-
-        // Offline Handling
-        if (isOffline) {
-            saveToOfflineQueue(payload);
-            bootstrap.Modal.getInstance(document.getElementById('paymentModal')).hide();
-            return;
-        }
-
-        // Online Handling
-        try {
-            Swal.showLoading();
-            const res = await fetch("{{ route('cashier.store') }}", {
-                method: "POST",
-                headers: { "Content-Type": "application/json", "X-CSRF-TOKEN": CONFIG.csrfToken },
-                body: JSON.stringify(payload)
-            });
-            const data = await res.json();
-            
-            if (data.success) {
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Payment Successful',
-                    text: 'Transaction Completed.',
-                    showCancelButton: true,
-                    confirmButtonText: 'Print Receipt',
-                    cancelButtonText: 'New Sale'
-                }).then((r) => {
-                    if (r.isConfirmed) window.open(`/cashier/receipt/${data.sale_id}`, '_blank', 'width=400,height=600');
-                    resetPOS();
-                });
-                bootstrap.Modal.getInstance(document.getElementById('paymentModal')).hide();
-            } else {
-                Swal.fire('Transaction Failed', data.message, 'error');
-            }
-        } catch (err) {
-            console.error(err);
-            Swal.fire('Network Error', 'Connection lost. Saving offline.', 'warning').then(() => {
-                saveToOfflineQueue(payload);
-                bootstrap.Modal.getInstance(document.getElementById('paymentModal')).hide();
-            });
-        }
-    }
-
-    function resetPOS() {
-        cart = [];
-        updateCartUI();
-        document.getElementById('customer-id').value = 'walk-in';
-        currentCustomer = { id: 'walk-in', points: 0, balance: 0 };
-        document.getElementById('points-to-use').value = '';
-    }
-
-    // --- CUSTOMER & FILTER LOGIC ---
-    document.getElementById('customer-id').addEventListener('change', function() {
-        const opt = this.options[this.selectedIndex];
-        currentCustomer = {
-            id: this.value,
-            balance: parseFloat(opt.getAttribute('data-balance')),
-            points: parseInt(opt.getAttribute('data-points'))
-        };
-        
-        // UI Updates
-        document.getElementById('loyalty-row').style.display = (CONFIG.loyaltyEnabled && currentCustomer.points > 0) ? 'flex' : 'none';
-        document.getElementById('redemption-section').style.display = (CONFIG.loyaltyEnabled && currentCustomer.points > 0) ? 'flex' : 'none';
-        document.getElementById('avail-points').innerText = currentCustomer.points;
-        
-        // Enable/Disable Credit
-        const creditRadio = document.getElementById('pm-credit');
-        if (this.value === 'new') {
-            creditRadio.disabled = false;
-            creditRadio.checked = true;
-            toggleFlow();
-        } else {
-            creditRadio.disabled = true;
-            if(creditRadio.checked) { document.getElementById('pm-cash').checked = true; toggleFlow(); }
-        }
-        
-        if (currentCustomer.balance > 0) {
-            Swal.fire({
-                toast: true, position: 'top-end', icon: 'info', 
-                title: `${opt.text.split('(')[0]} has debt: ₱${currentCustomer.balance}`,
-                timer: 3000, showConfirmButton: false
-            });
-        }
-        updateCartUI(); // Recalc totals with logic
-    });
-
-    // Search & Filter
-    document.getElementById('product-search').addEventListener('keyup', function() {
-        const q = this.value.toLowerCase();
-        const cards = document.querySelectorAll('.product-card-wrapper');
-        let found = false;
-        cards.forEach(card => {
-            const visible = card.dataset.name.includes(q) || card.dataset.sku.includes(q);
-            card.style.display = visible ? 'block' : 'none';
-            if(visible) found = true;
-        });
-        document.getElementById('no-products').style.display = found ? 'none' : 'block';
-    });
-
-    function filterCategory(cat, btn) {
-        document.querySelectorAll('.category-filter').forEach(b => { b.classList.remove('btn-dark'); b.classList.add('btn-light', 'border'); });
-        btn.classList.remove('btn-light', 'border'); btn.classList.add('btn-dark');
-        
-        const cards = document.querySelectorAll('.product-card-wrapper');
-        cards.forEach(card => {
-            card.style.display = (cat === 'all' || card.dataset.category === cat) ? 'block' : 'none';
         });
     }
-
-    // Camera Scan
-    function openCameraModal() {
-        new bootstrap.Modal(document.getElementById('cameraModal')).show();
-        if (!html5QrcodeScanner) {
-            html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 }, false);
-            html5QrcodeScanner.render((txt) => {
-                const prod = @json($products).find(p => p.sku === txt);
-                if(prod) { addToCart(prod); Swal.fire({toast:true, position:'top', icon:'success', title:'Added '+prod.name, timer:1000, showConfirmButton:false}); }
-                else { playError(); Swal.fire({toast:true, position:'top', icon:'error', title:'Item not found', timer:1000, showConfirmButton:false}); }
-            });
-        }
-    }
-    function stopCamera() { if(html5QrcodeScanner) html5QrcodeScanner.clear(); }
-
-    // Return Logic (Simplified for brevity)
-    function searchSaleForReturn() { /* logic from previous version, just styled better */ }
-    function submitReturn() { /* logic from previous version */ }
     
     function openPaymentModal() {
         if(cart.length === 0) return Swal.fire('Empty', 'Add items first', 'warning');
