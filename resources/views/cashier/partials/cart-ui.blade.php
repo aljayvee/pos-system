@@ -1,54 +1,62 @@
-<div class="cart-container border-0 h-100">
+<div class="cart-container h-100 d-flex flex-column bg-light rounded-4 overflow-hidden border-0 shadow-sm">
 
-{{-- NEW HEADER WITH CLEAR BUTTON --}}
-    <div class="p-3 border-bottom bg-white d-flex justify-content-between align-items-center rounded-top-3">
-        <h6 class="fw-bold m-0"><i class="fas fa-shopping-cart me-2 text-primary"></i>Current Order</h6>
-        <button class="btn btn-sm btn-outline-danger border-0" onclick="clearCart()" title="Clear Cart">
-            <i class="fas fa-trash-alt"></i> Clear
+    {{-- HEADER --}}
+    <div class="p-3 bg-white border-bottom d-flex justify-content-between align-items-center z-1">
+        <h6 class="fw-bold m-0 text-dark d-flex align-items-center">
+            <i class="fas fa-receipt me-2 text-primary"></i> Current Order
+        </h6>
+        <button class="btn btn-sm btn-link text-decoration-none text-danger fw-bold" onclick="clearCart()">
+            Clear
         </button>
     </div>
 
-    <div class="cart-items-area p-3" id="cart-items">
-        {{-- Javascript will inject items here --}}
-        <div class="text-center text-muted mt-5">
-            <i class="fas fa-basket-shopping fa-3x opacity-25"></i>
-            <p>Cart is empty</p>
-        </div>
+    {{-- SCROLLABLE ITEMS --}}
+    <div class="flex-grow-1 p-3 overflow-y-auto custom-scrollbar" id="cart-items" style="background: #f8fafc;">
+        {{-- JS INJECTED HERE --}}
     </div>
 
-    
-    
-    <div class="p-3 bg-light border-top">
+    {{-- FOOTER / TOTALS --}}
+    <div class="p-4 bg-white border-top rounded-top-4 shadow-lg z-2">
+        
         {{-- Customer Select --}}
-        <select id="customer-id" class="form-select mb-2 shadow-sm">
-            <option value="walk-in" data-points="0" data-balance="0">Walk-in Customer</option>
-            <option value="new" data-points="0">+ New (Credit)</option>
-            @foreach($customers as $c)
-            <option value="{{ $c->id }}" data-balance="{{ $c->balance ?? 0 }}" data-points="{{ $c->points }}">{{ $c->name }}</option>
-            @endforeach
-        </select>
-
-        {{-- NEW: Subtotal Row --}}
-        <div class="d-flex justify-content-between align-items-center mb-1 small text-secondary">
-            <span>Subtotal</span>
-            <span class="fw-bold">₱<span id="subtotal-display">0.00</span></span>
+        <div class="mb-3">
+            <label class="small fw-bold text-muted text-uppercase mb-1">Customer</label>
+            <select id="customer-id" class="form-select border-0 bg-light fw-medium py-2">
+                <option value="walk-in" data-points="0" data-balance="0">Walk-in Customer</option>
+                <option value="new">+ Create New Profile</option>
+                @foreach($customers as $c)
+                    <option value="{{ $c->id }}" data-balance="{{ $c->balance ?? 0 }}">{{ $c->name }}</option>
+                @endforeach
+            </select>
         </div>
 
-        {{-- NEW: VAT Row (Hidden by default, toggled by JS) --}}
-        <div id="tax-row" class="d-flex justify-content-between align-items-center mb-2 small text-muted" style="display:none !important;">
-            <span>VAT (12%)</span>
-            <span>₱<span id="tax-display">0.00</span></span>
+        {{-- Calculations --}}
+        <div class="d-flex justify-content-between align-items-center mb-1">
+            <span class="text-secondary">Subtotal</span>
+            <span class="fw-bold text-dark">₱<span id="subtotal-display">0.00</span></span>
         </div>
 
-        {{-- Grand Total --}}
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <h3 class="fw-bold m-0">Total</h3>
-            <h2 class="fw-bold text-primary m-0">₱<span class="total-amount-display">0.00</span></h2>
+        <div id="tax-row" class="d-flex justify-content-between align-items-center mb-3" style="display:none;">
+            <span class="text-secondary small">VAT (12%)</span>
+            <span class="fw-bold text-dark small">₱<span id="tax-display">0.00</span></span>
         </div>
 
-        {{-- Checkout Button --}}
-        <button class="btn btn-primary w-100 py-3 rounded-3 fw-bold fs-5 shadow-sm" onclick="openPaymentModal()">
-            PAY NOW
+        <div class="d-flex justify-content-between align-items-end mb-4 pt-3 border-top">
+            <span class="fw-bold text-dark h5 mb-0">Total Due</span>
+            <span class="fw-bolder text-primary h3 mb-0">₱<span class="total-amount-display">0.00</span></span>
+        </div>
+
+        {{-- Checkout --}}
+        <button class="btn btn-primary w-100 py-3 rounded-3 fw-bold shadow-md transition-all hover-scale" onclick="openPaymentModal()">
+            PROCEED TO PAYMENT
         </button>
     </div>
 </div>
+
+<style>
+    /* Utility for Cart */
+    .hover-scale:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(79, 70, 229, 0.2); }
+    .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+</style>

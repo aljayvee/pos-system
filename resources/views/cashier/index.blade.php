@@ -1,217 +1,219 @@
-{{-- 
-   FILE: resources/views/cashier/index.blade.php 
-   STATUS: MERGED & FIXED
-   
-   PRESERVED:
-   - Debt/Credit Collection Logic
-   - Returns/Refund Processing
-   - Offline Mode & Syncing
-   - Complex Payment Validation
-   
-   ADDED/FIXED:
-   - Robust 1D Barcode Scanning (Camera + USB)
-   - Batch Scanning (Instant Add + Sound)
-   - Responsive Phablet/Mobile Layout
---}}
 @extends('cashier.layout')
 
 @section('content')
-{{-- External Libraries --}}
+{{-- Libraries --}}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <style>
-    :root { --primary: #4f46e5; --success: #10b981; --bg-light: #f3f4f6; }
-    body { background-color: var(--bg-light); font-family: 'Inter', sans-serif; padding-bottom: 80px; }
+    /* UI VARIABLES */
+    :root { 
+        --primary: #4f46e5; 
+        --primary-light: #e0e7ff;
+        --text-dark: #1e293b;
+        --text-gray: #64748b;
+    }
+
+    /* PRODUCT CARD REDESIGN */
+    .product-card-wrapper { transition: all 0.2s ease; }
     
-    /* PRODUCT CARD STYLES */
     .product-item {
-        cursor: pointer; border: 1px solid #e5e7eb; background: white;
-        transition: transform 0.2s, box-shadow 0.2s; border-radius: 12px; overflow: hidden;
+        background: white;
+        border: 0;
+        border-radius: 16px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        overflow: hidden;
+        height: 100%;
     }
-    .product-item:active { transform: scale(0.96); }
-    .product-item:hover { transform: translateY(-3px); border-color: var(--primary); }
-    
-    /* CART CONTAINER */
-    .cart-container {
-        background: white; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
-        height: calc(100vh - 100px); display: flex; flex-direction: column;
+    .product-item:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 24px rgba(79, 70, 229, 0.15); /* Soft Indigo Glow */
     }
-    .cart-items-area { flex-grow: 1; overflow-y: auto; padding: 0 10px; }
+    .product-item:active { transform: scale(0.98); }
 
-    /* SCANNER VISUALS */
-    #reader { width: 100%; border-radius: 8px; overflow: hidden; background: black; }
-    /* Target the overlay to make it look like a 1D scanner */
-    #reader__scan_region { background: rgba(255, 255, 255, 0.1) !important; border: 2px solid #10b981 !important; }
-
-    /* CONNECTION STATUS BAR */
-    #connection-status { position: fixed; top: 0; left: 0; right: 0; height: 4px; z-index: 9999; }
-    .status-online { background: var(--success); }
-    .status-offline { background: #ef4444; }
-
-    /* MOBILE / PHABLET OPTIMIZATIONS */
-    @media (max-width: 768px) {
-        /* Hide Desktop Cart Column on Mobile */
-        .desktop-cart-col { display: none !important; }
-        
-        /* Mobile Sticky Footer */
-        .mobile-footer {
-            position: fixed; bottom: 0; left: 0; right: 0;
-            background: white; border-top: 1px solid #e5e7eb;
-            padding: 12px 20px; z-index: 1040;
-            display: flex; align-items: center; justify-content: space-between;
-            box-shadow: 0 -4px 6px -1px rgba(0,0,0,0.1);
-        }
-        
-        /* Adjust Product Grid for Mobile */
-        .product-grid-container { height: auto !important; overflow: visible !important; }
-        
-        /* Full Screen Camera on Mobile */
-        #cameraModal .modal-dialog { margin: 0; max-width: 100%; height: 100%; }
-        #cameraModal .modal-content { height: 100%; border-radius: 0; }
-        #reader { height: 60vh; object-fit: cover; }
+    .product-icon-area {
+        background: #f8fafc;
+        border-radius: 12px;
+        height: 80px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 12px;
+        color: #94a3b8;
     }
-    
-    @media (min-width: 769px) {
+
+    /* CATEGORY CHIPS */
+    .category-filter {
+        border: 1px solid #e2e8f0;
+        background: white;
+        color: var(--text-gray);
+        font-weight: 500;
+        transition: all 0.2s;
+    }
+    .category-filter:hover { background: #f1f5f9; }
+    .category-filter.active {
+        background: var(--primary);
+        color: white;
+        border-color: var(--primary);
+        box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+    }
+
+    /* MOBILE FOOTER */
+    .mobile-footer {
+        position: fixed; bottom: 0; left: 0; right: 0;
+        background: white;
+        padding: 16px 24px;
+        box-shadow: 0 -4px 20px rgba(0,0,0,0.05);
+        z-index: 1040;
+        border-top-left-radius: 20px;
+        border-top-right-radius: 20px;
+        display: flex; justify-content: space-between; align-items: center;
+    }
+
+    /* SCROLLBAR HIDE */
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+    /* === CRITICAL FIX FOR CART SCROLLING === */
+    @media (min-width: 992px) {
         .mobile-footer { display: none; }
+        
+        /* Force the cart column to have a fixed height matching the viewport minus header */
+        .desktop-cart-col { 
+            display: block; 
+            height: calc(100vh - 110px); 
+            position: sticky;
+            top: 90px;
+        }
+    }
+
+    @media (max-width: 991px) {
+        .desktop-cart-col { display: none; }
+        .product-grid-container { height: auto !important; padding-bottom: 100px; }
     }
 </style>
 
-<div id="connection-status" class="status-online"></div>
+<div id="connection-status" class="status-online" style="height:3px; position:fixed; top:0; width:100%; z-index:9999;"></div>
 
-<div class="container-fluid p-3">
-    <div class="row g-3">
-        {{-- LEFT COLUMN: PRODUCTS --}}
-        <div class="col-lg-8 col-md-7 col-12">
+<div class="container-fluid py-4 px-3 px-md-4">
+    <div class="row g-4">
+        
+        {{-- LEFT: PRODUCT AREA --}}
+        <div class="col-lg-8 col-12">
             
-            {{-- Search & Tools --}}
-            <div class="card border-0 shadow-sm rounded-4 p-2 p-md-3 mb-3">
-                <div class="d-flex gap-2 align-items-center"> 
-                    
-                    {{-- 1. Search + Scan Group --}}
-                    <div class="input-group flex-grow-1">
-                        <span class="input-group-text bg-white border-end-0 ps-3"><i class="fas fa-search text-muted"></i></span>
-                        {{-- Added "Scan..." placeholder to indicate it accepts scanner input --}}
-                        <input type="text" id="product-search" class="form-control border-start-0 border-end-0 py-2" placeholder="Search Item or Scan...">
-                        
-                        {{-- Camera Button --}}
-                        <button class="btn btn-dark px-3" onclick="openCameraModal()" title="Open Camera Scanner">
-                            <i class="fas fa-camera"></i> <span class="d-none d-md-inline ms-1">Scan</span>
-                        </button>
-                    </div>
-
-                    {{-- 2. Desktop Buttons --}}
-                    <div class="d-none d-lg-flex gap-2">
-                        <button class="btn btn-danger fw-bold rounded-3" onclick="openDebtorList()">
-                            <i class="fas fa-hand-holding-usd me-1"></i> Pay Debt
-                        </button>
-                        <button class="btn btn-warning fw-bold rounded-3" onclick="openReturnModal()">
-                            <i class="fas fa-undo me-1"></i> Return
-                        </button>
-                        @if($birEnabled == '1')
-                        <a href="{{ route('cashier.reading', 'x') }}" target="_blank" class="btn btn-outline-secondary rounded-3" title="Report">
-                            <i class="fas fa-print"></i>
-                        </a>
-                        @endif
-                    </div>
+            {{-- 1. Search Bar & Tools --}}
+            <div class="d-flex flex-column flex-md-row gap-3 mb-4">
+                {{-- Search Group --}}
+                <div class="input-group shadow-sm rounded-4 overflow-hidden border-0 flex-grow-1">
+                    <span class="input-group-text bg-white border-0 ps-4 text-muted"><i class="fas fa-search"></i></span>
+                    <input type="text" id="product-search" class="form-control border-0 py-3 bg-white" placeholder="Search products..." style="box-shadow: none;">
+                    <button class="btn btn-white border-0 pe-4 text-primary" onclick="openCameraModal()" title="Scan Barcode">
+                        <i class="fas fa-barcode fa-lg"></i>
+                    </button>
                 </div>
 
-                {{-- 3. Categories --}}
-                <div class="d-flex gap-2 mt-2 overflow-auto pb-1 no-scrollbar">
-                    <button class="btn btn-dark btn-sm rounded-pill px-3 fw-bold category-filter active" onclick="filterCategory('all', this)">All</button>
-                    @foreach($categories as $cat)
-                        <button class="btn btn-light btn-sm border rounded-pill px-3 fw-bold category-filter" 
-                                style="white-space: nowrap;" 
-                                onclick="filterCategory('{{ strtolower($cat->name) }}', this)">
-                            {{ $cat->name }}
-                        </button>
-                    @endforeach
+                {{-- Desktop Actions --}}
+                <div class="d-none d-lg-flex gap-2">
+                    <button class="btn btn-white shadow-sm rounded-4 px-3 fw-bold text-secondary border-0" onclick="openDebtorList()">
+                        <i class="fas fa-hand-holding-usd text-danger me-2"></i> Debt
+                    </button>
+                    <button class="btn btn-white shadow-sm rounded-4 px-3 fw-bold text-secondary border-0" onclick="openReturnModal()">
+                        <i class="fas fa-undo text-warning me-2"></i> Return
+                    </button>
                 </div>
             </div>
 
-            {{-- Product Grid --}}
-            <div class="product-grid-container flex-grow-1 overflow-auto pe-1" style="height: 70vh;">
-                <div class="row g-2" id="product-list">
+            {{-- 2. Categories --}}
+            <div class="d-flex gap-2 overflow-auto pb-2 mb-3 no-scrollbar align-items-center">
+                <button class="btn rounded-pill px-4 py-2 category-filter active" onclick="filterCategory('all', this)">All</button>
+                @foreach($categories as $cat)
+                    <button class="btn rounded-pill px-4 py-2 category-filter" 
+                            style="white-space: nowrap;" 
+                            onclick="filterCategory('{{ strtolower($cat->name) }}', this)">
+                        {{ $cat->name }}
+                    </button>
+                @endforeach
+            </div>
+
+            {{-- 3. Product Grid --}}
+            <div class="product-grid-container flex-grow-1 overflow-auto pe-1" style="height: 72vh;">
+                <div class="row g-3" id="product-list">
                     @foreach($products as $product)
                     <div class="col-xl-3 col-lg-4 col-md-6 col-6 product-card-wrapper" 
                             data-name="{{ strtolower($product->name) }}" 
-                            data-sku="{{ strtolower($product->sku ?? '') }}"
-                            data-id="{{ $product->id }}"
+                            data-sku="{{ $product->sku }}"
                             data-category="{{ strtolower($product->category->name ?? '') }}">
-                        <div class="product-item h-100 p-3 d-flex flex-column justify-content-between text-center" onclick='addToCart(@json($product))'>
+                        
+                        <div class="product-item p-3 d-flex flex-column" onclick='addToCart(@json($product))'>
+                            {{-- Stock Badge --}}
                             @if($product->current_stock <= ($product->reorder_point ?? 10))
-                                <span class="badge bg-danger position-absolute top-0 end-0 m-2">{{ $product->current_stock }}</span>
+                                <div class="position-absolute top-0 end-0 m-2">
+                                    <span class="badge bg-danger bg-opacity-10 text-danger rounded-pill px-2 py-1" style="font-size: 0.7rem;">
+                                        {{ $product->current_stock }} left
+                                    </span>
+                                </div>
                             @endif
-                            <div class="mb-2 text-secondary opacity-25"><i class="fas fa-box fa-2x"></i></div>
-                            <h6 class="fw-bold text-dark lh-sm text-truncate small">{{ $product->name }}</h6>
-                            <h5 class="text-primary fw-bold mb-0">₱{{ number_format($product->price, 2) }}</h5>
+
+                            <div class="product-icon-area">
+                                <i class="fas fa-box fa-2x opacity-50"></i>
+                            </div>
+                            
+                            <div class="mt-auto">
+                                <h6 class="fw-bold text-dark lh-sm text-truncate mb-1">{{ $product->name }}</h6>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="text-primary fw-bolder">₱{{ number_format($product->price, 2) }}</span>
+                                    <small class="text-muted" style="font-size: 0.75rem;">{{ $product->unit ?? 'pc' }}</small>
+                                </div>
+                            </div>
                         </div>
+
                     </div>
                     @endforeach
                 </div>
             </div>
         </div>
 
-        {{-- RIGHT COLUMN: CART (Desktop View) --}}
-        <div class="col-lg-4 col-md-5 desktop-cart-col">
-            {{-- Placeholder for JS injection --}}
+        {{-- RIGHT: CART (Desktop) --}}
+        {{-- IMPORTANT: Logic is handled by the CSS above for .desktop-cart-col --}}
+        <div class="col-lg-4 desktop-cart-col">
+            {{-- Injected via JS --}}
         </div>
     </div>
 </div>
 
-{{-- === MOBILE STICKY FOOTER (Phablet View) === --}}
+{{-- MOBILE FOOTER --}}
 <div class="mobile-footer">
     <div>
-        <small class="text-muted d-block">Total Due</small>
-        <h3 class="fw-bold text-primary m-0">₱<span id="mobile-total-display">0.00</span></h3>
+        <small class="text-muted fw-bold text-uppercase" style="font-size: 0.7rem;">Total Due</small>
+        <h2 class="fw-bold text-dark m-0">₱<span id="mobile-total-display">0.00</span></h2>
     </div>
     <div class="d-flex gap-2">
-        <span class="badge bg-danger rounded-pill d-flex align-items-center" id="mobile-cart-count">0 Items</span>
-        <button class="btn btn-dark fw-bold rounded-pill px-4" type="button" data-bs-toggle="offcanvas" data-bs-target="#mobileCartDrawer">
-            View Cart <i class="fas fa-chevron-up ms-2"></i>
+        <button class="btn btn-light rounded-circle shadow-sm" style="width: 45px; height: 45px;" onclick="clearCart()">
+            <i class="fas fa-trash-alt text-danger"></i>
+        </button>
+        <button class="btn btn-primary rounded-pill px-4 fw-bold shadow-lg" type="button" data-bs-toggle="offcanvas" data-bs-target="#mobileCartDrawer">
+            View Cart <span class="badge bg-white text-primary ms-2 rounded-pill" id="mobile-cart-count">0</span>
         </button>
     </div>
 </div>
 
-{{-- === MOBILE OFFCANVAS CART DRAWER === --}}
+{{-- OFFCANVAS CART --}}
 <div class="offcanvas offcanvas-bottom rounded-top-4" tabindex="-1" id="mobileCartDrawer" style="height: 85vh;">
     <div class="offcanvas-header border-bottom">
-        <h5 class="offcanvas-title fw-bold"><i class="fas fa-shopping-bag me-2"></i>Current Order</h5>
+        <h5 class="offcanvas-title fw-bold"><i class="fas fa-shopping-bag me-2 text-primary"></i>Your Order</h5>
         <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
     </div>
-    <div class="offcanvas-body p-0">
-        {{-- Placeholder for JS injection --}}
+    <div class="offcanvas-body p-0 bg-light">
+        {{-- Injected via JS --}}
     </div>
 </div>
 
-{{-- === CAMERA MODAL (REPLACED WITH ROBUST VERSION) === --}}
-<div class="modal fade" id="cameraModal" tabindex="-1" data-bs-backdrop="static">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header bg-dark text-white border-0">
-                <h5 class="modal-title"><i class="fas fa-barcode me-2"></i>Batch Scanner</h5>
-                <button type="button" class="btn-close btn-close-white" onclick="stopCameraAndClose()"></button>
-            </div>
-            <div class="modal-body bg-black p-0 d-flex justify-content-center align-items-center position-relative">
-                <div id="reader" style="width: 100%; min-height: 300px;"></div>
-                {{-- Overlay Text --}}
-                <div class="position-absolute text-white text-center w-100 pointer-events-none" style="bottom: 20px; z-index: 10;">
-                    <small class="bg-dark bg-opacity-50 px-3 py-1 rounded-pill">Align barcode in box</small>
-                </div>
-            </div>
-            <div class="modal-footer justify-content-between">
-                <div class="text-muted small"><i class="fas fa-volume-up"></i> Sound On</div>
-                <button type="button" class="btn btn-secondary" onclick="stopCameraAndClose()">Done</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-{{-- === OTHER MODALS (Debt, Return, Payment) === --}}
 @include('cashier.partials.modals')
 
-{{-- === REUSABLE CART UI COMPONENT === --}}
+{{-- CART TEMPLATE --}}
 <script id="cart-template" type="text/template">
     @include('cashier.partials.cart-ui')
 </script>
