@@ -47,13 +47,16 @@
                         <i class="fas fa-file-contract me-2"></i> BIR / Government Compliance (Tax)
                     </div>
                     
+                    @if(session('warning'))
+                            <div class="alert alert-warning fw-bold"><i class="fas fa-exclamation-triangle me-2"></i> {{ session('warning') }}</div>
+                    @endif
                     <div class="card-body">
                         {{-- Toggle Switch --}}
                         <div class="form-check form-switch mb-3">
                             <input type="hidden" name="enable_tax" value="0">
                             <input class="form-check-input" type="checkbox" id="taxSwitch" name="enable_tax" value="1" 
                                 {{ ($settings['enable_tax'] ?? '0') == '1' ? 'checked' : '' }}
-                                onchange="validateAndToggleTax()">
+                                onchange="toggleTaxFields()">
                             <label class="form-check-label fw-bold" for="taxSwitch">Enable VAT & BIR Details on Receipt</label>
                         </div>
                         
@@ -235,9 +238,7 @@
                         <i class="fas fa-save me-2"></i> Save All Settings
                     </button>
                 </div>
-                @if(session('warning'))
-                            <div class="alert alert-warning fw-bold"><i class="fas fa-exclamation-triangle me-2"></i> {{ session('warning') }}</div>
-                        @endif
+                
             </form>
         </div>
 
@@ -273,6 +274,7 @@
 </div>
 
 <script>
+    // 1. Simple Visibility Toggles
     function togglePaymongoFields() {
         const isChecked = document.getElementById('paymongoSwitch').checked;
         document.getElementById('paymongo-fields').style.display = isChecked ? 'block' : 'none';
@@ -288,21 +290,27 @@
         document.getElementById('tax-fields').style.display = isChecked ? 'block' : 'none';
     }
 
-    function toggleVisibility(id) {
-        const input = document.getElementById(id);
-        if (input.type === "password") {
-            // Simple check: Ask user to confirm they are the admin
-            // For stricter security, you would verify this via AJAX, 
-            // but this prevents accidental display.
-            if(confirm("Display sensitive BIR information?")) {
-                input.type = "text";
+    // 2. Form Submission Validation
+    document.querySelector('form').addEventListener('submit', function(event) {
+        const taxSwitch = document.getElementById('taxSwitch');
+        
+        if (taxSwitch.checked) {
+            const tinInput = document.getElementById('store_tin');
+            const permitInput = document.getElementById('business_permit');
+            
+            // Check if empty AND not holding a saved value (placeholder)
+            const tinEmpty = tinInput.value.trim() === '' && !tinInput.placeholder.includes('Hidden');
+            const permitEmpty = permitInput.value.trim() === '' && !permitInput.placeholder.includes('Hidden');
+
+            if (tinEmpty || permitEmpty) {
+                event.preventDefault(); // Stop Saving
+                alert("Wait! To enable BIR Tax Compliance, you must enter both the TIN and Business Permit Number.");
+                tinInput.focus();
             }
-        } else {
-            input.type = "password";
         }
-    }
+    });
 
-
+    // 3. Security Reveal Logic
     let securityModal;
 
     document.addEventListener('DOMContentLoaded', function() {
@@ -315,7 +323,6 @@
     });
 
     function requestReveal(fieldId) {
-        // Reset Modal
         document.getElementById('target-field-id').value = fieldId;
         document.getElementById('admin-password').value = '';
         document.getElementById('password-error').style.display = 'none';
@@ -326,12 +333,11 @@
 
     function verifyAndReveal() {
         const password = document.getElementById('admin-password').value;
-        const fieldKey = document.getElementById('target-field-id').value; // 'store_tin' or 'business_permit'
+        const fieldKey = document.getElementById('target-field-id').value;
         const errorMsg = document.getElementById('password-error');
 
         if (!password) return;
 
-        // AJAX Request
         fetch("{{ route('settings.reveal') }}", {
             method: "POST",
             headers: {
@@ -343,49 +349,26 @@
         .then(res => res.json())
         .then(data => {
             if (data.success) {
-                // Success: Fill input and show it
                 const input = document.getElementById(fieldKey);
                 input.value = data.value;
-                input.type = "text"; // Show plain text
+                input.type = "text"; 
                 securityModal.hide();
             } else {
-                // Error
                 errorMsg.innerText = data.message || "Incorrect Password";
                 errorMsg.style.display = 'block';
             }
         })
         .catch(err => {
             console.error(err);
-            errorMsg.innerText = "Server Error. Try again.";
+            errorMsg.innerText = "Server Error";
             errorMsg.style.display = 'block';
         });
     }
 
-    function validateAndToggleTax() {
-        const switchEl = document.getElementById('taxSwitch');
-        const fieldsDiv = document.getElementById('tax-fields');
-        const tinInput = document.getElementById('store_tin');
-        const permitInput = document.getElementById('business_permit');
-
-        // If turning ON
-        if (switchEl.checked) {
-            // Check if user typed something OR if there is existing saved data (indicated by placeholder)
-            const hasTin = tinInput.value.trim() !== '' || tinInput.placeholder.includes('Hidden');
-            const hasPermit = permitInput.value.trim() !== '' || permitInput.placeholder.includes('Hidden');
-
-            if (!hasTin || !hasPermit) {
-                alert("Restricted: You must enter a TIN and Business Permit to enable BIR Tax Compliance.");
-                switchEl.checked = false; // Revert switch
-                fieldsDiv.style.display = 'none'; // Keep hidden
-                
-                // Optional: Highlight the missing fields if they are visible
-                // But since they are hidden when switch is off, we just alert.
-                return;
-            }
-        }
-
-        // Standard Toggle Logic
-        fieldsDiv.style.display = switchEl.checked ? 'block' : 'none';
+    function toggleVisibility(id) {
+        // Deprecated simple toggle, forwarded to secure reveal if needed, 
+        // or kept for non-sensitive fields if any.
+        // For TIN/Permit, we use requestReveal().
     }
 </script>
 @endsection
