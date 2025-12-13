@@ -90,116 +90,149 @@
     <div class="card shadow-sm">
         <div class="card-body p-0">
             <table class="table table-striped table-hover mb-0">
-                <thead class="table-light">
-                        <tr>
-                            {{-- Sorting Helper Logic --}}
-                            @php
-                                $baseParams = request()->except(['sort', 'direction', 'page']);
-                                function sortLink($key, $label, $baseParams) {
-                                    $currentSort = request('sort', 'created_at');
-                                    $currentDir = request('direction', 'desc');
-                                    
-                                    // Toggle direction if clicking the same header
-                                    $newDir = ($currentSort === $key && $currentDir === 'asc') ? 'desc' : 'asc';
-                                    $icon = '';
+    <thead class="table-light">
+        <tr>
+            {{-- Sorting Helper Logic (Kept exactly as you had it) --}}
+            @php
+                $baseParams = request()->except(['sort', 'direction', 'page']);
+                function sortLink($key, $label, $baseParams) {
+                    $currentSort = request('sort', 'created_at');
+                    $currentDir = request('direction', 'desc');
+                    
+                    // Toggle direction
+                    $newDir = ($currentSort === $key && $currentDir === 'asc') ? 'desc' : 'asc';
+                    $icon = '';
 
-                                    if ($currentSort === $key) {
-                                        $icon = $currentDir === 'asc' 
-                                            ? '<i class="fas fa-sort-up ms-1"></i>' 
-                                            : '<i class="fas fa-sort-down ms-1"></i>';
-                                    } else {
-                                        $icon = '<i class="fas fa-sort text-muted ms-1 opacity-25"></i>';
-                                    }
+                    if ($currentSort === $key) {
+                        $icon = $currentDir === 'asc' 
+                            ? '<i class="fas fa-sort-up ms-1"></i>' 
+                            : '<i class="fas fa-sort-down ms-1"></i>';
+                    } else {
+                        $icon = '<i class="fas fa-sort text-muted ms-1 opacity-25"></i>';
+                    }
 
-                                    $url = route('products.index', array_merge($baseParams, ['sort' => $key, 'direction' => $newDir]));
-                                    return "<a href='{$url}' class='text-decoration-none text-dark fw-bold d-flex align-items-center'>{$label} {$icon}</a>";
-                                }
-                            @endphp
+                    $url = route('products.index', array_merge($baseParams, ['sort' => $key, 'direction' => $newDir]));
+                    return "<a href='{$url}' class='text-decoration-none text-dark fw-bold d-flex align-items-center'>{$label} {$icon}</a>";
+                }
+            @endphp
 
-                            <th>{!! sortLink('name', 'Product Name', $baseParams) !!}</th>
-                            <th>{!! sortLink('category', 'Category', $baseParams) !!}</th>
-                            <th class="text-end">{!! sortLink('price', 'Price', $baseParams) !!}</th>
-                            <th class="text-center">{!! sortLink('stock', 'Stock', $baseParams) !!}</th>
-                            <th class="text-center">Unit</th>
-                            <th class="text-center">Status</th>
-                            <th class="text-end">Action</th>
-                        </tr>
-                    </thead>
-                <tbody>
-                    @forelse($products as $product)
-                    <tr>
-                        <td>
-                            <div class="fw-bold">{{ $product->name }}</div>
-                            <small class="text-muted">{{ ucfirst($product->unit) }}</small>
-                        </td>
-                        <td>{{ $product->category->name ?? 'Uncategorized' }}</td>
-                        <td>₱{{ number_format($product->price, 2) }}</td>
-                        <td class="fw-bold {{ $product->stock <= $product->reorder_point ? 'text-danger' : 'text-success' }}">
-                            {{ $product->stock }}
-                        </td>
-                        <td>
-                            @if($product->stock == 0)
-                                <span class="badge bg-danger">Out of Stock</span>
-                            @elseif($product->stock <= $product->reorder_point)
-                                <span class="badge bg-warning text-dark">Low Stock</span>
-                            @else
-                                <span class="badge bg-success">Good</span>
-                            @endif
-                        </td>
-                        <td class="text-center">
-                            @if(request('archived'))
-                                {{-- ARCHIVED MODE: Show Restore & Force Delete --}}
-                                <form action="{{ route('products.restore', $product->id) }}" method="POST" class="d-inline">
-                                    @csrf
-                                    <button class="btn btn-sm btn-success" title="Restore Product">
-                                        <i class="fas fa-trash-restore"></i> Restore
-                                    </button>
-                                </form>
+            {{-- 1. Name --}}
+            <th>{!! sortLink('name', 'Product Name', $baseParams) !!}</th>
+            {{-- 2. Category --}}
+            <th>{!! sortLink('category', 'Category', $baseParams) !!}</th>
+            {{-- 3. Price --}}
+            <th class="text-end">{!! sortLink('price', 'Price', $baseParams) !!}</th>
+            {{-- 4. Stock --}}
+            <th class="text-center">{!! sortLink('stock', 'Stock', $baseParams) !!}</th>
+            {{-- 5. Unit (Fixed: Added column) --}}
+            <th class="text-center">Unit</th>
+            {{-- 6. Expiry (New Feature) --}}
+            <th class="text-center">Expiry</th>
+            {{-- 7. Status --}}
+            <th class="text-center">Status</th>
+            {{-- 8. Action --}}
+            <th class="text-end">Action</th>
+        </tr>
+    </thead>
+    <tbody>
+        @forelse($products as $product)
+        <tr>
+            {{-- 1. Product Name --}}
+            <td>
+                <div class="fw-bold">{{ $product->name }}</div>
+                <small class="text-muted">{{ $product->sku ?? '' }}</small>
+            </td>
 
-                                <form action="{{ route('products.force_delete', $product->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Permanently delete this item? This cannot be undone.');">
-                                    @csrf @method('DELETE')
-                                    <button class="btn btn-sm btn-danger" title="Delete Permanently">
-                                        <i class="fas fa-times"></i>
-                                    </button>
-                                </form>
-                            @else
-                                {{-- ACTIVE MODE: Show Barcode, Edit, & Archive --}}
-                                
-                                {{-- 1. BARCODE BUTTON (Condition: Feature ON + Product has SKU) --}}
-                                @if($barcodeEnabled == '1' && $product->sku)
-                                    <a href="{{ route('products.barcode', $product->id) }}" 
-                                       target="_blank" 
-                                       class="btn btn-sm btn-dark me-1" 
-                                       title="Print Barcode">
-                                        <i class="fas fa-barcode"></i>
-                                    </a>
-                                @endif
+            {{-- 2. Category --}}
+            <td>{{ $product->category->name ?? 'Uncategorized' }}</td>
 
-                                {{-- 2. EDIT BUTTON (Links to separate Edit page) --}}
-                                <a href="{{ route('products.edit', $product->id) }}" class="btn btn-sm btn-outline-primary me-1" title="Edit">
-                                    <i class="fas fa-edit"></i>
-                                </a>
+            {{-- 3. Price --}}
+            <td class="text-end">₱{{ number_format($product->price, 2) }}</td>
 
-                                {{-- 3. ARCHIVE BUTTON --}}
-                                <form action="{{ route('products.destroy', $product->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Archive this product?');">
-                                    @csrf @method('DELETE')
-                                    <button class="btn btn-sm btn-outline-danger" title="Archive">
-                                        <i class="fas fa-archive"></i>
-                                    </button>
-                                </form>
-                            @endif
-                        </td>
-                    </tr>
-                    @empty
-                    <tr>
-                        <td colspan="6" class="text-center py-5 text-muted">
-                            <i class="fas fa-box-open fa-3x mb-3 opacity-25"></i><br>
-                            No products found matching your filters.
-                        </td>
-                    </tr>
-                    @endforelse
-                </tbody>
-            </table>
+            {{-- 4. Stock --}}
+            <td class="text-center fw-bold {{ $product->stock <= $product->reorder_point ? 'text-danger' : 'text-success' }}">
+                {{ $product->stock }}
+            </td>
+
+            {{-- 5. Unit (Moved here from Name column) --}}
+            <td class="text-center">{{ ucfirst($product->unit) }}</td>
+
+            {{-- 6. Expiration Date (New Feature) --}}
+            <td class="text-center">
+                @if($product->expiration_date)
+                    {{-- Highlight if expired --}}
+                    @if($product->expiration_date < now())
+                        <span class="badge bg-danger">Expired</span>
+                        <br><small class="text-danger">{{ $product->expiration_date->format('M d, Y') }}</small>
+                    @else
+                        {{ $product->expiration_date->format('M d, Y') }}
+                    @endif
+                @else
+                    <span class="text-muted">-</span>
+                @endif
+            </td>
+
+            {{-- 7. Status Badge --}}
+            <td class="text-center">
+                @if($product->stock == 0)
+                    <span class="badge bg-danger">Out of Stock</span>
+                @elseif($product->stock <= $product->reorder_point)
+                    <span class="badge bg-warning text-dark">Low Stock</span>
+                @else
+                    <span class="badge bg-success">Good</span>
+                @endif
+            </td>
+
+            {{-- 8. Action Buttons --}}
+            <td class="text-end">
+                <div class="d-flex justify-content-end gap-1">
+                    @if(request('archived'))
+                        {{-- ARCHIVED ACTIONS --}}
+                        <form action="{{ route('products.restore', $product->id) }}" method="POST">
+                            @csrf
+                            <button class="btn btn-sm btn-success" title="Restore Product">
+                                <i class="fas fa-trash-restore"></i>
+                            </button>
+                        </form>
+
+                        <form action="{{ route('products.force_delete', $product->id) }}" method="POST" onsubmit="return confirm('Permanently delete?');">
+                            @csrf @method('DELETE')
+                            <button class="btn btn-sm btn-danger" title="Delete Permanently">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </form>
+                    @else
+                        {{-- ACTIVE ACTIONS --}}
+                        @if($barcodeEnabled == '1' && $product->sku)
+                            <a href="{{ route('products.barcode', $product->id) }}" target="_blank" class="btn btn-sm btn-dark" title="Barcode">
+                                <i class="fas fa-barcode"></i>
+                            </a>
+                        @endif
+
+                        <a href="{{ route('products.edit', $product->id) }}" class="btn btn-sm btn-outline-primary" title="Edit">
+                            <i class="fas fa-edit"></i>
+                        </a>
+
+                        <form action="{{ route('products.destroy', $product->id) }}" method="POST" onsubmit="return confirm('Archive this product?');">
+                            @csrf @method('DELETE')
+                            <button class="btn btn-sm btn-outline-danger" title="Archive">
+                                <i class="fas fa-archive"></i>
+                            </button>
+                        </form>
+                    @endif
+                </div>
+            </td>
+        </tr>
+        @empty
+        <tr>
+            <td colspan="8" class="text-center py-5 text-muted">
+                <i class="fas fa-box-open fa-3x mb-3 opacity-25"></i><br>
+                No products found matching your filters.
+            </td>
+        </tr>
+        @endforelse
+    </tbody>
+</table>
         </div>
         <div class="card-footer">
             {{ $products->links() }}
