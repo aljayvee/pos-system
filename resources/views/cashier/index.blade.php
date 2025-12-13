@@ -414,7 +414,7 @@
             if(taxRow) taxRow.style.setProperty('display', 'flex', 'important');
             if(document.getElementById('tax-display')) document.getElementById('tax-display').innerText = taxAmt.toFixed(2);
         } else {
-            if(taxRow) taxRow.style.display = 'none';
+            if(taxRow) taxRow.style.display = 'hidden';
         }
 
         document.getElementById('subtotal-display').innerText = subtotal.toFixed(2);
