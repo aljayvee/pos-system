@@ -4,7 +4,7 @@ import { createApp } from 'vue';
 const app = createApp({
     data() {
         return {
-            // Default to closed on mobile (< 992px), open on desktop (>= 992px)
+            // Default: Open on Desktop (>=992px), Closed on Mobile (<992px)
             sidebarOpen: window.innerWidth >= 992,
             isMobile: window.innerWidth < 992,
             notifOpen: false
@@ -18,12 +18,12 @@ const app = createApp({
             this.notifOpen = !this.notifOpen;
         },
         handleResize() {
-            const currentMobile = window.innerWidth < 992;
+            const currentIsMobile = window.innerWidth < 992;
             
-            // If we switched from desktop to mobile or vice-versa
-            if (this.isMobile !== currentMobile) {
-                this.isMobile = currentMobile;
-                // Auto-set sidebar state based on new device width
+            // Only update if the mode (mobile vs desktop) changes
+            if (this.isMobile !== currentIsMobile) {
+                this.isMobile = currentIsMobile;
+                // Reset sidebar: Open if going to Desktop, Closed if going to Mobile
                 this.sidebarOpen = !this.isMobile; 
             }
         }
@@ -36,7 +36,7 @@ const app = createApp({
     }
 });
 
-// Directive to close dropdowns when clicking outside
+// Custom directive to close dropdowns when clicking outside
 app.directive('click-outside', {
     mounted(el, binding) {
         el.clickOutsideEvent = function(event) {

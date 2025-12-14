@@ -56,7 +56,7 @@
             width: 100%; 
             min-height: 100vh;
             transition: margin-left 0.3s ease-in-out;
-            /* Default to Desktop View: Pushed right */
+            /* Default: Desktop View (Pushed right) */
             margin-left: var(--sidebar-width); 
         }
 
@@ -64,18 +64,16 @@
         
         /* DESKTOP (>= 992px) */
         @media (min-width: 992px) {
-            /* When Vue loads and adds 'desktop-closed', collapse sidebar */
             #app.desktop-closed #sidebar-wrapper { transform: translateX(-100%); }
             #app.desktop-closed #page-content-wrapper { margin-left: 0; }
         }
 
         /* MOBILE (< 992px) */
         @media (max-width: 991.98px) {
-            /* Default state on mobile: No margin, sidebar hidden */
             #page-content-wrapper { margin-left: 0 !important; }
             #sidebar-wrapper { transform: translateX(-100%); }
             
-            /* When 'mobile-open' class is added by Vue, show sidebar */
+            /* Open State */
             #app.mobile-open #sidebar-wrapper { transform: translateX(0); }
             
             /* Backdrop */
@@ -94,9 +92,9 @@
         .sidebar-content { flex-grow: 1; overflow-y: auto; padding: 20px 0; }
         
         .list-group-item { background: transparent; border: none; color: var(--text-muted); padding: 12px 24px; font-size: 0.95rem; font-weight: 500; display: flex; align-items: center; border-left: 3px solid transparent; transition: all 0.2s ease; gap: 16px; text-decoration: none; }
-        .list-group-item i { width: 24px; text-align: center; font-size: 1.1rem; flex-shrink: 0; }
         .list-group-item:hover { background-color: rgba(255,255,255,0.03); color: var(--text-light); }
         .list-group-item.active { background-color: var(--active-bg); color: var(--active-text); font-weight: 600; border-left-color: var(--active-text); }
+        .list-group-item i { width: 24px; text-align: center; }
         .list-group-item.active i { color: var(--active-text); }
         
         .menu-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1.2px; color: #5d5f75; padding: 24px 24px 8px; font-weight: 700; }
@@ -110,7 +108,7 @@
         .btn-logout { width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px; background: rgba(246, 78, 96, 0.1); color: var(--danger-color); border: 1px solid transparent; padding: 10px; border-radius: 8px; font-weight: 600; font-size: 0.9rem; transition: all 0.2s; cursor: pointer;}
         .btn-logout:hover { background: var(--danger-color); color: white; }
         
-        /* Navbar Sticky Fix */
+        /* Navbar Sticky */
         .sticky-top { z-index: 1020; }
         
         /* Notification Dropdown */
@@ -197,7 +195,7 @@
                 {{-- Navbar --}}
                 <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom shadow-sm px-4 sticky-top" style="height: var(--top-nav-height);">
                     
-                    {{-- Toggle Button (Hamburger) --}}
+                    {{-- Toggle Button (Hamburger) - VUE CLICK ONLY --}}
                     <button class="btn btn-light border shadow-sm me-3" @click="toggleSidebar">
                         <i class="fas fa-bars"></i>
                     </button>
@@ -209,8 +207,8 @@
                     <ul class="navbar-nav ms-auto align-items-center">
                         @if(Auth::user()->role === 'admin')
                         {{-- Notifications --}}
-                        <li class="nav-item dropdown me-3 position-relative">
-                            {{-- Notification Bell --}}
+                        <li class="nav-item dropdown me-3 position-relative" v-click-outside="() => notifOpen = false">
+                            {{-- IMPORTANT: Removed data-bs-toggle="dropdown" to allow Vue to handle it --}}
                             <a class="nav-link position-relative" href="#" @click.prevent="toggleNotif">
                                 <i class="fas fa-bell fa-lg text-secondary"></i>
                                 @if(($totalAlerts ?? 0) > 0)<span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger border border-white">{{ $totalAlerts }}</span>@endif
@@ -219,7 +217,6 @@
                             {{-- Dropdown --}}
                             <div class="dropdown-menu dropdown-menu-end notification-menu shadow p-0" 
                                  :class="{ 'show': notifOpen }" 
-                                 v-click-outside="() => notifOpen = false"
                                  style="position: absolute; right: 0; top: 100%;">
                                 
                                 <div class="p-3 border-bottom bg-light d-flex justify-content-between align-items-center">
