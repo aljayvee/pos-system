@@ -110,10 +110,10 @@
 
     {{-- TABLES ROW --}}
     <div class="row g-4">
-        {{-- Low Stock --}}
+        {{-- LOW STOCK (Fixed for Mobile & Desktop) --}}
         <div class="col-xl-6">
             <div class="card shadow-sm border-0 h-100">
-                <div class="card-header bg-white fw-bold text-danger py-3">
+                <div class="card-header bg-white border-bottom fw-bold text-danger py-3">
                     <i class="fas fa-exclamation-triangle me-1"></i> Running Low
                 </div>
                 <div class="card-body p-0">
@@ -121,17 +121,37 @@
                         <div class="table-responsive">
                             <table class="table table-striped mb-0 align-middle">
                                 <thead class="bg-light text-secondary small">
-                                    <tr><th class="ps-3">Item</th><th>Stock</th><th class="text-end pe-3">Action</th></tr>
+                                    <tr>
+                                        <th class="ps-3">Item Name</th>
+                                        <th>Stock Level</th>
+                                        <th class="text-end pe-3">Action</th>
+                                    </tr>
                                 </thead>
                                 <tbody>
                                     @foreach($lowStockItems as $item)
                                     <tr>
-                                        <td class="ps-3"><span class="fw-bold text-dark">{{ $item->name }}</span></td>
-                                        <td>
-                                            <span class="badge bg-danger bg-opacity-10 text-danger border border-danger px-2">{{ $item->stock }} Left</span>
+                                        <td class="ps-3">
+                                            <div class="fw-bold text-dark">{{ $item->name }}</div>
+                                            <small class="text-muted">{{ $item->unit ?? 'Unit' }}</small>
+                                        </td>
+                                        <td style="min-width: 130px;">
+                                            <div class="d-flex align-items-center">
+                                                {{-- FIX: Use current_stock --}}
+                                                <span class="fw-bold text-danger me-2">{{ $item->current_stock }}</span>
+                                                
+                                                <div class="progress flex-grow-1 bg-secondary-subtle" style="height: 6px; width: 60px;">
+                                                    {{-- FIX: Calculation using current_stock and reorder_point --}}
+                                                    <div class="progress-bar bg-danger" role="progressbar" 
+                                                        style="width: {{ ($item->current_stock / ($item->reorder_point ?: 10)) * 100 }}%">
+                                                    </div>
+                                                </div>
+                                                <span class="small text-muted ms-2" style="font-size: 0.75rem">/{{ $item->reorder_point }}</span>
+                                            </div>
                                         </td>
                                         <td class="text-end pe-3">
-                                            <a href="{{ route('inventory.adjust') }}?product_id={{ $item->id }}" class="btn btn-sm btn-outline-dark rounded-pill px-3">Restock</a>
+                                            <a href="{{ route('inventory.adjust') }}?product_id={{ $item->id }}" class="btn btn-sm btn-outline-dark rounded-pill px-3">
+                                                Restock
+                                            </a>
                                         </td>
                                     </tr>
                                     @endforeach
@@ -141,7 +161,7 @@
                     @else
                         <div class="text-center py-5 text-muted">
                             <i class="fas fa-check-circle fa-3x mb-2 text-success opacity-50"></i>
-                            <p>Healthy Inventory</p>
+                            <p class="mb-0 fw-medium">Inventory is healthy!</p>
                         </div>
                     @endif
                 </div>
