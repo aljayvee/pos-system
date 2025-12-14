@@ -9,6 +9,14 @@ export default defineConfig({
             refresh: true,
         }),
         tailwindcss(),
+        vue({ // <--- Add this block
+            template: {
+                transformAssetUrls: {
+                    base: null,
+                    includeAbsolute: false,
+                },
+            },
+        }),
     ],
     server: {
         watch: {
