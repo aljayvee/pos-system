@@ -167,7 +167,7 @@
         }
 
         const config = { 
-            fps: 15, 
+            fps: 60, 
             qrbox: { width: 300, height: 150 }, // Rectangular for 1D
             aspectRatio: 1.0,
             experimentalFeatures: { useBarCodeDetectorIfSupported: true } 

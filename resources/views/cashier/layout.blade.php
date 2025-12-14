@@ -84,6 +84,11 @@
                         <button class="btn btn-light border py-2 text-start fw-bold text-secondary" onclick="openReturnModal()">
                             <i class="fas fa-undo me-2 text-warning"></i> Process Return
                         </button>
+
+                        {{-- === ADDED: PROFILE SETTINGS BUTTON === --}}
+                        <a href="{{ route('profile.edit', ['context' => 'cashier']) }}" class="btn btn-light border py-2 text-start fw-bold text-secondary">
+                            <i class="fas fa-user-cog me-2 text-primary"></i> Profile Settings
+                        </a>
                     </div>
 
                     <form action="{{ route('logout') }}" method="POST">

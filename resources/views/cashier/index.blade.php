@@ -447,72 +447,116 @@
         });
     };
 
-    // --- 8. CAMERA (ROBUST IMPLEMENTATION) ---
-    // REPLACE your existing window.openCameraModal function with this:
-
-window.openCameraModal = function() {
-    // 1. SECURITY CHECK
-    if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
-        Swal.fire({
-            icon: 'error',
-            title: 'Security Error',
-            html: `
-                <p>Google Chrome blocks camera access on insecure connections (HTTP).</p>
-                <hr>
-                <div class="text-start small">
-                    <strong>Solution:</strong><br>
-                    1. Use <b>Ngrok</b> to create an HTTPS link.<br>
-                    2. Or enable "Insecure origins" in Chrome Flags.
-                </div>
-            `
-        });
-        return;
-    }
-
-    const modal = new bootstrap.Modal(document.getElementById('cameraModal'));
-    modal.show();
+    // --- 7. ROBUST CAMERA SCANNER (Ported from Add Product View) ---
+    // We use the same High-Performance Config here for consistent behavior
     
-    // Initialize HTML5QRCode
-    if (!html5QrCode) {
-        html5QrCode = new Html5Qrcode("reader");
-    }
+    // Global variable to hold the scanner instance
+    window.html5QrcodeScanner = null;
 
-    const config = { 
-        fps: 15, 
-        qrbox: { width: 250, height: 150 }, // 1D Barcode Box
-        aspectRatio: 1.0,
-        experimentalFeatures: { useBarCodeDetectorIfSupported: true } 
+    window.openCameraModal = function() {
+        // 1. Show the Modal
+        const modal = new bootstrap.Modal(document.getElementById('cameraModal'));
+        modal.show();
+
+        // 2. HIGH PERFORMANCE CONFIGURATION (From create.blade.php)
+        const config = { 
+            fps: 20, // Fast scanning (20 frames per second)
+            qrbox: { width: 300, height: 150 }, // Rectangular box for 1D barcodes
+            aspectRatio: 1.0, 
+            
+            // UI Controls
+            showTorchButtonIfSupported: true, // Flashlight for dark items
+            showZoomSliderIfSupported: true,  // Zoom Slider (Vital for small barcodes)
+            defaultZoomValueIfSupported: 1.5, // Default 1.5x zoom to help focus
+
+            // STRICTLY define formats for speed and accuracy
+            formatsToSupport: [ 
+                Html5QrcodeSupportedFormats.UPC_A, 
+                Html5QrcodeSupportedFormats.UPC_E,
+                Html5QrcodeSupportedFormats.EAN_13,
+                Html5QrcodeSupportedFormats.EAN_8, 
+                Html5QrcodeSupportedFormats.CODE_128,
+                Html5QrcodeSupportedFormats.CODE_39
+            ],
+            
+            // Use Browser Native API (Faster & more robust)
+            experimentalFeatures: {
+                useBarCodeDetectorIfSupported: true
+            }
+        };
+
+        // 3. Initialize Scanner if not already running
+        if (!window.html5QrcodeScanner) {
+            // "reader" is the ID of the div in your modal
+            window.html5QrcodeScanner = new Html5QrcodeScanner("reader", config, false);
+            
+            // Render with specific success callback
+            window.html5QrcodeScanner.render(onCashierScanSuccess, (err) => { 
+                // Ignore frame parse errors (console noise) 
+            });
+        }
     };
 
-    // Prefer Back Camera
-    html5QrCode.start(
-        { facingMode: "environment" }, 
-        config, 
-        (decodedText) => {
-            // SUCCESS
-            if (isScanning) return;
-            isScanning = true;
-            handleScan(decodedText); // Call your scan handler
-            setTimeout(() => { isScanning = false; }, 1500); 
-        },
-        (errorMessage) => {
-            // Ignore frame parse errors (scanning in progress...)
+    function onCashierScanSuccess(decodedText, decodedResult) {
+        // 1. Search for the product by SKU
+        // Note: We use the global ALL_PRODUCTS variable defined in index.blade.php
+        const product = ALL_PRODUCTS.find(p => p.sku === decodedText);
+
+        if (product) {
+            // 2. Add to Cart (Batch Mode)
+            addToCart(product);
+            
+            // 3. Visual Feedback (Toast)
+            Swal.fire({
+                toast: true, position: 'top', icon: 'success', 
+                title: `${product.name} Added`, 
+                timer: 1000, showConfirmButton: false 
+            });
+
+            // 4. Batch Logic: Pause briefly to prevent adding the same item 50 times in 1 second
+            if(window.html5QrcodeScanner) {
+                window.html5QrcodeScanner.pause();
+                setTimeout(() => window.html5QrcodeScanner.resume(), 1500);
+            }
+
+        } else {
+            // Error Feedback
+            Swal.fire({
+                toast: true, position: 'top', icon: 'error', 
+                title: 'Item Not Found', 
+                timer: 1000, showConfirmButton: false 
+            });
+            
+            // Pause briefly on error too so user can see the message
+            if(window.html5QrcodeScanner) {
+                window.html5QrcodeScanner.pause();
+                setTimeout(() => window.html5QrcodeScanner.resume(), 2000);
+            }
         }
-    ).catch(err => {
-        // 2. CATCH & SHOW REAL ERROR
-        console.error("Camera failed", err);
-        
-        // Hide modal
-        bootstrap.Modal.getInstance(document.getElementById('cameraModal')).hide();
+    }
 
-        let msg = "Could not access camera.";
-        if (err.name === 'NotAllowedError') msg = "Camera Permission Denied. Please allow access in Chrome Settings.";
-        if (err.name === 'NotFoundError') msg = "No camera found on this device.";
-        if (err.name === 'NotReadableError') msg = "Camera is already in use by another app.";
+    // Explicit Stop Function for the Close Button
+    window.stopCamera = function() {
+        if (window.html5QrcodeScanner) {
+            window.html5QrcodeScanner.clear().then(() => {
+                window.html5QrcodeScanner = null;
+                // Force hide modal if needed
+                const modalEl = document.getElementById('cameraModal');
+                const modal = bootstrap.Modal.getInstance(modalEl);
+                if(modal) modal.hide();
+            }).catch(err => console.log("Failed to clear scanner", err));
+        }
+    };
 
-        Swal.fire('Scanner Error', msg + `<br><small class="text-muted">${err}</small>`, 'error');
+    // Cleanup when modal is closed via clicking outside/ESC
+    document.getElementById('cameraModal')?.addEventListener('hidden.bs.modal', function () {
+        window.stopCamera();
     });
-};
+
+    // Cleanup when modal is closed via clicking outside/ESC
+    document.getElementById('cameraModal').addEventListener('hidden.bs.modal', function () {
+        window.stopCamera();
+    });
     
     window.stopCameraAndClose = function() {
         if(html5QrCode) {
