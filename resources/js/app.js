@@ -1,20 +1,25 @@
 import './bootstrap';
 import { createApp } from 'vue';
+
 const app = createApp({
     data() {
         return {
-            sidebarOpen: window.innerWidth >= 768, // Default open on desktop
+            sidebarOpen: window.innerWidth >= 768,
             isMobile: window.innerWidth < 768,
             notifOpen: false
         }
     },
     mounted() {
+        // Handle screen resizing
         window.addEventListener('resize', () => {
             this.isMobile = window.innerWidth < 768;
-            // Auto-reset state on resize to avoid broken layouts
-            if(!this.isMobile) this.sidebarOpen = true;
-            else this.sidebarOpen = false;
+            if (!this.isMobile) {
+                this.sidebarOpen = true; // Always open on desktop
+            } else {
+                this.sidebarOpen = false; // Always closed on mobile
+            }
         });
     }
 });
+
 app.mount('#app');

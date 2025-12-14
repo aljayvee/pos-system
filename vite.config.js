@@ -1,7 +1,7 @@
 import { defineConfig } from 'vite';
 import laravel from 'laravel-vite-plugin';
 import tailwindcss from '@tailwindcss/vite';
-import vue from '@vitejs/plugin-vue'; // 1. Import Vue Plugin
+import vue from '@vitejs/plugin-vue';
 
 export default defineConfig({
     plugins: [
@@ -10,7 +10,7 @@ export default defineConfig({
             refresh: true,
         }),
         tailwindcss(),
-        vue({ 
+        vue({
             template: {
                 transformAssetUrls: {
                     base: null,
@@ -21,8 +21,8 @@ export default defineConfig({
     ],
     resolve: {
         alias: {
-            // 2. THIS IS THE FIX: Point 'vue' to the build that includes the compiler
-            'vue': 'vue/dist/vue.esm-bundler.js', 
+            // CRITICAL: This allows Vue to compile HTML found in your Blade files
+            'vue': 'vue/dist/vue.esm-bundler.js',
         },
     },
     server: {

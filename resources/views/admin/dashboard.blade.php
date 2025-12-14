@@ -284,3 +284,61 @@
     });
 </script>
 @endsection
+
+{{-- PUSH STYLES TO LAYOUT HEAD --}}
+@push('styles')
+<style>
+    @media (max-width: 767px) {
+        .page-header { margin-top: 1rem !important; margin-bottom: 1rem !important; }
+        .page-header h1 { font-size: 1.5rem; font-weight: 700; }
+        .card { margin-bottom: 1rem !important; border-radius: 12px !important; }
+        .card-body { padding: 1rem !important; }
+        .stat-label { font-size: 0.7rem; font-weight: 600; opacity: 0.8; }
+        .stat-value { font-size: 1.3rem !important; margin-bottom: 0.2rem !important; }
+        .chart-container { height: 250px !important; } 
+    }
+    .chart-container { position: relative; width: 100%; height: 350px; }
+</style>
+@endpush
+
+{{-- PUSH SCRIPTS TO LAYOUT BODY END --}}
+@push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const ctx = document.getElementById('salesChart');
+        if (ctx) {
+            const canvas = ctx.getContext('2d');
+            let gradient = canvas.createLinearGradient(0, 0, 0, 400);
+            gradient.addColorStop(0, 'rgba(79, 70, 229, 0.4)');
+            gradient.addColorStop(1, 'rgba(79, 70, 229, 0.0)');
+
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: @json($chartLabels),
+                    datasets: [{
+                        label: 'Sales Revenue',
+                        data: @json($chartValues),
+                        borderColor: '#4f46e5',
+                        backgroundColor: gradient,
+                        borderWidth: 3,
+                        pointRadius: 4,
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true, ticks: { callback: function(value) { return '₱' + value; } } },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+        }
+    });
+</script>
+@endpush
