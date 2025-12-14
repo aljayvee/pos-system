@@ -1,7 +1,7 @@
 import { defineConfig } from 'vite';
 import laravel from 'laravel-vite-plugin';
 import tailwindcss from '@tailwindcss/vite';
-import vue from '@vitejs/plugin-vue'; // <--- ADD THIS LINE
+import vue from '@vitejs/plugin-vue'; // 1. Import Vue Plugin
 
 export default defineConfig({
     plugins: [
@@ -10,7 +10,7 @@ export default defineConfig({
             refresh: true,
         }),
         tailwindcss(),
-        vue({ // <--- Add this block
+        vue({ 
             template: {
                 transformAssetUrls: {
                     base: null,
@@ -19,6 +19,12 @@ export default defineConfig({
             },
         }),
     ],
+    resolve: {
+        alias: {
+            // 2. THIS IS THE FIX: Point 'vue' to the build that includes the compiler
+            'vue': 'vue/dist/vue.esm-bundler.js', 
+        },
+    },
     server: {
         watch: {
             ignored: ['**/storage/framework/views/**'],
