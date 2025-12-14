@@ -1,186 +1,227 @@
 @extends('admin.layout')
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 @section('content')
-<div class="container-fluid px-4">
-    <h1 class="mt-4">Store Overview</h1>
-    <ol class="breadcrumb mb-4">
-        <li class="breadcrumb-item active">Dashboard</li>
-    </ol>
+<style>
+    /* MOBILE REFINEMENTS */
+    @media (max-width: 767px) {
+        .page-header { margin-top: 1rem !important; margin-bottom: 1rem !important; }
+        .page-header h1 { font-size: 1.5rem; font-weight: 700; }
+        
+        /* Tighter Card Spacing */
+        .card { margin-bottom: 1rem !important; border-radius: 12px !important; }
+        .card-body { padding: 1rem !important; }
+        
+        /* Stats Typography */
+        .stat-label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.9; }
+        .stat-value { font-size: 1.25rem !important; margin-bottom: 0.25rem !important; }
+        .stat-sub { font-size: 0.7rem; }
 
-    <div class="row">
-        <div class="col-xl-3 col-md-6">
-            <div class="card bg-primary text-white mb-4">
+        /* Modern Mobile Tables */
+        .mobile-table-card tr {
+            display: flex;
+            flex-direction: column;
+            padding: 10px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .mobile-table-card td {
+            display: block;
+            width: 100%;
+            padding: 2px 0 !important;
+            border: none !important;
+        }
+        .mobile-table-card thead { display: none; } /* Hide headers on mobile */
+    }
+</style>
+
+<div class="container-fluid px-3 px-md-4">
+    <div class="page-header">
+        <h1 class="mt-4">Store Overview</h1>
+        <ol class="breadcrumb mb-4 bg-transparent p-0">
+            <li class="breadcrumb-item active">Dashboard</li>
+        </ol>
+    </div>
+
+    {{-- STATS GRID --}}
+    {{-- Changed to col-6 on mobile for 2-column "Phablet" layout --}}
+    <div class="row g-3 mb-4">
+        
+        <div class="col-6 col-md-6 col-xl-3">
+            <div class="card bg-primary text-white h-100 shadow-sm border-0">
                 <div class="card-body">
-                    <h5 class="card-title">Today's Sales</h5>
-                    <h2 class="fw-bold">₱{{ number_format($salesToday, 2) }}</h2>
-                    <small>{{ $transactionCountToday }} Transactions</small>
+                    <h5 class="card-title stat-label">Today's Sales</h5>
+                    <h2 class="fw-bold stat-value">₱{{ number_format($salesToday, 2) }}</h2>
+                    <small class="stat-sub">{{ $transactionCountToday }} Transactions</small>
                 </div>
             </div>
         </div>
 
-        <div class="col-xl-3 col-md-6">
-            <div class="card bg-success text-white mb-4">
+        <div class="col-6 col-md-6 col-xl-3">
+            <div class="card bg-success text-white h-100 shadow-sm border-0">
                 <div class="card-body">
-                    <h5 class="card-title"><i class="fas fa-coins me-1"></i> Today's Profit</h5>
-                    <h2 class="fw-bold">₱{{ number_format($profitToday, 2) }}</h2>
-                    <small>Gross Income (Sales - Cost)</small>
+                    <h5 class="card-title stat-label"><i class="fas fa-coins me-1"></i> Today's Profit</h5>
+                    <h2 class="fw-bold stat-value">₱{{ number_format($profitToday, 2) }}</h2>
+                    <small class="stat-sub">Gross Income</small>
                 </div>
             </div>
         </div>
 
-        <div class="col-xl-3 col-md-6">
-            <div class="card bg-info text-white mb-4">
+        <div class="col-6 col-md-6 col-xl-3">
+            <div class="card bg-info text-white h-100 shadow-sm border-0">
                 <div class="card-body">
-                    <h5 class="card-title">Monthly Sales</h5>
-                    <h2 class="fw-bold">₱{{ number_format($salesMonth, 2) }}</h2>
-                    <small>This Month Revenue</small>
+                    <h5 class="card-title stat-label">Monthly Sales</h5>
+                    <h2 class="fw-bold stat-value">₱{{ number_format($salesMonth, 2) }}</h2>
+                    <small class="stat-sub">This Month</small>
                 </div>
             </div>
         </div>
 
-        <div class="col-xl-3 col-md-6">
-            <div class="card bg-warning text-dark mb-4">
+        <div class="col-6 col-md-6 col-xl-3">
+            <div class="card bg-warning text-dark h-100 shadow-sm border-0">
                 <div class="card-body">
-                    <h5 class="card-title">Collectibles</h5>
-                    <h2 class="fw-bold">₱{{ number_format($totalCredits, 2) }}</h2>
-                    <small>Unpaid Customer Debt</small>
+                    <h5 class="card-title stat-label">Collectibles</h5>
+                    <h2 class="fw-bold stat-value">₱{{ number_format($totalCredits, 2) }}</h2>
+                    <small class="stat-sub">Unpaid Debt</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-md-6 col-xl-3">
+            <div class="card bg-danger text-white h-100 shadow-sm border-0">
+                <div class="card-body d-flex align-items-center justify-content-between">
+                    <div>
+                        <h5 class="card-title stat-label">Out of Stock</h5>
+                        <h2 class="fw-bold stat-value">{{ $outOfStockItems }} Items</h2>
+                    </div>
+                    <i class="fas fa-exclamation-circle fa-2x opacity-50"></i>
                 </div>
             </div>
         </div>
     </div>
 
-        <div class="col-xl-3 col-md-6">
-            <div class="card bg-danger text-white mb-4">
-                <div class="card-body">
-                    <h5 class="card-title">Out of Stock</h5>
-                    <h2 class="fw-bold">{{ $outOfStockItems }} Items</h2>
-                    <small>Need Restocking</small>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="row">
+    {{-- TABLES ROW --}}
+    <div class="row g-4">
+        
+        {{-- LOW STOCK --}}
         <div class="col-xl-6">
-            <div class="card mb-4">
-                <div class="card-header bg-danger text-white">
-                    <i class="fas fa-exclamation-triangle me-1"></i>
-                    Critical Low Stock (Running Low)
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-header bg-white border-bottom fw-bold text-danger py-3">
+                    <i class="fas fa-exclamation-triangle me-1"></i> Critical Low Stock
                 </div>
-                <div class="card-body">
+                <div class="card-body p-0">
                     @if($lowStockItems->count() > 0)
-                        <table class="table table-striped">
-                            <thead>
-                                <tr>
-                                    <th>Item Name</th>
-                                    <th>Remaining Stock</th>
-                                    <th>Action</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach($lowStockItems as $item)
-                                <tr>
-                                    <td>
-                                        <span class="fw-bold">{{ $item->name }}</span>
-                                        <br>
-                                        <small class="text-muted">{{ $item->category->name ?? 'Uncategorized' }}</small>
-                                    </td>
-                                    <td>
-                                        {{-- Visual Progress Bar --}}
-                                        <div class="d-flex align-items-center">
-                                            <span class="fw-bold text-danger me-2">{{ $item->stock }}</span>
-                                            <div class="progress flex-grow-1" style="height: 6px;">
-                                                <div class="progress-bar bg-danger" role="progressbar" 
-                                                    style="width: {{ ($item->stock / ($item->reorder_point ?: 10)) * 100 }}%">
+                        <div class="table-responsive">
+                            <table class="table table-striped mb-0 align-middle">
+                                <thead class="bg-light">
+                                    <tr>
+                                        <th class="ps-3">Item Name</th>
+                                        <th>Stock Level</th>
+                                        <th class="text-end pe-3">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($lowStockItems as $item)
+                                    <tr>
+                                        <td class="ps-3">
+                                            <div class="fw-bold text-dark">{{ $item->name }}</div>
+                                            <small class="text-muted">{{ $item->category->name ?? 'Uncategorized' }}</small>
+                                        </td>
+                                        <td style="min-width: 120px;">
+                                            <div class="d-flex align-items-center">
+                                                <span class="fw-bold text-danger me-2">{{ $item->stock }}</span>
+                                                <div class="progress flex-grow-1" style="height: 6px; width: 60px;">
+                                                    <div class="progress-bar bg-danger" role="progressbar" 
+                                                        style="width: {{ ($item->stock / ($item->reorder_point ?: 10)) * 100 }}%">
+                                                    </div>
                                                 </div>
                                             </div>
-                                            <span class="small text-muted ms-2">/ {{ $item->reorder_point ?? 10 }}</span>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <a href="{{ route('inventory.adjust') }}?product_id={{ $item->id }}" class="btn btn-sm btn-outline-dark">
-                                            <i class="fas fa-plus"></i> Restock
-                                        </a>
-                                    </td>
-                                </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
+                                        </td>
+                                        <td class="text-end pe-3">
+                                            <a href="{{ route('inventory.adjust') }}?product_id={{ $item->id }}" class="btn btn-sm btn-outline-dark rounded-pill px-3">
+                                                Restock
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
                     @else
-                    <div class="text-center py-4 text-muted">
-                        <i class="fas fa-check-circle fa-2x mb-2 text-success"></i>
-                        <p class="mb-0">Inventory levels are healthy!</p>
-                    </div>
+                        <div class="text-center py-5 text-muted">
+                            <i class="fas fa-check-circle fa-3x mb-3 text-success opacity-50"></i>
+                            <p class="mb-0 fw-medium">Inventory is healthy!</p>
+                        </div>
                     @endif
                 </div>
             </div>
         </div>
 
-<div class="col-xl-6">
-    <div class="card mb-4">
-        <div class="card-header bg-warning text-dark">
-            <i class="fas fa-stopwatch me-1"></i>
-            Expiring Soon (Next 7 Days)
-        </div>
-        <div class="card-body">
-            @if(count($expiringItems) > 0)
-                <table class="table table-sm table-borderless">
-                    <thead>
-                        <tr class="text-muted small">
-                            <th>Product</th>
-                            <th class="text-center">Expiry Date</th>
-                            <th class="text-end">Status</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach($expiringItems as $item)
-                        <tr class="align-middle border-bottom">
-                            <td>
-                                <div class="fw-bold">{{ $item->name }}</div>
-                                <small class="text-muted">Stock: {{ $item->current_stock }}</small>
-                            </td>
-                            <td class="text-center">
-                                @php
-                                    $expiry = \Carbon\Carbon::parse($item->expiration_date);
-                                    $isExpired = $expiry->isPast();
-                                @endphp
-                                <span class="fw-bold {{ $isExpired ? 'text-danger' : 'text-dark' }}">
-                                    {{ $expiry->format('M d, Y') }}
-                                </span>
-                                <br>
-                                <small class="{{ $isExpired ? 'text-danger' : 'text-muted' }}">
-                                    {{ $isExpired ? 'Expired' : $expiry->diffForHumans() }}
-                                </small>
-                            </td>
-                            <td class="text-end">
-                                <a href="{{ route('products.edit', $item->id) }}" class="btn btn-sm btn-light text-primary">
-                                    <i class="fas fa-edit"></i>
-                                </a>
-                            </td>
-                        </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            @else
-                <div class="text-center py-4 text-muted">
-                    <i class="fas fa-check-circle fa-2x mb-2 text-success"></i>
-                    <p class="mb-0">No expiring items found.</p>
+        {{-- EXPIRING SOON --}}
+        <div class="col-xl-6">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-header bg-white border-bottom fw-bold text-warning py-3">
+                    <i class="fas fa-stopwatch me-1"></i> Expiring Soon (7 Days)
                 </div>
-            @endif
+                <div class="card-body p-0">
+                    @if(count($expiringItems) > 0)
+                        <div class="table-responsive">
+                            <table class="table mb-0 align-middle">
+                                <thead class="bg-light">
+                                    <tr class="text-muted small text-uppercase">
+                                        <th class="ps-3">Product</th>
+                                        <th class="text-center">Expiry</th>
+                                        <th class="text-end pe-3"></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($expiringItems as $item)
+                                    <tr class="border-bottom">
+                                        <td class="ps-3">
+                                            <div class="fw-bold">{{ $item->name }}</div>
+                                            <small class="text-muted">Stock: {{ $item->current_stock }}</small>
+                                        </td>
+                                        <td class="text-center">
+                                            @php
+                                                $expiry = \Carbon\Carbon::parse($item->expiration_date);
+                                                $isExpired = $expiry->isPast();
+                                            @endphp
+                                            <span class="badge {{ $isExpired ? 'bg-danger' : 'bg-warning text-dark' }} rounded-pill">
+                                                {{ $expiry->format('M d') }}
+                                            </span>
+                                            <div class="small text-muted mt-1" style="font-size: 0.7rem;">
+                                                {{ $isExpired ? 'Expired' : $expiry->diffForHumans() }}
+                                            </div>
+                                        </td>
+                                        <td class="text-end pe-3">
+                                            <a href="{{ route('products.edit', $item->id) }}" class="btn btn-sm btn-light text-primary rounded-circle">
+                                                <i class="fas fa-chevron-right"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    @else
+                        <div class="text-center py-5 text-muted">
+                            <i class="fas fa-calendar-check fa-3x mb-3 text-success opacity-50"></i>
+                            <p class="mb-0 fw-medium">No expiring items found.</p>
+                        </div>
+                    @endif
+                </div>
+            </div>
         </div>
-    </div>
-</div>
     </div>
 
-        </div> <div class="row mb-4">
-        <div class="col-xl-12">
+    {{-- SALES CHART --}}
+    <div class="row my-4">
+        <div class="col-12">
             <div class="card shadow-sm border-0">
-                <div class="card-header bg-white">
-                    <i class="fas fa-chart-area me-1 text-primary"></i>
-                    Sales Trend (Last 30 Days)
+                <div class="card-header bg-white border-bottom py-3">
+                    <h6 class="m-0 fw-bold text-primary"><i class="fas fa-chart-line me-2"></i>Sales Trend</h6>
                 </div>
                 <div class="card-body">
-                    <canvas id="salesChart" width="100%" height="30"></canvas>
+                    <canvas id="salesChart" width="100%" height="35"></canvas>
                 </div>
             </div>
         </div>
@@ -195,32 +236,31 @@
             new Chart(ctx, {
                 type: 'line',
                 data: {
-                    labels: @json($chartLabels), // Data from Controller
+                    labels: @json($chartLabels),
                     datasets: [{
-                        label: 'Daily Sales (₱)',
-                        data: @json($chartValues), // Data from Controller
-                        borderColor: '#0d6efd', // Bootstrap Primary Blue
-                        backgroundColor: 'rgba(13, 110, 253, 0.1)',
+                        label: 'Sales (₱)',
+                        data: @json($chartValues),
+                        borderColor: '#4f46e5', // Modern Indigo
+                        backgroundColor: 'rgba(79, 70, 229, 0.1)',
                         borderWidth: 2,
+                        pointRadius: 3,
                         fill: true,
-                        tension: 0.3 // Makes lines slightly curved
+                        tension: 0.4
                     }]
                 },
                 options: {
                     responsive: true,
+                    maintainAspectRatio: false, // Vital for Mobile Chart sizing
+                    plugins: { legend: { display: false } },
                     scales: {
                         y: {
                             beginAtZero: true,
-                            ticks: {
-                                callback: function(value) {
-                                    return '₱' + value; // Add Peso sign
-                                }
-                            }
-                        }
-                    },
-                    plugins: {
-                        legend: {
-                            display: false
+                            grid: { borderDash: [2, 4], color: '#f0f0f0' },
+                            ticks: { callback: function(value) { return '₱' + value; }, font: { size: 10 } }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: { font: { size: 10 }, maxRotation: 0, autoSkip: true, maxTicksLimit: 7 }
                         }
                     }
                 }
@@ -228,5 +268,4 @@
         }
     });
 </script>
-
 @endsection
