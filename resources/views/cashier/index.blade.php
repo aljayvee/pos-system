@@ -381,9 +381,11 @@
 
     function updateCartUI() {
         localStorage.setItem('pos_cart', JSON.stringify(cart));
+        
         let html = '';
         let subtotal = 0;
         
+        // 1. Build Cart HTML
         if (cart.length === 0) {
             html = `<div class="text-center text-muted mt-5"><i class="fas fa-basket-shopping fa-3x opacity-25"></i><p>Cart is empty</p></div>`;
         } else {
@@ -403,23 +405,36 @@
             });
         }
 
+        // Update BOTH the desktop sidebar and mobile offcanvas list
         document.querySelectorAll('#cart-items').forEach(el => el.innerHTML = html);
 
-        // Tax Logic
+        // 2. TAX VISIBILITY LOGIC
         let grandTotal = subtotal;
         let taxAmt = 0;
-        const taxRow = document.getElementById('tax-row');
         
+        // --- FIXED: Use querySelectorAll to update BOTH desktop and mobile views ---
+        const subtotalEls = document.querySelectorAll('.subtotal-display');
+        const taxRows = document.querySelectorAll('.tax-row'); 
+        const taxEls = document.querySelectorAll('.tax-display');
+
         if (CONFIG.birEnabled === 1 && CONFIG.taxType === 'exclusive') {
             taxAmt = subtotal * 0.12; 
             grandTotal = subtotal + taxAmt;
-            if(taxRow) taxRow.style.setProperty('display', 'flex', 'important');
-            if(document.getElementById('tax-display')) document.getElementById('tax-display').innerText = taxAmt.toFixed(2);
+            
+            // Show Tax Row
+            taxRows.forEach(el => el.style.setProperty('display', 'flex', 'important'));
+            taxEls.forEach(el => el.innerText = taxAmt.toFixed(2));
         } else {
-            if(taxRow) taxRow.style.display = 'none';
+            // Hide Tax Row
+            taxEls.forEach(el => el.innerText = '------');
+            taxRows.forEach(el => el.style.display = 'none');
+            
         }
 
-        document.getElementById('subtotal-display').innerText = subtotal.toFixed(2);
+        // 3. Update Subtotal Text
+        subtotalEls.forEach(el => el.innerText = subtotal.toFixed(2));
+
+        // 4. Update Totals
         document.querySelectorAll('.total-amount-display').forEach(el => el.innerText = grandTotal.toFixed(2));
         if(document.getElementById('mobile-total-display')) document.getElementById('mobile-total-display').innerText = grandTotal.toFixed(2);
         if(document.getElementById('mobile-cart-count')) document.getElementById('mobile-cart-count').innerText = cart.length + ' Items';

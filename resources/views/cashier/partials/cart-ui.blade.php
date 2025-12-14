@@ -10,12 +10,12 @@
         </button>
     </div>
 
-    {{-- 2. SCROLLABLE BODY (Flex Grow) --}}
+    {{-- 2. SCROLLABLE BODY --}}
     <div class="flex-grow-1 p-3 overflow-y-auto custom-scrollbar" id="cart-items" style="background: #f8fafc;">
         {{-- Javascript injects items here --}}
     </div>
 
-    {{-- 3. FIXED FOOTER (Payment Section) --}}
+    {{-- 3. FIXED FOOTER --}}
     <div class="p-4 bg-white border-top shadow-lg z-2 flex-shrink-0">
         
         {{-- Customer Select --}}
@@ -30,15 +30,18 @@
             </select>
         </div>
 
-        {{-- Calculations --}}
+        {{-- Calculations (IDs changed to CLASSES) --}}
         <div class="d-flex justify-content-between align-items-center mb-1">
             <span class="text-secondary">Subtotal</span>
-            <span class="fw-bold text-dark">₱<span id="subtotal-display">0.00</span></span>
+            {{-- CHANGED id="subtotal-display" to class="subtotal-display" --}}
+            <span class="fw-bold text-dark">₱<span class="subtotal-display">0.00</span></span>
         </div>
 
-        <div id="tax-row" class="d-flex justify-content-between align-items-center mb-3" style="display:none;">
-            <span class="text-secondary small">VAT (12%)</span>
-            <span class="fw-bold text-dark small">₱<span id="tax-display">0.00</span></span>
+        {{-- CHANGED id="tax-row" to class="tax-row" --}}
+        <div class="tax-row d-flex justify-content-between align-items-center mb-3" style="display:none;">
+            <span class="text-secondary small" id='.tax-display'>VAT (12%)</span>
+            {{-- CHANGED id="tax-display" to class="tax-display" --}}
+            <span class="fw-bold text-dark small">₱<span class="tax-display">0.00</span></span>
         </div>
 
         <div class="d-flex justify-content-between align-items-end mb-4 pt-3 border-top">
@@ -54,7 +57,6 @@
 </div>
 
 <style>
-    /* Styling for the scrollbar */
     .custom-scrollbar::-webkit-scrollbar { width: 6px; }
     .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
     .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
