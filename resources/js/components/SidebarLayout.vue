@@ -93,7 +93,7 @@
           <i class="fas fa-bars"></i>
         </button>
         
-        <h5 class="page-title d-none d-lg-block">{{ pageTitle }}</h5>
+        <h5 class="page-title" v-if="!isMobile">{{ pageTitle }}</h5>
 
         <div class="top-right">
            <div class="notification-wrapper" v-click-outside="closeNotif">
@@ -155,7 +155,7 @@ export default {
   },
   computed: {
     totalAlerts() {
-        return this.outOfStock + this.lowStock;
+        return (this.outOfStock || 0) + (this.lowStock || 0);
     }
   },
   mounted() {
@@ -211,22 +211,23 @@ export default {
     color: #9899ac;
     display: flex;
     flex-direction: column;
-    transition: width 0.3s ease, transform 0.3s ease;
     position: fixed;
     height: 100vh;
     z-index: 1000;
+    transition: all 0.3s ease;
+    left: 0; top: 0;
 }
 
 /* Header */
 .sidebar-header {
     height: 70px;
-    display: flex;
+    display: flex; align-items: center; justify-content: center;
     align-items: center;
     padding: 0 24px;
     background-color: #151521;
     border-bottom: 1px solid rgba(255,255,255,0.05);
     font-weight: bold;
-    color: white;
+    color: white; font-weight: bold; font-size: 1.2rem;
     font-size: 1.2rem;
     white-space: nowrap;
     overflow: hidden;
@@ -333,6 +334,7 @@ export default {
     flex-grow: 1;
     margin-left: 260px; /* Width of open sidebar */
     transition: margin-left 0.3s ease;
+    width: 100%;
     display: flex;
     flex-direction: column;
 }
@@ -349,7 +351,24 @@ export default {
     justify-content: space-between;
     position: sticky; top: 0; z-index: 900;
 }
+
+/* Buttons (Forced Styles to Override Tailwind/Bootstrap conflicts) */
+.nav-btn {
+    background: transparent !important;
+    border: 1px solid #e4e6ef;
+    border-radius: 4px;
+    padding: 8px 12px;
+    cursor: pointer;
+    color: #5e6278; /* Dark Grey Icon */
+    font-size: 1.1rem;
+    display: flex; align-items: center; justify-content: center;
+    min-width: 40px; /* Prevent shrinking */
+    min-height: 40px;
+}
+
+.nav-btn:hover { background-color: #f5f8fa !important; color: #3699ff; }
 .toggle-btn { background: none; border: 1px solid #eee; padding: 6px 12px; border-radius: 4px; color: #555; cursor: pointer; }
+.page-title { margin: 0; font-weight: 600; color: #181c32; }
 
 /* NOTIFICATIONS */
 .notification-wrapper { position: relative; }
@@ -376,16 +395,28 @@ export default {
 
 /* MOBILE RESPONSIVE */
 @media (max-width: 991.98px) {
-    .sidebar { transform: translateX(-100%); width: 260px; }
+    .sidebar { transform: translateX(-100%);}
     .main-wrapper { margin-left: 0 !important; }
     
-    .mobile-open .sidebar { transform: translateX(0); }
+    /* 3. Bring sidebar in when 'mobile-open' class is active */
+    .mobile-open .sidebar { transform: translateX(0); box-shadow: 5px 0 20px rgba(0,0,0,0.2); }
     
     .sidebar-backdrop {
         position: fixed; inset: 0;
         background: rgba(0,0,0,0.5);
         z-index: 950;
-        backdrop-filter: blur(2px);
+        backdrop-filter: blur(1px);
     }
 }
+/* --- DESKTOP COLLAPSED STATE --- */
+@media (min-width: 992px) {
+    .sidebar-collapsed .sidebar { width: 70px; }
+    .sidebar-collapsed .main-wrapper { margin-left: 70px; }
+    .sidebar-collapsed .logo-text, 
+    .sidebar-collapsed .label, 
+    .sidebar-collapsed .menu-label,
+    .sidebar-collapsed .sidebar-footer span { display: none; }
+    .sidebar-collapsed .sidebar-header i { margin-right: 0; }
+}
+
 </style>
