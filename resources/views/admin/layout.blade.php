@@ -34,9 +34,6 @@
         }
         
         body { background-color: #f3f4f6; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; overflow-x: hidden; }
-        
-        /* Hide Vue templates before compilation to prevent flash */
-        [v-cloak] { display: none !important; }
 
         /* SIDEBAR CONTAINER */
         #sidebar-wrapper { 
@@ -48,7 +45,7 @@
             z-index: 1050; 
             background-color: var(--primary-dark); 
             color: var(--text-muted); 
-            transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); 
+            transition: transform 0.3s ease-in-out;
             display: flex; 
             flex-direction: column; 
             box-shadow: 4px 0 25px rgba(0,0,0,0.1); 
@@ -57,30 +54,28 @@
         /* CONTENT CONTAINER */
         #page-content-wrapper { 
             width: 100%; 
-            transition: margin-left 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); 
-            /* DEFAULT DESKTOP STATE (Fixes sidebar covering content before Vue loads) */
+            min-height: 100vh;
+            transition: margin-left 0.3s ease-in-out;
+            /* Default to Desktop View: Pushed right */
             margin-left: var(--sidebar-width); 
         }
 
         /* --- RESPONSIVE BEHAVIOR --- */
         
-        /* DESKTOP (Large Screens >= 992px) */
+        /* DESKTOP (>= 992px) */
         @media (min-width: 992px) {
-            /* If Vue adds 'desktop-open', keep margin. If 'desktop-closed', remove margin */
+            /* When Vue loads and adds 'desktop-closed', collapse sidebar */
             #app.desktop-closed #sidebar-wrapper { transform: translateX(-100%); }
             #app.desktop-closed #page-content-wrapper { margin-left: 0; }
-            /* Ensure margin is present if class is missing (default) or open */
-            #app:not(.desktop-closed) #page-content-wrapper { margin-left: var(--sidebar-width); }
         }
 
-        /* MOBILE & TABLET (Screens < 992px) */
+        /* MOBILE (< 992px) */
         @media (max-width: 991.98px) {
+            /* Default state on mobile: No margin, sidebar hidden */
             #page-content-wrapper { margin-left: 0 !important; }
-            
-            /* Hidden by default on mobile */
             #sidebar-wrapper { transform: translateX(-100%); }
             
-            /* Slide In when active */
+            /* When 'mobile-open' class is added by Vue, show sidebar */
             #app.mobile-open #sidebar-wrapper { transform: translateX(0); }
             
             /* Backdrop */
@@ -115,22 +110,22 @@
         .btn-logout { width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px; background: rgba(246, 78, 96, 0.1); color: var(--danger-color); border: 1px solid transparent; padding: 10px; border-radius: 8px; font-weight: 600; font-size: 0.9rem; transition: all 0.2s; cursor: pointer;}
         .btn-logout:hover { background: var(--danger-color); color: white; }
         
+        /* Navbar Sticky Fix */
+        .sticky-top { z-index: 1020; }
+        
+        /* Notification Dropdown */
         .notification-menu { width: 320px; border: 0; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); overflow: hidden; z-index: 1060; }
         @media (max-width: 991.98px) {
             .notification-menu { position: fixed !important; top: 75px !important; left: 50% !important; transform: translateX(-50%) !important; width: 92% !important; max-width: 360px; }
         }
-
-        .sidebar-content::-webkit-scrollbar { width: 5px; }
-        .sidebar-content::-webkit-scrollbar-track { background: var(--primary-dark); }
-        .sidebar-content::-webkit-scrollbar-thumb { background: #3b3b53; border-radius: 3px; }
     </style>
 </head>
 
 <body>
     {{-- VUE APP CONTAINER --}}
-    <div id="app" v-cloak :class="{ 'desktop-open': !isMobile && sidebarOpen, 'desktop-closed': !isMobile && !sidebarOpen, 'mobile-open': isMobile && sidebarOpen }">
+    <div id="app" :class="{ 'desktop-open': !isMobile && sidebarOpen, 'desktop-closed': !isMobile && !sidebarOpen, 'mobile-open': isMobile && sidebarOpen }">
         
-        {{-- Mobile/Tablet Backdrop --}}
+        {{-- Mobile Backdrop --}}
         <div class="sidebar-backdrop" @click="sidebarOpen = false"></div>
 
         <div class="d-flex" id="wrapper">
@@ -143,8 +138,8 @@
                         <i class="fas fa-store text-primary fa-lg me-3"></i> 
                         <span class="fw-bold text-white tracking-wide fs-5">SariPOS</span>
                     </div>
-                    {{-- Inner Close Button (Visible on Mobile & Tablet) --}}
-                    <button class="btn btn-link text-muted p-0 d-lg-none" @click="sidebarOpen = false">
+                    {{-- Inner Close Button (Visible on Mobile) --}}
+                    <button class="btn btn-link text-muted p-0 d-lg-none" @click="toggleSidebar">
                         <i class="fas fa-times fa-lg"></i>
                     </button>
                 </div>
@@ -199,9 +194,10 @@
             {{-- === PAGE CONTENT === --}}
             <div id="page-content-wrapper">
                 
+                {{-- Navbar --}}
                 <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom shadow-sm px-4 sticky-top" style="height: var(--top-nav-height);">
                     
-                    {{-- Toggle Button --}}
+                    {{-- Toggle Button (Hamburger) --}}
                     <button class="btn btn-light border shadow-sm me-3" @click="toggleSidebar">
                         <i class="fas fa-bars"></i>
                     </button>
@@ -214,12 +210,13 @@
                         @if(Auth::user()->role === 'admin')
                         {{-- Notifications --}}
                         <li class="nav-item dropdown me-3 position-relative">
-                            <a class="nav-link position-relative" href="#" @click.prevent="notifOpen = !notifOpen">
+                            {{-- Notification Bell --}}
+                            <a class="nav-link position-relative" href="#" @click.prevent="toggleNotif">
                                 <i class="fas fa-bell fa-lg text-secondary"></i>
                                 @if(($totalAlerts ?? 0) > 0)<span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger border border-white">{{ $totalAlerts }}</span>@endif
                             </a>
                             
-                            {{-- Dropdown (uses click-outside custom directive) --}}
+                            {{-- Dropdown --}}
                             <div class="dropdown-menu dropdown-menu-end notification-menu shadow p-0" 
                                  :class="{ 'show': notifOpen }" 
                                  v-click-outside="() => notifOpen = false"

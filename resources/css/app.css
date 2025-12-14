@@ -1,4 +1,4 @@
-@import 'tailwindcss';
+
 
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
@@ -8,4 +8,25 @@
 @theme {
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
+}
+
+/* Global Transitions */
+.transition-all {
+    transition: all 0.3s ease;
+}
+
+/* Sidebar Custom Scrollbar */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+::-webkit-scrollbar-track {
+    background: #1e1e2d;
+}
+::-webkit-scrollbar-thumb {
+    background: #3b3b53;
+    border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: #3699ff;
 }
