@@ -1,7 +1,5 @@
 import './bootstrap';
 import { createApp } from 'vue';
-
-import { createApp } from 'vue';
 const app = createApp({
     data() {
         return {
