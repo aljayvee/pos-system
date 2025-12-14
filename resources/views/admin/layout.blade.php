@@ -147,146 +147,23 @@
 </head>
 
 <body>
-    {{-- VUE APP CONTAINER --}}
-    <div id="app" :class="{ 'desktop-open': !isMobile && sidebarOpen, 'desktop-closed': !isMobile && !sidebarOpen, 'mobile-open': isMobile && sidebarOpen }">
-        
-        {{-- Mobile Backdrop --}}
-        <div class="sidebar-backdrop" @click="sidebarOpen = false"></div>
-
-        <div class="d-flex" id="wrapper">
+    <div id="app">
+        {{-- Pass Blade variables into Vue Props here --}}
+        <sidebar-layout
+            user-name="{{ Auth::user()->name }}"
+            user-role="{{ Auth::user()->role }}"
+            page-title="@yield('title', 'Dashboard')"
+            csrf-token="{{ csrf_token() }}"
+            :out-of-stock="{{ $outOfStockCount ?? 0 }}"
+            :low-stock="{{ $lowStockCount ?? 0 }}"
+        >
+            {{-- This content goes into the <slot> --}}
+            @yield('content')
             
-            {{-- === SIDEBAR === --}}
-            <div id="sidebar-wrapper">
-                {{-- Header --}}
-                <div class="sidebar-header">
-                    <div class="d-flex align-items-center flex-grow-1">
-                        <i class="fas fa-store text-primary fa-lg me-3"></i> 
-                        <span class="fw-bold text-white tracking-wide fs-5">SariPOS</span>
-                    </div>
-                    {{-- Inner Close Button (Visible on Mobile) --}}
-                    <button type="button" class="btn btn-link text-muted p-0 d-lg-none" @click="toggleSidebar">
-                        <i class="fas fa-times fa-lg"></i>
-                    </button>
-                </div>
-
-                {{-- Menu --}}
-                <div class="sidebar-content">
-                    <div class="list-group list-group-flush">
-                        <a href="{{ route('cashier.pos') }}" class="list-group-item {{ request()->routeIs('cashier.pos') ? 'active' : '' }}">
-                            <i class="fas fa-cash-register {{ request()->routeIs('cashier.pos') ? '' : 'text-success' }}"></i> 
-                            <span>Cashier POS</span>
-                        </a>
-
-                        @if(Auth::user()->role === 'admin')
-                            <div class="menu-label">Overview</div>
-                            <a href="{{ route('admin.dashboard') }}" class="list-group-item {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">
-                                <i class="fas fa-tachometer-alt"></i> <span>Dashboard</span>
-                            </a>
-
-                            <div class="menu-label">Inventory</div>
-                            <a href="{{ route('products.index') }}" class="list-group-item {{ request()->routeIs('products.*') ? 'active' : '' }}"><i class="fas fa-box"></i> <span>Products</span></a>
-                            <a href="{{ route('inventory.index') }}" class="list-group-item {{ request()->routeIs('inventory.*') ? 'active' : '' }}"><i class="fas fa-warehouse"></i> <span>Stock Level</span></a>
-                            <a href="{{ route('purchases.index') }}" class="list-group-item {{ request()->routeIs('purchases.*') ? 'active' : '' }}"><i class="fas fa-truck-loading"></i> <span>Restocking</span></a>
-
-                            <div class="menu-label">Finance</div>
-                            <a href="{{ route('customers.index') }}" class="list-group-item {{ request()->routeIs('customers.*') ? 'active' : '' }}"><i class="fas fa-users"></i> <span>Customers</span></a>
-                            <a href="{{ route('credits.index') }}" class="list-group-item {{ request()->routeIs('credits.*') ? 'active' : '' }}"><i class="fas fa-wallet"></i> <span>Credits</span></a>
-                            <a href="{{ route('suppliers.index') }}" class="list-group-item {{ request()->routeIs('suppliers.*') ? 'active' : '' }}"><i class="fas fa-dolly"></i> <span>Suppliers</span></a>
-
-                            <div class="menu-label">System</div>
-                            <a href="{{ route('transactions.index') }}" class="list-group-item {{ request()->routeIs('transaction_history.*') ? 'active' : '' }}"><i class="fas fa-history"></i> <span>Transactions</span></a>
-                            <a href="{{ route('reports.index') }}" class="list-group-item {{ request()->routeIs('reports.*') ? 'active' : '' }}"><i class="fas fa-chart-pie"></i> <span>Reports</span></a>
-                            <a href="{{ route('users.index') }}" class="list-group-item {{ request()->routeIs('users.*') ? 'active' : '' }}"><i class="fas fa-user-shield"></i> <span>Users</span></a>
-                            <a href="{{ route('logs.index') }}" class="list-group-item {{ request()->routeIs('audit_logs.*') ? 'active' : '' }}"><i class="fas fa-file-signature"></i> <span>Logs</span></a>
-                            <a href="{{ route('settings.index') }}" class="list-group-item {{ request()->routeIs('settings.*') ? 'active' : '' }}"><i class="fas fa-cog"></i> <span>Settings</span></a>
-                        @endif
-                    </div>
-                </div>
-
-                {{-- Footer --}}
-                <div class="sidebar-footer">
-                    <div class="user-card">
-                        <div class="user-avatar">{{ substr(Auth::user()->name, 0, 1) }}</div>
-                        <div class="user-info">
-                            <div class="user-name">{{ Auth::user()->name }}</div>
-                            <div class="user-role">{{ ucfirst(Auth::user()->role) }}</div>
-                        </div>
-                    </div>
-                    <form action="{{ route('logout') }}" method="POST">@csrf<button class="btn-logout"><i class="fas fa-sign-out-alt"></i><span>LOGOUT</span></button></form>
-                </div>
-            </div>
-
-            {{-- === PAGE CONTENT === --}}
-            <div id="page-content-wrapper">
-                
-                {{-- Navbar --}}
-                <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom shadow-sm px-4 sticky-top" style="height: var(--top-nav-height);">
-                    
-                    {{-- Toggle Button (Hamburger) --}}
-                    <button type="button" class="btn btn-light border shadow-sm me-3" @click="toggleSidebar">
-                        <i class="fas fa-bars"></i>
-                    </button>
-
-                    <h5 class="m-0 fw-bold text-dark d-none d-lg-block">
-                        @yield('title', 'Dashboard')
-                    </h5>
-
-                    <ul class="navbar-nav ms-auto align-items-center">
-                        @if(Auth::user()->role === 'admin')
-                        {{-- Notifications --}}
-                        {{-- v-click-outside ensures clicking outside closes it --}}
-                        <li class="nav-item dropdown me-3 position-relative" v-click-outside="() => notifOpen = false">
-                            {{-- Bell Icon --}}
-                            <a class="nav-link position-relative" href="#" @click.prevent="toggleNotif">
-                                <i class="fas fa-bell fa-lg text-secondary"></i>
-                                @if(($totalAlerts ?? 0) > 0)<span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger border border-white">{{ $totalAlerts }}</span>@endif
-                            </a>
-                            
-                            {{-- Dropdown --}}
-                            <div class="dropdown-menu dropdown-menu-end notification-menu shadow p-0" 
-                                 :class="{ 'show': notifOpen }" 
-                                 style="position: absolute; right: 0; top: 100%;">
-                                
-                                <div class="p-3 border-bottom bg-light d-flex justify-content-between align-items-center">
-                                    <h6 class="mb-0 fw-bold text-dark">Notifications</h6>
-                                    @if(($totalAlerts ?? 0) > 0)<span class="badge bg-danger rounded-pill">{{ $totalAlerts }} New</span>@endif
-                                </div>
-
-                                <div style="max-height: 320px; overflow-y: auto;">
-                                    @if(($outOfStockCount ?? 0) > 0)
-                                        <a class="dropdown-item py-3 px-3 border-bottom d-flex align-items-start gap-3" href="{{ route('products.index') }}">
-                                            <div class="bg-danger-subtle text-danger rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width:32px; height:32px"><i class="fas fa-exclamation-circle"></i></div>
-                                            <div><h6 class="mb-0 text-dark fw-bold small">Out of Stock</h6><p class="mb-0 small text-danger">{{ $outOfStockCount }} products need restocking</p></div>
-                                        </a>
-                                    @endif
-                                    @if(($lowStockCount ?? 0) > 0)
-                                        <a class="dropdown-item py-3 px-3 border-bottom d-flex align-items-start gap-3" href="{{ route('products.index') }}">
-                                            <div class="bg-warning-subtle text-warning rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width:32px; height:32px"><i class="fas fa-box-open"></i></div>
-                                            <div><h6 class="mb-0 text-dark fw-bold small">Running Low</h6><p class="mb-0 small text-muted">{{ $lowStockCount }} items running low</p></div>
-                                        </a>
-                                    @endif
-                                    @if(($totalAlerts ?? 0) == 0)
-                                        <div class="p-4 text-center small text-muted">No new notifications</div>
-                                    @endif
-                                </div>
-                            </div>
-                        </li>
-                        @endif
-                    </ul>
-                </nav>
-
-                {{-- Content Body --}}
-                <div class="container-fluid p-4">
-                    @yield('content')
-                </div>
-            </div>
-        </div>
+        </sidebar-layout>
     </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
     {{-- STACK: SCRIPTS --}}
     @stack('scripts')
-
 </body>
 </html>
