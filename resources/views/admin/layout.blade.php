@@ -9,7 +9,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    {{-- Vite Assets (Ensures Vue & CSS load) --}}
+    {{-- Vite Assets --}}
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 
     <link rel="manifest" href="{{ asset('manifest.json') }}">
@@ -35,9 +35,6 @@
             overflow-x: hidden; 
         }
 
-        /* --- VUE CLOAK (Hides uncompiled content) --- */
-        [v-cloak] { display: none; }
-
         /* --- SIDEBAR CONTAINER --- */
         #sidebar-wrapper {
             width: var(--sidebar-width);
@@ -60,26 +57,27 @@
             transition: margin-left 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
         }
 
-        /* --- RESPONSIVE BEHAVIOR (Managed by Vue classes) --- */
+        /* --- RESPONSIVE BEHAVIOR (FIXED: Targeted #app instead of body) --- */
         
-        /* DESKTOP (Sidebar Open by default) */
+        /* DESKTOP */
         @media (min-width: 768px) {
-            /* If sidebar is OPEN, push content */
-            body.desktop-open #page-content-wrapper { margin-left: var(--sidebar-width); }
-            /* If sidebar is CLOSED, pull sidebar left and reset content margin */
-            body.desktop-closed #sidebar-wrapper { transform: translateX(-100%); }
-            body.desktop-closed #page-content-wrapper { margin-left: 0; }
+            /* Open State */
+            #app.desktop-open #page-content-wrapper { margin-left: var(--sidebar-width); }
+            
+            /* Closed State */
+            #app.desktop-closed #sidebar-wrapper { transform: translateX(-100%); }
+            #app.desktop-closed #page-content-wrapper { margin-left: 0; }
         }
 
-        /* MOBILE (Sidebar Closed by default) */
+        /* MOBILE */
         @media (max-width: 767px) {
             #page-content-wrapper { margin-left: 0 !important; }
             
-            /* Hidden by default */
+            /* Default Hidden */
             #sidebar-wrapper { transform: translateX(-100%); }
             
-            /* Slide In when active */
-            body.mobile-open #sidebar-wrapper { transform: translateX(0); }
+            /* Slide In */
+            #app.mobile-open #sidebar-wrapper { transform: translateX(0); }
             
             /* Backdrop */
             .sidebar-backdrop {
@@ -88,7 +86,7 @@
                 background: rgba(0,0,0,0.5); z-index: 1040;
                 backdrop-filter: blur(2px);
             }
-            body.mobile-open .sidebar-backdrop { display: block; }
+            #app.mobile-open .sidebar-backdrop { display: block; }
         }
 
         /* --- SIDEBAR HEADER --- */
@@ -100,7 +98,7 @@
             border-bottom: 1px solid rgba(255,255,255,0.05);
         }
 
-        /* --- MENU ITEMS (FIXED SPACING) --- */
+        /* --- MENU ITEMS --- */
         .sidebar-content { flex-grow: 1; overflow-y: auto; padding: 20px 0; }
 
         .list-group-item {
@@ -111,7 +109,6 @@
             border-left: 3px solid transparent;
             transition: all 0.2s ease;
             text-decoration: none;
-            /* FIX: Strict gap between icon and text */
             gap: 16px; 
         }
         
@@ -137,7 +134,7 @@
             padding: 24px 24px 8px; font-weight: 700; 
         }
         
-        /* --- SIDEBAR FOOTER (FIXED VISIBILITY) --- */
+        /* --- SIDEBAR FOOTER --- */
         .sidebar-footer { 
             padding: 20px 24px; 
             background-color: var(--secondary-dark); 
@@ -166,7 +163,6 @@
             text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;
         }
 
-        /* Logout Button - High Visibility */
         .btn-logout {
             width: 100%;
             display: flex; align-items: center; justify-content: center; gap: 10px;
@@ -206,14 +202,13 @@
     @yield('styles')
 </head>
 
-{{-- 
-    VUE CONTROLLED BODY 
-    - :class binds Vue state to CSS classes for responsive toggle
---}}
-<body :class="{ 'desktop-open': !isMobile && sidebarOpen, 'desktop-closed': !isMobile && !sidebarOpen, 'mobile-open': isMobile && sidebarOpen }">
+<body>
 
-    {{-- Vue Mount Point --}}
-    <div id="app" v-cloak>
+    {{-- 
+        VUE ROOT ELEMENT 
+        We moved the :class binding here so Vue can actually control it.
+    --}}
+    <div id="app" :class="{ 'desktop-open': !isMobile && sidebarOpen, 'desktop-closed': !isMobile && !sidebarOpen, 'mobile-open': isMobile && sidebarOpen }">
         
         {{-- Mobile Backdrop --}}
         <div class="sidebar-backdrop" @click="sidebarOpen = false"></div>
@@ -223,23 +218,19 @@
             {{-- === SIDEBAR === --}}
             <div id="sidebar-wrapper">
                 
-                {{-- Header --}}
                 <div class="sidebar-header">
                     <div class="d-flex align-items-center flex-grow-1">
                         <i class="fas fa-store text-primary fa-lg me-3"></i> 
                         <span class="fw-bold text-white tracking-wide fs-5">SariPOS</span>
                     </div>
-                    {{-- Inner Close Button (Visible on Mobile) --}}
                     <button class="btn btn-link text-muted p-0 d-md-none" @click="sidebarOpen = false">
                         <i class="fas fa-times fa-lg"></i>
                     </button>
                 </div>
 
-                {{-- Menu Content --}}
                 <div class="sidebar-content">
                     <div class="list-group list-group-flush">
                         
-                        {{-- Common --}}
                         <a href="{{ route('cashier.pos') }}" class="list-group-item {{ request()->routeIs('cashier.pos') ? 'active' : '' }}">
                             <i class="fas fa-cash-register {{ request()->routeIs('cashier.pos') ? '' : 'text-success' }}"></i> 
                             <span>Cashier POS</span>
@@ -293,7 +284,6 @@
                     </div>
                 </div>
 
-                {{-- Footer --}}
                 <div class="sidebar-footer">
                     <div class="user-card">
                         <div class="user-avatar">
@@ -318,10 +308,8 @@
             {{-- === PAGE CONTENT === --}}
             <div id="page-content-wrapper">
                 
-                {{-- Top Navbar --}}
                 <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom shadow-sm px-4 sticky-top" style="height: var(--top-nav-height);">
                     
-                    {{-- Toggle Button --}}
                     <button class="btn btn-light border shadow-sm me-3" @click="sidebarOpen = !sidebarOpen">
                         <i class="fas fa-bars"></i>
                     </button>
@@ -333,7 +321,6 @@
                     <ul class="navbar-nav ms-auto align-items-center">
                         @if(Auth::user()->role === 'admin')
                         
-                        {{-- Vue-Controlled Dropdown --}}
                         <li class="nav-item dropdown me-3 position-relative">
                             <a class="nav-link position-relative" href="#" @click.prevent="notifOpen = !notifOpen">
                                 <i class="fas fa-bell fa-lg text-secondary"></i>
@@ -344,7 +331,7 @@
                                 @endif
                             </a>
                             
-                            {{-- Dropdown Menu --}}
+                            {{-- Notifications Dropdown --}}
                             <div class="dropdown-menu dropdown-menu-end notification-menu shadow p-0" 
                                  :class="{ 'show': notifOpen }" 
                                  @click.outside="notifOpen = false"
