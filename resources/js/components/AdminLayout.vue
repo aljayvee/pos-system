@@ -3,7 +3,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue';
 
 export default {
     setup() {
-        const isDesktop = ref(window.innerWidth >= 768);
+        const isDesktop = ref(window.innerWidth >= 992);
         const sidebarOpen = ref(true); // Default open on desktop
 
         const toggleSidebar = () => {
@@ -22,7 +22,7 @@ export default {
         };
 
         const handleResize = () => {
-            isDesktop.value = window.innerWidth >= 768;
+            isDesktop.value = window.innerWidth >= 992;
             if (isDesktop.value) sidebarOpen.value = true;
             else sidebarOpen.value = false;
             updateBodyClasses();
