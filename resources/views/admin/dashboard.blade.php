@@ -1,32 +1,6 @@
 @extends('admin.layout')
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 @section('content')
-<style>
-    /* --- MOBILE REFINEMENTS --- */
-    @media (max-width: 767px) {
-        .page-header { margin-top: 1rem !important; margin-bottom: 1rem !important; }
-        .page-header h1 { font-size: 1.5rem; font-weight: 700; }
-        
-        .card { margin-bottom: 1rem !important; border-radius: 12px !important; }
-        .card-body { padding: 1rem !important; }
-        
-        .stat-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.8; font-weight: 600; }
-        .stat-value { font-size: 1.3rem !important; margin-bottom: 0.2rem !important; }
-        .stat-sub { font-size: 0.7rem; opacity: 0.9; }
-
-        /* Chart Height for Mobile */
-        .chart-container { height: 250px !important; } 
-    }
-
-    /* --- DESKTOP CHART HEIGHT --- */
-    .chart-container {
-        position: relative;
-        width: 100%;
-        height: 350px; /* Taller on Desktop for visibility */
-    }
-</style>
-
 <div class="container-fluid px-3 px-md-4">
     <div class="page-header">
         <h1 class="mt-4">Store Overview</h1>
@@ -35,7 +9,7 @@
         </ol>
     </div>
 
-    {{-- STATS GRID (2 Cols on Mobile, 4 Cols on Desktop) --}}
+    {{-- STATS GRID --}}
     <div class="row g-3 mb-4">
         <div class="col-6 col-md-6 col-xl-3">
             <div class="card bg-primary text-white h-100 shadow-sm border-0">
@@ -77,7 +51,7 @@
             </div>
         </div>
         
-        {{-- Full Width Card on Mobile for Critical Alert --}}
+        {{-- Critical Alert --}}
         <div class="col-12 col-md-12 col-xl-12" style="{{ $outOfStockItems > 0 ? '' : 'display:none' }}">
             <div class="card bg-danger text-white shadow-sm border-0">
                 <div class="card-body d-flex align-items-center justify-content-between p-3">
@@ -99,7 +73,6 @@
                     <h6 class="m-0 fw-bold text-primary"><i class="fas fa-chart-area me-2"></i>Sales Trend (Last 30 Days)</h6>
                 </div>
                 <div class="card-body p-3">
-                    {{-- WRAPPER FOR RESPONSIVE HEIGHT --}}
                     <div class="chart-container">
                         <canvas id="salesChart"></canvas>
                     </div>
@@ -110,7 +83,7 @@
 
     {{-- TABLES ROW --}}
     <div class="row g-4">
-        {{-- LOW STOCK (Fixed for Mobile & Desktop) --}}
+        {{-- LOW STOCK --}}
         <div class="col-xl-6">
             <div class="card shadow-sm border-0 h-100">
                 <div class="card-header bg-white border-bottom fw-bold text-danger py-3">
@@ -136,11 +109,8 @@
                                         </td>
                                         <td style="min-width: 130px;">
                                             <div class="d-flex align-items-center">
-                                                {{-- FIX: Use current_stock --}}
                                                 <span class="fw-bold text-danger me-2">{{ $item->current_stock }}</span>
-                                                
                                                 <div class="progress flex-grow-1 bg-secondary-subtle" style="height: 6px; width: 60px;">
-                                                    {{-- FIX: Calculation using current_stock and reorder_point --}}
                                                     <div class="progress-bar bg-danger" role="progressbar" 
                                                         style="width: {{ ($item->current_stock / ($item->reorder_point ?: 10)) * 100 }}%">
                                                     </div>
@@ -209,80 +179,6 @@
         </div>
     </div>
 </div>
-
-<script>
-    document.addEventListener("DOMContentLoaded", function() {
-        const ctx = document.getElementById('salesChart');
-        
-        // Gradient Fill Logic
-        let gradient = null;
-        if (ctx) {
-            const canvas = ctx.getContext('2d');
-            gradient = canvas.createLinearGradient(0, 0, 0, 400);
-            gradient.addColorStop(0, 'rgba(79, 70, 229, 0.4)'); // Start Color (Indigo)
-            gradient.addColorStop(1, 'rgba(79, 70, 229, 0.0)'); // End Color (Transparent)
-
-            new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: @json($chartLabels),
-                    datasets: [{
-                        label: 'Sales Revenue',
-                        data: @json($chartValues),
-                        borderColor: '#4f46e5',
-                        backgroundColor: gradient,
-                        borderWidth: 3,
-                        pointBackgroundColor: '#ffffff',
-                        pointBorderColor: '#4f46e5',
-                        pointBorderWidth: 2,
-                        pointRadius: 4, // Visible points
-                        pointHoverRadius: 6,
-                        fill: true,
-                        tension: 0.4 // Smooth lines
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false, // CRITICAL: Allows Chart to fill fixed height container
-                    interaction: {
-                        mode: 'index',
-                        intersect: false,
-                    },
-                    plugins: {
-                        legend: { display: false },
-                        tooltip: {
-                            backgroundColor: 'rgba(30, 30, 45, 0.9)',
-                            padding: 10,
-                            bodyFont: { size: 13 },
-                            callbacks: {
-                                label: function(context) { return 'Sales: ₱' + context.parsed.y.toLocaleString(); }
-                            }
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            grid: { borderDash: [4, 4], color: '#e5e7eb' },
-                            ticks: {
-                                callback: function(value) { return '₱' + value; },
-                                font: { size: 11, weight: 'bold' },
-                                color: '#6b7280'
-                            }
-                        },
-                        x: {
-                            grid: { display: false },
-                            ticks: {
-                                font: { size: 11 },
-                                color: '#6b7280',
-                                maxTicksLimit: 7 // Prevent clutter on mobile
-                            }
-                        }
-                    }
-                }
-            });
-        }
-    });
-</script>
 @endsection
 
 {{-- PUSH STYLES TO LAYOUT HEAD --}}

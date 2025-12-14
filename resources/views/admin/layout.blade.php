@@ -35,8 +35,8 @@
         
         body { background-color: #f3f4f6; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; overflow-x: hidden; }
         
-        /* Hide Vue templates before compilation */
-        [v-cloak] { display: none; }
+        /* Hide Vue templates before compilation to prevent flash */
+        [v-cloak] { display: none !important; }
 
         /* SIDEBAR CONTAINER */
         #sidebar-wrapper { 
@@ -58,22 +58,26 @@
         #page-content-wrapper { 
             width: 100%; 
             transition: margin-left 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); 
+            /* DEFAULT DESKTOP STATE (Fixes sidebar covering content before Vue loads) */
+            margin-left: var(--sidebar-width); 
         }
 
-        /* --- RESPONSIVE BEHAVIOR (Updated to 992px for Phablet Support) --- */
+        /* --- RESPONSIVE BEHAVIOR --- */
         
         /* DESKTOP (Large Screens >= 992px) */
         @media (min-width: 992px) {
-            #app.desktop-open #page-content-wrapper { margin-left: var(--sidebar-width); }
+            /* If Vue adds 'desktop-open', keep margin. If 'desktop-closed', remove margin */
             #app.desktop-closed #sidebar-wrapper { transform: translateX(-100%); }
             #app.desktop-closed #page-content-wrapper { margin-left: 0; }
+            /* Ensure margin is present if class is missing (default) or open */
+            #app:not(.desktop-closed) #page-content-wrapper { margin-left: var(--sidebar-width); }
         }
 
         /* MOBILE & TABLET (Screens < 992px) */
         @media (max-width: 991.98px) {
             #page-content-wrapper { margin-left: 0 !important; }
             
-            /* Hidden by default */
+            /* Hidden by default on mobile */
             #sidebar-wrapper { transform: translateX(-100%); }
             
             /* Slide In when active */
@@ -124,7 +128,7 @@
 
 <body>
     {{-- VUE APP CONTAINER --}}
-    <div id="app" :class="{ 'desktop-open': !isMobile && sidebarOpen, 'desktop-closed': !isMobile && !sidebarOpen, 'mobile-open': isMobile && sidebarOpen }">
+    <div id="app" v-cloak :class="{ 'desktop-open': !isMobile && sidebarOpen, 'desktop-closed': !isMobile && !sidebarOpen, 'mobile-open': isMobile && sidebarOpen }">
         
         {{-- Mobile/Tablet Backdrop --}}
         <div class="sidebar-backdrop" @click="sidebarOpen = false"></div>
@@ -140,7 +144,6 @@
                         <span class="fw-bold text-white tracking-wide fs-5">SariPOS</span>
                     </div>
                     {{-- Inner Close Button (Visible on Mobile & Tablet) --}}
-                    {{-- FIX: Changed d-md-none to d-lg-none so it shows on Tablets too --}}
                     <button class="btn btn-link text-muted p-0 d-lg-none" @click="sidebarOpen = false">
                         <i class="fas fa-times fa-lg"></i>
                     </button>
@@ -198,8 +201,8 @@
                 
                 <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom shadow-sm px-4 sticky-top" style="height: var(--top-nav-height);">
                     
-                    {{-- Toggle Button (Visible on ALL Screens) --}}
-                    <button class="btn btn-light border shadow-sm me-3" @click="sidebarOpen = !sidebarOpen">
+                    {{-- Toggle Button --}}
+                    <button class="btn btn-light border shadow-sm me-3" @click="toggleSidebar">
                         <i class="fas fa-bars"></i>
                     </button>
 
@@ -216,10 +219,10 @@
                                 @if(($totalAlerts ?? 0) > 0)<span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger border border-white">{{ $totalAlerts }}</span>@endif
                             </a>
                             
-                            {{-- Dropdown --}}
+                            {{-- Dropdown (uses click-outside custom directive) --}}
                             <div class="dropdown-menu dropdown-menu-end notification-menu shadow p-0" 
                                  :class="{ 'show': notifOpen }" 
-                                 @click.outside="notifOpen = false"
+                                 v-click-outside="() => notifOpen = false"
                                  style="position: absolute; right: 0; top: 100%;">
                                 
                                 <div class="p-3 border-bottom bg-light d-flex justify-content-between align-items-center">
