@@ -4,7 +4,7 @@ import { createApp } from 'vue';
 const app = createApp({
     data() {
         return {
-            // Default: Open on Desktop (>=992px), Closed on Mobile (<992px)
+            // Initialize: Desktop (>=992px) = Open, Mobile (<992px) = Closed
             sidebarOpen: window.innerWidth >= 992,
             isMobile: window.innerWidth < 992,
             notifOpen: false
@@ -13,22 +13,22 @@ const app = createApp({
     methods: {
         toggleSidebar() {
             this.sidebarOpen = !this.sidebarOpen;
+            console.log('Sidebar Toggled. New State:', this.sidebarOpen);
         },
         toggleNotif() {
             this.notifOpen = !this.notifOpen;
         },
         handleResize() {
-            const currentIsMobile = window.innerWidth < 992;
-            
-            // Only update if the mode (mobile vs desktop) changes
-            if (this.isMobile !== currentIsMobile) {
-                this.isMobile = currentIsMobile;
-                // Reset sidebar: Open if going to Desktop, Closed if going to Mobile
-                this.sidebarOpen = !this.isMobile; 
+            const isNowMobile = window.innerWidth < 992;
+            if (this.isMobile !== isNowMobile) {
+                this.isMobile = isNowMobile;
+                // Auto-reset sidebar state when switching view modes
+                this.sidebarOpen = !this.isMobile;
             }
         }
     },
     mounted() {
+        console.log('Vue App Mounted Successfully');
         window.addEventListener('resize', this.handleResize);
     },
     unmounted() {
@@ -36,18 +36,22 @@ const app = createApp({
     }
 });
 
-// Custom directive to close dropdowns when clicking outside
+// Robust Click Outside Directive
 app.directive('click-outside', {
     mounted(el, binding) {
         el.clickOutsideEvent = function(event) {
+            // Check if click was outside the element and its children
             if (!(el === event.target || el.contains(event.target))) {
                 binding.value(event);
             }
         };
+        // Listen to both click and touchstart for better mobile support
         document.body.addEventListener('click', el.clickOutsideEvent);
+        document.body.addEventListener('touchstart', el.clickOutsideEvent);
     },
     unmounted(el) {
         document.body.removeEventListener('click', el.clickOutsideEvent);
+        document.body.removeEventListener('touchstart', el.clickOutsideEvent);
     }
 });
 

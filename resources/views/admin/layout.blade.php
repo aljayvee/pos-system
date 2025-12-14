@@ -64,6 +64,7 @@
         
         /* DESKTOP (>= 992px) */
         @media (min-width: 992px) {
+            /* If Vue adds 'desktop-closed', hide sidebar and reset margin */
             #app.desktop-closed #sidebar-wrapper { transform: translateX(-100%); }
             #app.desktop-closed #page-content-wrapper { margin-left: 0; }
         }
@@ -71,9 +72,11 @@
         /* MOBILE (< 992px) */
         @media (max-width: 991.98px) {
             #page-content-wrapper { margin-left: 0 !important; }
+            
+            /* Default: Hidden on Mobile */
             #sidebar-wrapper { transform: translateX(-100%); }
             
-            /* Open State */
+            /* Open State: Slide In */
             #app.mobile-open #sidebar-wrapper { transform: translateX(0); }
             
             /* Backdrop */
@@ -111,10 +114,23 @@
         /* Navbar Sticky */
         .sticky-top { z-index: 1020; }
         
+        /* Ensure buttons feel clickable */
+        button, a { cursor: pointer; }
+
         /* Notification Dropdown */
         .notification-menu { width: 320px; border: 0; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); overflow: hidden; z-index: 1060; }
+        
         @media (max-width: 991.98px) {
-            .notification-menu { position: fixed !important; top: 75px !important; left: 50% !important; transform: translateX(-50%) !important; width: 92% !important; max-width: 360px; }
+            /* Fix Mobile Notification Z-Index to be above Backdrop */
+            .notification-menu { 
+                position: fixed !important; 
+                top: 75px !important; 
+                left: 50% !important; 
+                transform: translateX(-50%) !important; 
+                width: 92% !important; 
+                max-width: 360px;
+                z-index: 1100 !important; 
+            }
         }
     </style>
 </head>
@@ -137,7 +153,7 @@
                         <span class="fw-bold text-white tracking-wide fs-5">SariPOS</span>
                     </div>
                     {{-- Inner Close Button (Visible on Mobile) --}}
-                    <button class="btn btn-link text-muted p-0 d-lg-none" @click="toggleSidebar">
+                    <button type="button" class="btn btn-link text-muted p-0 d-lg-none" @click="toggleSidebar">
                         <i class="fas fa-times fa-lg"></i>
                     </button>
                 </div>
@@ -195,8 +211,8 @@
                 {{-- Navbar --}}
                 <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom shadow-sm px-4 sticky-top" style="height: var(--top-nav-height);">
                     
-                    {{-- Toggle Button (Hamburger) - VUE CLICK ONLY --}}
-                    <button class="btn btn-light border shadow-sm me-3" @click="toggleSidebar">
+                    {{-- Toggle Button (Hamburger) --}}
+                    <button type="button" class="btn btn-light border shadow-sm me-3" @click="toggleSidebar">
                         <i class="fas fa-bars"></i>
                     </button>
 
@@ -207,8 +223,9 @@
                     <ul class="navbar-nav ms-auto align-items-center">
                         @if(Auth::user()->role === 'admin')
                         {{-- Notifications --}}
+                        {{-- v-click-outside ensures clicking outside closes it --}}
                         <li class="nav-item dropdown me-3 position-relative" v-click-outside="() => notifOpen = false">
-                            {{-- IMPORTANT: Removed data-bs-toggle="dropdown" to allow Vue to handle it --}}
+                            {{-- Bell Icon --}}
                             <a class="nav-link position-relative" href="#" @click.prevent="toggleNotif">
                                 <i class="fas fa-bell fa-lg text-secondary"></i>
                                 @if(($totalAlerts ?? 0) > 0)<span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger border border-white">{{ $totalAlerts }}</span>@endif
