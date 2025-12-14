@@ -190,10 +190,10 @@
         <small class="text-muted fw-bold text-uppercase" style="font-size: 0.7rem;">Total Due</small>
         <h2 class="fw-bold text-dark m-0">₱<span id="mobile-total-display">0.00</span></h2>
     </div>
-    <div class="d-flex gap-2">
-        <button class="btn btn-light rounded-circle shadow-sm" style="width: 45px; height: 45px;" onclick="clearCart()">
+    <div class="d-flex align-items-center gap-2">
+        <!--<button class="btn btn-light rounded-circle shadow-sm" style="width: 45px; height: 45px; " onclick="clearCart()">
             <i class="fas fa-trash-alt text-danger"></i>
-        </button>
+        </button>-->
         <button class="btn btn-primary rounded-pill px-4 fw-bold shadow-lg" type="button" data-bs-toggle="offcanvas" data-bs-target="#mobileCartDrawer">
             View Cart <span class="badge bg-white text-primary ms-2 rounded-pill" id="mobile-cart-count">0</span>
         </button>
