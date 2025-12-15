@@ -9,7 +9,7 @@
              <i class="fas fa-times"></i>
         </button>
 
-        <div class="logo-container" :class="{ 'justify-content-center': !isOpen && !isMobile }">
+        <div class="logo-container" :class="{ 'justify-center': !isOpen && !isMobile }">
             <i class="fas fa-store text-primary fa-lg me-2"></i>
             <span class="logo-text" v-show="isOpen || isMobile">SariPOS</span>
         </div>
@@ -134,7 +134,6 @@ export default {
   props: ['userName', 'userRole', 'pageTitle', 'csrfToken', 'outOfStock', 'lowStock'],
   data() {
     return {
-      // Default: Open on Desktop (>= 992px), Closed on Mobile
       isOpen: window.innerWidth >= 992,
       isMobile: window.innerWidth < 992,
       notifOpen: false,
@@ -159,20 +158,17 @@ export default {
     toggleNotif() {
       this.notifOpen = !this.notifOpen;
     },
+    // REPLACED v-click-outside directive with this robust method
     handleClickOutside(event) {
-      // Close notifications if clicked outside
       if (this.$refs.notifWrapper && !this.$refs.notifWrapper.contains(event.target)) {
         this.notifOpen = false;
       }
-      
-      // On mobile, close sidebar if clicked outside (on backdrop)
-      // This is also handled by the backdrop click, but redundancy is safe.
     },
     handleResize() {
       const mobile = window.innerWidth < 992;
       if (this.isMobile !== mobile) {
         this.isMobile = mobile;
-        this.isOpen = !this.isMobile; // Reset state when switching modes
+        this.isOpen = !this.isMobile;
       }
     }
   }
@@ -180,155 +176,66 @@ export default {
 </script>
 
 <style scoped>
-/* =========================================
-   GLOBAL LAYOUT
-   ========================================= */
-.app-wrapper {
-    display: flex;
-    min-height: 100vh;
-    width: 100%;
-    background-color: #f3f4f6;
-    overflow-x: hidden;
-}
+/* GLOBAL */
+.app-wrapper { display: flex; min-height: 100vh; width: 100%; background: #f3f4f6; overflow-x: hidden; }
 
-/* =========================================
-   SIDEBAR STYLES
-   ========================================= */
+/* SIDEBAR */
 .sidebar {
-    width: 260px;
-    background-color: #1e1e2d;
-    color: #9899ac;
-    display: flex;
-    flex-direction: column;
-    position: fixed;
-    top: 0;
-    left: 0;
-    height: 100vh;
-    z-index: 1000;
-    transition: width 0.3s ease, transform 0.3s ease;
-    box-shadow: 4px 0 10px rgba(0,0,0,0.05);
-    overflow: hidden; /* Important for collapsed state */
+    width: 260px; background: #1e1e2d; color: #9899ac;
+    display: flex; flex-direction: column; position: fixed;
+    top: 0; left: 0; height: 100vh; z-index: 1000;
+    transition: all 0.3s ease; box-shadow: 4px 0 10px rgba(0,0,0,0.05);
 }
+.sidebar-header { height: 70px; display: flex; align-items: center; padding: 0 20px; background: #151521; color: white; font-weight: bold; flex-shrink: 0; }
+.logo-container { display: flex; align-items: center; width: 100%; }
+.justify-center { justify-content: center; }
+.mobile-toggle-btn { background: transparent; border: none; color: #fff; font-size: 1.2rem; cursor: pointer; margin-right: 15px; }
+.sidebar-content { flex-grow: 1; overflow-y: auto; padding: 20px 0; }
+.sidebar-footer { padding: 15px; background: #151521; flex-shrink: 0; }
 
-.sidebar-header {
-    height: 70px;
-    display: flex; 
-    align-items: center; 
-    padding: 0 20px;
-    background-color: #151521;
-    color: white; 
-    font-weight: bold; 
-    font-size: 1.2rem;
-    flex-shrink: 0;
-    white-space: nowrap;
-}
-
-.mobile-toggle-btn {
-    background: transparent; border: none; color: #fff;
-    font-size: 1.2rem; cursor: pointer; margin-right: 15px; 
-}
-
-.sidebar-content { flex-grow: 1; overflow-y: auto; padding: 20px 0; overflow-x: hidden; }
-.sidebar-footer { padding: 15px; background-color: #151521; flex-shrink: 0; }
-
-/* Menu Items */
+/* MENU ITEMS */
 .menu-label { padding: 20px 24px 10px; font-size: 0.75rem; text-transform: uppercase; font-weight: 600; color: #5d5f75; white-space: nowrap; }
-.menu-item {
-    display: flex; align-items: center; padding: 12px 24px;
-    color: #9899ac; text-decoration: none; border-left: 3px solid transparent;
-    transition: all 0.2s; white-space: nowrap;
-}
+.menu-item { display: flex; align-items: center; padding: 12px 24px; color: #9899ac; text-decoration: none; border-left: 3px solid transparent; transition: all 0.2s; white-space: nowrap; }
 .menu-item:hover, .menu-item.active { background: rgba(255,255,255,0.04); color: white; }
 .menu-item.active { border-left-color: #3699ff; color: #3699ff; background: rgba(54, 153, 255, 0.1); }
 .menu-item i { width: 25px; text-align: center; margin-right: 10px; font-size: 1.1rem; flex-shrink: 0; }
 
-.btn-logout {
-    width: 100%; padding: 10px; background: rgba(246, 78, 96, 0.15); color: #f64e60;
-    border: none; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 600; white-space: nowrap;
-}
+/* LOGOUT BUTTON */
+.btn-logout { width: 100%; padding: 10px; background: rgba(246, 78, 96, 0.15); color: #f64e60; border: none; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 600; white-space: nowrap; }
 .btn-logout:hover { background: #f64e60; color: white; }
+.btn-logout.collapsed span { display: none; }
 
-/* =========================================
-   MAIN CONTENT & TOP NAVBAR
-   ========================================= */
-.main-wrapper {
-    flex-grow: 1;
-    display: flex; 
-    flex-direction: column;
-    width: 100%;
-    transition: margin-left 0.3s ease;
-    margin-left: 260px; /* Default Desktop State */
-}
+/* NAVBAR & CONTENT */
+.main-wrapper { flex-grow: 1; display: flex; flex-direction: column; width: 100%; transition: margin-left 0.3s ease; margin-left: 260px; }
+.top-navbar { height: 70px; background: white; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); position: sticky; top: 0; z-index: 900; }
+.nav-btn { background: white; border: 1px solid #e4e6ef; border-radius: 4px; padding: 0; cursor: pointer; color: #5e6278; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; transition: all 0.2s; }
+.nav-btn:hover { background: #f5f8fa; color: #3699ff; }
+.page-title { margin: 0; font-weight: 700; color: #181c32; font-size: 1.25rem; }
 
-/* Navbar */
-.top-navbar {
-    height: 70px;
-    background: white;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 20px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-    position: sticky; top: 0; z-index: 900;
-}
-
-.nav-btn {
-    background: white; border: 1px solid #e4e6ef;
-    border-radius: 4px; padding: 0; cursor: pointer;
-    color: #5e6278; font-size: 1.1rem;
-    display: flex; align-items: center; justify-content: center;
-    width: 40px; height: 40px; transition: all 0.2s;
-}
-.nav-btn:hover { background-color: #f5f8fa; color: #3699ff; }
-
-/* Notification Dropdown */
+/* NOTIFICATIONS */
 .notification-wrapper { position: relative; }
-.badge-counter {
-    position: absolute; top: -5px; right: -5px;
-    background: #f64e60; color: white; font-size: 10px; padding: 2px 5px; border-radius: 50%;
-}
-.notif-dropdown {
-    position: absolute; right: 0; top: 50px; width: 300px; background: white;
-    box-shadow: 0 0 20px rgba(0,0,0,0.1); border-radius: 6px; padding: 0; z-index: 1100;
-}
+.badge-counter { position: absolute; top: -5px; right: -5px; background: #f64e60; color: white; font-size: 10px; padding: 2px 5px; border-radius: 50%; }
+.notif-dropdown { position: absolute; right: 0; top: 50px; width: 300px; background: white; box-shadow: 0 0 20px rgba(0,0,0,0.1); border-radius: 6px; padding: 0; z-index: 1100; }
 .notif-header { padding: 15px; background: #f9fafb; font-weight: bold; border-bottom: 1px solid #eee; }
 .notif-item { display: flex; gap: 12px; padding: 12px 15px; text-decoration: none; color: #333; border-bottom: 1px solid #f9f9f9; }
 .notif-item:hover { background: #f8f9fa; }
 .no-notif { padding: 20px; text-align: center; color: #999; font-size: 0.9rem; }
 
-/* =========================================
-   DESKTOP COLLAPSED STATE (>= 992px)
-   ========================================= */
+/* DESKTOP COLLAPSE (>= 992px) */
 @media (min-width: 992px) {
     .sidebar-collapsed .sidebar { width: 70px; }
     .sidebar-collapsed .main-wrapper { margin-left: 70px; }
-    
-    /* Center icons when collapsed */
     .sidebar-collapsed .menu-item { justify-content: center; padding: 12px 0; }
     .sidebar-collapsed .menu-item i { margin-right: 0; }
-    
-    /* Hide Text Labels */
-    .sidebar-collapsed .logo-text, 
-    .sidebar-collapsed .label, 
-    .sidebar-collapsed .menu-label, 
-    .sidebar-collapsed .btn-logout span { display: none; }
-    
-    /* Adjust Header */
-    .sidebar-collapsed .sidebar-header { justify-content: center; padding: 0; }
+    .sidebar-collapsed .logo-text, .sidebar-collapsed .label, .sidebar-collapsed .menu-label, .sidebar-collapsed .btn-logout span { display: none; }
+    .sidebar-collapsed .sidebar-header { padding: 0; }
 }
 
-/* =========================================
-   MOBILE RESPONSIVE (< 992px)
-   ========================================= */
+/* MOBILE (< 992px) */
 @media (max-width: 991.98px) {
     .main-wrapper { margin-left: 0 !important; width: 100%; }
     .sidebar { transform: translateX(-100%); width: 260px; }
-    
-    /* When Mobile Open */
     .mobile-open .sidebar { transform: translateX(0); box-shadow: 5px 0 20px rgba(0,0,0,0.2); }
-    
-    .sidebar-backdrop {
-        position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 950; backdrop-filter: blur(2px);
-    }
+    .sidebar-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 950; backdrop-filter: blur(2px); }
 }
 </style>
