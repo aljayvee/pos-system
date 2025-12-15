@@ -19,7 +19,7 @@
     {{-- STACK: STYLES --}}
     @stack('styles')
 
-    <style>
+  <style>
     /* BASE VARIABLES */
     :root { 
         --sidebar-width: 280px; 
@@ -45,51 +45,54 @@
         z-index: 1050; 
         background-color: var(--primary-dark); 
         color: var(--text-muted); 
-        transition: transform 0.3s ease-in-out; /* Smooth transition is key */
+        transition: transform 0.3s ease-in-out;
         display: flex; 
         flex-direction: column; 
         box-shadow: 4px 0 25px rgba(0,0,0,0.1); 
     }
 
-    /* CONTENT CONTAINER */
+    /* CONTENT CONTAINER (FIXED) */
     #page-content-wrapper { 
-        width: 100%; 
+        /* FIX: Subtract sidebar width from 100% so it fits on screen */
+        width: calc(100% - var(--sidebar-width)); 
         min-height: 100vh;
-        transition: margin-left 0.3s ease-in-out;
-        /* Default: Desktop View (Sidebar Open) */
+        /* Animate width and margin together */
+        transition: all 0.3s ease-in-out;
+        /* Default: Sidebar Open */
         margin-left: var(--sidebar-width); 
     }
 
-    /* --- RESPONSIVE BEHAVIOR (The Missing Part) --- */
+    /* --- RESPONSIVE BEHAVIOR --- */
     
     /* DESKTOP (Screens >= 992px) */
     @media (min-width: 992px) {
-        /* When 'desktop-closed' class is added by Vue, hide sidebar */
         #app.desktop-closed #sidebar-wrapper { 
             transform: translateX(-100%); 
         }
-        /* When sidebar is closed, content takes full width */
+        
+        /* FIX: When closed, Sidebar is gone, so Content must be 100% width and 0 margin */
         #app.desktop-closed #page-content-wrapper { 
             margin-left: 0; 
+            width: 100%; 
         }
     }
 
     /* MOBILE (Screens < 992px) */
     @media (max-width: 991.98px) {
-        /* Default state on mobile: Content full width, sidebar hidden */
+        /* FIX: Mobile always takes full width */
         #page-content-wrapper { 
             margin-left: 0 !important; 
+            width: 100% !important;
         }
+        
         #sidebar-wrapper { 
             transform: translateX(-100%); 
         }
         
-        /* When 'mobile-open' class is added by Vue, show sidebar */
         #app.mobile-open #sidebar-wrapper { 
             transform: translateX(0); 
         }
         
-        /* Mobile Backdrop */
         .sidebar-backdrop { 
             display: none; 
             position: fixed; inset: 0; 
@@ -102,7 +105,7 @@
         }
     }
 
-    /* COMPONENT STYLES */
+    /* COMPONENT STYLES (Unchanged) */
     .sidebar-header { height: var(--top-nav-height); display: flex; align-items: center; padding: 0 24px; background-color: var(--secondary-dark); border-bottom: 1px solid rgba(255,255,255,0.05); }
     .sidebar-content { flex-grow: 1; overflow-y: auto; padding: 20px 0; }
     
@@ -123,13 +126,9 @@
     .btn-logout { width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px; background: rgba(246, 78, 96, 0.1); color: var(--danger-color); border: 1px solid transparent; padding: 10px; border-radius: 8px; font-weight: 600; font-size: 0.9rem; transition: all 0.2s; cursor: pointer;}
     .btn-logout:hover { background: var(--danger-color); color: white; }
     
-    /* Navbar Sticky */
     .sticky-top { z-index: 1020; }
-    
-    /* Ensure buttons feel clickable */
     button, a { cursor: pointer; }
 
-    /* Notification Dropdown */
     .notification-menu { width: 320px; border: 0; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); overflow: hidden; z-index: 1060; }
     
     @media (max-width: 991.98px) {
