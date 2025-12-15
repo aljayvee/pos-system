@@ -8,6 +8,12 @@ use Illuminate\Http\Request;
 
 class SupplierController extends Controller
 {
+
+    // Add this method inside SupplierController class
+    public function create()
+    {
+        return view('admin.suppliers.create');
+    }
     public function index(Request $request)
     {
         $storeId = $this->getActiveStoreId();

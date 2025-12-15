@@ -6,9 +6,9 @@
     {{-- HEADER --}}
     <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center mt-4 mb-4 gap-2">
         <h1 class="h2 mb-0 text-gray-800"><i class="fas fa-truck text-primary me-2"></i>Supplier Management</h1>
-        <button class="btn btn-primary shadow-sm" data-bs-toggle="modal" data-bs-target="#addSupplierModal">
-            <i class="fas fa-plus me-1"></i> Add Supplier
-        </button>
+        <a href="{{ route('suppliers.create') }}" class="btn btn-primary shadow-sm">
+    <i class="fas fa-plus me-1"></i> Add Supplier
+</a>
     </div>
 
     {{-- ALERTS --}}
