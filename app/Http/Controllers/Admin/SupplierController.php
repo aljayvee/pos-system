@@ -48,10 +48,11 @@ class SupplierController extends Controller
 
     public function update(Request $request, Supplier $supplier)
     {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'contact_info' => 'nullable|string|max:255',
-        ]);
+       $request->validate([
+        // Ensure we ignore the current supplier's ID during unique check
+        'name' => 'required|string|max:255|unique:suppliers,name,' . $supplier->id,
+        'contact_info' => 'nullable|string|max:255',
+    ]);
 
         $supplier->update($request->all());
 

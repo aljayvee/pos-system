@@ -6,9 +6,10 @@
     {{-- HEADER --}}
     <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center mt-4 mb-4 gap-2">
         <h1 class="h2 mb-0 text-gray-800"><i class="fas fa-truck text-primary me-2"></i>Supplier Management</h1>
+        {{-- Link to Create Page --}}
         <a href="{{ route('suppliers.create') }}" class="btn btn-primary shadow-sm">
-    <i class="fas fa-plus me-1"></i> Add Supplier
-</a>
+            <i class="fas fa-plus me-1"></i> Add Supplier
+        </a>
     </div>
 
     {{-- ALERTS --}}
@@ -33,7 +34,7 @@
                     <div class="input-group">
                         <span class="input-group-text bg-white text-muted border-end-0"><i class="fas fa-search"></i></span>
                         <input type="text" name="search" class="form-control border-start-0 ps-0" 
-                               placeholder="Search supplier name or contact..." value="{{ request('search') }}">
+                               placeholder="Search supplier name..." value="{{ request('search') }}">
                     </div>
                 </div>
                 <div class="col-12 col-md-2">
@@ -70,11 +71,13 @@
                                 <a href="{{ route('suppliers.show', $supplier->id) }}" class="btn btn-sm btn-info text-white me-1 shadow-sm" title="View Profile">
                                     <i class="fas fa-eye"></i>
                                 </a>
+                                {{-- EDIT BUTTON --}}
                                 <button class="btn btn-sm btn-outline-primary me-1 shadow-sm" 
                                         data-bs-toggle="modal" 
                                         data-bs-target="#editSupplierModal-{{ $supplier->id }}">
                                     <i class="fas fa-edit"></i>
                                 </button>
+                                
                                 <form action="{{ route('suppliers.destroy', $supplier->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Delete this supplier?');">
                                     @csrf @method('DELETE')
                                     <button class="btn btn-sm btn-outline-danger shadow-sm" {{ $supplier->purchases_count > 0 ? 'disabled' : '' }} title="Delete">
@@ -83,7 +86,37 @@
                                 </form>
                             </td>
                         </tr>
-                        @include('admin.suppliers.partials.edit-modal', ['supplier' => $supplier])
+
+                        {{-- EDIT MODAL (INLINE) --}}
+                        <div class="modal fade" id="editSupplierModal-{{ $supplier->id }}" tabindex="-1">
+                            <div class="modal-dialog modal-dialog-centered">
+                                <form action="{{ route('suppliers.update', $supplier->id) }}" method="POST">
+                                    @csrf @method('PUT')
+                                    <div class="modal-content border-0 shadow">
+                                        <div class="modal-header bg-white text-dark">
+                                            <h5 class="modal-title"><i class="fas fa-edit me-2 text-primary"></i>Edit Supplier</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                        </div>
+                                        <div class="modal-body p-4 text-start">
+                                            <div class="mb-3">
+                                                <label class="form-label fw-bold">Supplier Name</label>
+                                                <input type="text" name="name" class="form-control" value="{{ $supplier->name }}" required>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label">Contact Information</label>
+                                                <input type="text" name="contact_info" class="form-control" value="{{ $supplier->contact_info }}">
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer bg-light">
+                                            <button type="button" class="btn btn-link text-secondary text-decoration-none" data-bs-dismiss="modal">Cancel</button>
+                                            <button type="submit" class="btn btn-primary px-4">Update</button>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                        {{-- END MODAL --}}
+
                         @empty
                         <tr>
                             <td colspan="4" class="text-center py-5 text-muted">No suppliers found.</td>
@@ -120,9 +153,13 @@
                             <a href="{{ route('suppliers.show', $supplier->id) }}" class="btn btn-sm btn-info text-white flex-fill">
                                 <i class="fas fa-eye"></i> View
                             </a>
-                            <button class="btn btn-sm btn-outline-primary flex-fill" data-bs-toggle="modal" data-bs-target="#editSupplierModal-{{ $supplier->id }}">
+                            {{-- MOBILE EDIT BUTTON --}}
+                            <button class="btn btn-sm btn-outline-primary flex-fill" 
+                                    data-bs-toggle="modal" 
+                                    data-bs-target="#editSupplierModal-{{ $supplier->id }}">
                                 <i class="fas fa-edit"></i> Edit
                             </button>
+                            
                             <form action="{{ route('suppliers.destroy', $supplier->id) }}" method="POST" class="d-inline flex-fill" onsubmit="return confirm('Delete supplier?');">
                                 @csrf @method('DELETE')
                                 <button class="btn btn-sm btn-outline-danger w-100" {{ $supplier->purchases_count > 0 ? 'disabled' : '' }}>
@@ -132,8 +169,20 @@
                         </div>
                     </div>
                 </div>
+                {{-- No need to include modal here again if it's already in the desktop loop, 
+                     BUT since the desktop loop might be hidden or they are separate,
+                     we need to make sure the modal ID is unique or rendered once. 
+                     
+                     FIX: The cleanest way in a hybrid view without partials is to render modals OUTSIDE the view logic 
+                     or ensure the loop runs once. 
+                     
+                     Since Blade runs server-side, if I simply include the modal again here, it will duplicate IDs.
+                     However, the previous code block renders modals inside the desktop table loop.
+                     If you are on Mobile, the desktop table is hidden via CSS (d-none), but the HTML exists.
+                     So the modal with ID `#editSupplierModal-X` DOES exist in the DOM.
+                     The mobile button will successfully trigger the desktop loop's modal.
+                --}}
             </div>
-            @include('admin.suppliers.partials.edit-modal', ['supplier' => $supplier])
             @empty
             <div class="col-12 text-center py-5 text-muted">
                 <i class="fas fa-truck fa-3x mb-3 opacity-25"></i>
@@ -144,35 +193,6 @@
         <div class="mt-4">
              {{ $suppliers->links() }}
         </div>
-    </div>
-</div>
-
-{{-- ADD MODAL --}}
-<div class="modal fade" id="addSupplierModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <form action="{{ route('suppliers.store') }}" method="POST">
-            @csrf
-            <div class="modal-content border-0 shadow">
-                <div class="modal-header bg-primary text-white">
-                    <h5 class="modal-title"><i class="fas fa-user-plus me-2"></i>Add Supplier</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body p-4">
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Supplier Name <span class="text-danger">*</span></label>
-                        <input type="text" name="name" class="form-control" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Contact Information</label>
-                        <input type="text" name="contact_info" class="form-control" placeholder="Phone, Email, or Address">
-                    </div>
-                </div>
-                <div class="modal-footer bg-light">
-                    <button type="button" class="btn btn-link text-secondary text-decoration-none" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary px-4">Save Supplier</button>
-                </div>
-            </div>
-        </form>
     </div>
 </div>
 @endsection
