@@ -10,7 +10,6 @@ use App\Models\SalesReturn; // Import SalesReturn
 use App\Models\CreditPayment; 
 use App\Models\Customer;
 use App\Models\CustomerCredit;
-use App\Models\Store;
 use App\Models\Inventory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -21,31 +20,14 @@ class POSController extends Controller
 {
     public function index()
     {
-
-        $user = auth()->user();
-        $store = $user->store ?? \App\Models\Store::first(); // Fallback if single store
-
         $storeId = $this->getActiveStoreId(); 
 
-        // FIXED: Changed 'inventory' to 'inventories' to match Product.php
-    $products = \App\Models\Product::whereHas('inventories', function($q) use ($storeId) {
-            $q->where('store_id', $storeId);
-        })
-        ->with(['inventories' => function($q) use ($storeId) {
-            $q->where('store_id', $storeId);
-        }, 'category'])
-        ->get()
-        ->map(function($product) {
-            return [
-                'id' => $product->id,
-                'name' => $product->name,
-                'barcode' => $product->barcode,
-                'price' => $product->price,
-                'category_id' => $product->category_id,
-                // FIXED: Changed 'inventory' to 'inventories'
-                'stock' => $product->inventories->first()->stock ?? 0, 
-            ];
-        });
+        $products = Product::join('inventories', 'products.id', '=', 'inventories.product_id')
+            ->where('inventories.store_id', $storeId)
+            ->where('inventories.stock', '>', 0)
+            ->whereNull('products.deleted_at')
+            ->select('products.*', 'inventories.stock as current_stock')
+            ->get();
 
         $customers = Customer::withSum(['credits as balance' => function($q) use ($storeId) {
             $q->where('is_paid', false)
@@ -54,27 +36,15 @@ class POSController extends Controller
               });
         }], 'remaining_balance')->orderBy('name')->get();
 
-        $categories = \App\Models\Category::select('id', 'name')->get();
-        $customers = \App\Models\Customer::select('id', 'name', 'address', 'contact')->get(); // Added address/contact
+        $categories = \App\Models\Category::has('products')->orderBy('name')->get();
 
         // FETCH SETTINGS
         $loyaltyEnabled = \App\Models\Setting::where('key', 'enable_loyalty')->value('value') ?? '0';
         
-        
+        // --- FIXED: Fetch BIR/Tax Setting ---
+        $birEnabled = \App\Models\Setting::where('key', 'enable_tax')->value('value') ?? '0';
 
-        // 2. FETCH TAX SETTINGS
-    $taxSettings = [
-        'enabled' => \App\Models\Setting::where('key', 'enable_tax')->value('value') ?? '0',
-        // Default to 'inclusive' if not set
-        'type'    => \App\Models\Setting::where('key', 'tax_type')->value('value') ?? 'inclusive', 
-        // Default to 12% if not set
-        'rate'    => (\App\Models\Setting::where('key', 'tax_rate')->value('value') ?? 12) / 100 
-    ];
-
-    // 3. FETCH PAYMONGO SETTING
-        $paymongoEnabled = \App\Models\Setting::where('key', 'enable_paymongo')->value('value') ?? '0';
-
-        return view('cashier.index', compact('products', 'customers', 'categories', 'loyaltyEnabled', 'taxSettings', 'store', 'user'));
+        return view('cashier.index', compact('products', 'customers', 'categories', 'loyaltyEnabled', 'birEnabled'));
     }
 
     public function payCredit(Request $request)
