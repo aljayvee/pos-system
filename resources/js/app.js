@@ -3,6 +3,7 @@ import { createApp } from 'vue';
 
 // CHANGED: Import AdminLayout instead of SidebarLayout to match your Blade template
 import AdminLayout from './components/AdminLayout.vue';
+import StatsCard from './components/StatsCard.vue'; // <--- ADD THIS
 
 const app = createApp({});
 
@@ -24,5 +25,5 @@ app.directive('click-outside', {
 
 // CHANGED: Register the component as 'admin-layout' so <admin-layout> works in Blade
 app.component('admin-layout', AdminLayout);
-
+app.component('stats-card', StatsCard); // <--- ADD THIS
 app.mount('#app');
