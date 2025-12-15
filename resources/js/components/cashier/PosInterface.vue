@@ -49,8 +49,8 @@
                         <span class="fw-bold text-dark">{{ cashierName }}</span>
                     </li>
                     
-                    <li><a class="dropdown-item py-2" href="/admin/profile"><i class="fas fa-user-circle me-2 text-primary"></i>My Profile</a></li>
-                    <li><a class="dropdown-item py-2" href="/admin/settings"><i class="fas fa-sliders-h me-2 text-secondary"></i>System Settings</a></li>
+                    <li><a class="dropdown-item py-2" href="/admin/profile"><i class="fas fa-user-circle me-2 text-primary"></i>My Profile Settings</a></li>
+                   
                     
                     <li class="d-md-none"><hr class="dropdown-divider"></li>
                     <li class="d-md-none px-3 py-1 text-muted small fw-bold text-uppercase">Actions</li>
