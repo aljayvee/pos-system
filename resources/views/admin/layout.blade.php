@@ -15,6 +15,23 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
     @stack('styles')
+    
+    <style>
+        /* Notification Badge Style */
+        .badge-notification {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            font-size: 0.65rem;
+            padding: 0.25em 0.45em;
+        }
+        .nav-icon-btn {
+            position: relative;
+            background: none;
+            border: none;
+            color: #555;
+        }
+    </style>
 </head>
 
 <body class="bg-gray-100">
@@ -84,15 +101,82 @@
         </nav>
 
         <div id="content">
-            <nav class="navbar navbar-expand-lg navbar-light bg-light mb-4 d-md-none">
-                <div class="container-fluid">
-                    <button type="button" id="sidebarCollapse" class="btn btn-primary">
-                        <i class="fas fa-bars"></i> Menu
+            <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm mb-4 px-4">
+                <div class="container-fluid p-0">
+                    
+                    <button type="button" id="sidebarCollapse" class="btn btn-primary d-md-none me-2">
+                        <i class="fas fa-bars"></i>
                     </button>
+
+                    <h4 class="mb-0 text-gray-800 d-none d-md-block">{{ $pageTitle ?? 'Dashboard' }}</h4>
+
+                    <div class="ms-auto d-flex align-items-center">
+                        
+                        <div class="dropdown">
+                            <button class="nav-icon-btn dropdown-toggle hide-arrow" type="button" id="notifDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-bell fa-lg"></i>
+                                @if(isset($totalAlerts) && $totalAlerts > 0)
+                                    <span class="badge rounded-pill bg-danger badge-notification">{{ $totalAlerts }}</span>
+                                @endif
+                            </button>
+                            
+                            <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0" aria-labelledby="notifDropdown" style="width: 300px;">
+                                <li class="dropdown-header bg-light fw-bold py-2">
+                                    Notifications 
+                                    @if(isset($totalAlerts) && $totalAlerts > 0)
+                                        <span class="badge bg-danger rounded-pill float-end">{{ $totalAlerts }}</span>
+                                    @endif
+                                </li>
+                                
+                                @if(!isset($totalAlerts) || $totalAlerts == 0)
+                                    <li><span class="dropdown-item text-muted small text-center py-3">No new notifications</span></li>
+                                @else
+                                    @if(isset($outOfStockCount) && $outOfStockCount > 0)
+                                    <li>
+                                        <a class="dropdown-item d-flex align-items-start py-2" href="{{ route('products.index') }}">
+                                            <div class="text-danger me-2"><i class="fas fa-exclamation-circle"></i></div>
+                                            <div>
+                                                <small class="fw-bold d-block">Out of Stock</small>
+                                                <small class="text-muted">{{ $outOfStockCount }} products have 0 stock.</small>
+                                            </div>
+                                        </a>
+                                    </li>
+                                    @endif
+
+                                    @if(isset($lowStockCount) && $lowStockCount > 0)
+                                    <li>
+                                        <a class="dropdown-item d-flex align-items-start py-2" href="{{ route('products.index') }}">
+                                            <div class="text-warning me-2"><i class="fas fa-box-open"></i></div>
+                                            <div>
+                                                <small class="fw-bold d-block">Low Stock</small>
+                                                <small class="text-muted">{{ $lowStockCount }} products running low.</small>
+                                            </div>
+                                        </a>
+                                    </li>
+                                    @endif
+
+                                    @if(isset($overdueCount) && $overdueCount > 0)
+                                    <li>
+                                        <a class="dropdown-item d-flex align-items-start py-2" href="{{ route('credits.index') }}">
+                                            <div class="text-danger me-2"><i class="fas fa-clock"></i></div>
+                                            <div>
+                                                <small class="fw-bold d-block">Overdue Credits</small>
+                                                <small class="text-muted">{{ $overdueCount }} credits are overdue.</small>
+                                            </div>
+                                        </a>
+                                    </li>
+                                    @endif
+                                @endif
+                            </ul>
+                        </div>
+                        
+                    </div>
                 </div>
             </nav>
 
-            @yield('content')
+            <div class="container-fluid">
+                @yield('content')
+            </div>
         </div>
 
         <div class="overlay"></div>
@@ -100,6 +184,8 @@
     </div>
 
     @stack('scripts')
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
         document.addEventListener('DOMContentLoaded', function () {
