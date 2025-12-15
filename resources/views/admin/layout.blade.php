@@ -26,50 +26,50 @@
             </div>
 
             <ul class="list-unstyled components">
-                <li class="{{ request()->is('dashboard') ? 'active' : '' }}">
-                    <a href="{{ url('/dashboard') }}"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
+                <li class="{{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">
+                    <a href="{{ route('admin.dashboard') }}"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
                 </li>
 
                 <p class="menu-label">Inventory</p>
-                <li class="{{ request()->is('inventory*') ? 'active' : '' }}">
-                    <a href="{{ url('/inventory') }}"><i class="fas fa-boxes"></i> Inventory Overview</a>
+                <li class="{{ request()->routeIs('inventory.index') ? 'active' : '' }}">
+                    <a href="{{ route('inventory.index') }}"><i class="fas fa-boxes"></i> Inventory Overview</a>
                 </li>
-                <li class="{{ request()->is('products*') ? 'active' : '' }}">
-                    <a href="{{ url('/products') }}"><i class="fas fa-box-open"></i> Product</a>
+                <li class="{{ request()->routeIs('products.*') ? 'active' : '' }}">
+                    <a href="{{ route('products.index') }}"><i class="fas fa-box-open"></i> Product</a>
                 </li>
-                <li class="{{ request()->is('categories*') ? 'active' : '' }}">
-                    <a href="{{ url('/categories') }}"><i class="fas fa-tags"></i> Category</a>
+                <li class="{{ request()->routeIs('categories.*') ? 'active' : '' }}">
+                    <a href="{{ route('categories.index') }}"><i class="fas fa-tags"></i> Category</a>
                 </li>
-                <li class="{{ request()->is('stock*') ? 'active' : '' }}">
-                    <a href="{{ url('/stock') }}"><i class="fas fa-layer-group"></i> Stock Level</a>
+                <li class="{{ request()->routeIs('inventory.history') ? 'active' : '' }}">
+                    <a href="{{ route('inventory.history') }}"><i class="fas fa-layer-group"></i> Stock History</a>
                 </li>
-                <li class="{{ request()->is('restocking*') ? 'active' : '' }}">
-                    <a href="{{ url('/restocking') }}"><i class="fas fa-truck-loading"></i> Restocking</a>
+                <li class="{{ request()->routeIs('purchases.*') ? 'active' : '' }}">
+                    <a href="{{ route('purchases.index') }}"><i class="fas fa-truck-loading"></i> Restocking</a>
                 </li>
 
                 <p class="menu-label">People</p>
-                <li class="{{ request()->is('customers*') ? 'active' : '' }}">
-                    <a href="{{ url('/customers') }}"><i class="fas fa-users"></i> Customers</a>
+                <li class="{{ request()->routeIs('customers.*') ? 'active' : '' }}">
+                    <a href="{{ route('customers.index') }}"><i class="fas fa-users"></i> Customers</a>
                 </li>
-                <li class="{{ request()->is('credits*') ? 'active' : '' }}">
-                    <a href="{{ url('/credits') }}"><i class="fas fa-file-invoice-dollar"></i> Credits</a>
+                <li class="{{ request()->routeIs('credits.*') ? 'active' : '' }}">
+                    <a href="{{ route('credits.index') }}"><i class="fas fa-file-invoice-dollar"></i> Credits</a>
                 </li>
-                <li class="{{ request()->is('suppliers*') ? 'active' : '' }}">
-                    <a href="{{ url('/suppliers') }}"><i class="fas fa-truck"></i> Suppliers</a>
+                <li class="{{ request()->routeIs('suppliers.*') ? 'active' : '' }}">
+                    <a href="{{ route('suppliers.index') }}"><i class="fas fa-truck"></i> Suppliers</a>
                 </li>
 
                 <p class="menu-label">System</p>
-                <li class="{{ request()->is('transactions*') ? 'active' : '' }}">
-                    <a href="{{ url('/transactions') }}"><i class="fas fa-history"></i> Transaction History</a>
+                <li class="{{ request()->routeIs('transactions.*') ? 'active' : '' }}">
+                    <a href="{{ route('transactions.index') }}"><i class="fas fa-history"></i> Transaction History</a>
                 </li>
-                <li class="{{ request()->is('audit-logs*') ? 'active' : '' }}">
-                    <a href="{{ url('/audit-logs') }}"><i class="fas fa-clipboard-list"></i> Audit Logs</a>
+                <li class="{{ request()->routeIs('logs.index') ? 'active' : '' }}">
+                    <a href="{{ route('logs.index') }}"><i class="fas fa-clipboard-list"></i> Audit Logs</a>
                 </li>
-                <li class="{{ request()->is('users*') ? 'active' : '' }}">
-                    <a href="{{ url('/users') }}"><i class="fas fa-user-shield"></i> User Management</a>
+                <li class="{{ request()->routeIs('users.*') ? 'active' : '' }}">
+                    <a href="{{ route('users.index') }}"><i class="fas fa-user-shield"></i> User Management</a>
                 </li>
-                <li class="{{ request()->is('settings*') ? 'active' : '' }}">
-                    <a href="{{ url('/settings') }}"><i class="fas fa-cog"></i> Settings</a>
+                <li class="{{ request()->routeIs('settings.*') ? 'active' : '' }}">
+                    <a href="{{ route('settings.index') }}"><i class="fas fa-cog"></i> Settings</a>
                 </li>
                 
                 <li>
@@ -104,7 +104,6 @@
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const sidebar = document.getElementById('sidebar');
-            const content = document.getElementById('content');
             const sidebarCollapseBtn = document.getElementById('sidebarCollapse');
             const overlay = document.querySelector('.overlay');
 
