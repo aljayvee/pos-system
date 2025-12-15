@@ -8,22 +8,19 @@ use Illuminate\Http\Request;
 
 class SupplierController extends Controller
 {
-    // Updated Index with Search & Pagination
     public function index(Request $request)
     {
         $storeId = $this->getActiveStoreId();
         
+        // FIX: Used paginate() instead of get()
+        // FIX: Added withCount('purchases') so the badge in the view works
         $suppliers = Supplier::where('store_id', $storeId)
-            ->withCount('purchases')
+            ->withCount('purchases') 
             ->when($request->search, function ($query, $search) {
-                $query->where(function($q) use ($search) {
-                    $q->where('name', 'like', "%{$search}%")
-                      ->orWhere('contact_info', 'like', "%{$search}%");
-                });
+                $query->where('name', 'like', "%{$search}%");
             })
             ->latest()
-            ->paginate(10)
-            ->withQueryString();
+            ->paginate(10); // <--- Required for $suppliers->links() in the view
 
         return view('admin.suppliers.index', compact('suppliers'));
     }
@@ -32,9 +29,9 @@ class SupplierController extends Controller
     {
         $data = $request->all();
         $data['store_id'] = $this->getActiveStoreId(); 
-        
+
         $request->validate([
-            'name' => 'required|string|max:255', // Removed unique strict check for simplicity in multi-store, or add composite unique rule if needed
+            'name' => 'required|string|max:255',
             'contact_info' => 'nullable|string|max:255',
         ]);
 
@@ -67,19 +64,15 @@ class SupplierController extends Controller
 
     public function show(Supplier $supplier)
     {
-        // 1. Get Purchase History
         $purchases = $supplier->purchases()
                               ->with('user')
                               ->latest('purchase_date')
                               ->paginate(10);
 
-        // 2. Calculate Stats
         $totalSpent = $supplier->purchases()->sum('total_cost');
         $totalTransactions = $supplier->purchases()->count();
         
-        // Get Last Purchase Date
         $lastPurchase = $supplier->purchases()->latest('purchase_date')->first();
-        // Fixed: Use created_at or purchase_date correctly. Assuming purchase_date is a datetime/date cast
         $lastPurchaseDate = $lastPurchase ? \Carbon\Carbon::parse($lastPurchase->purchase_date)->format('M d, Y') : 'Never';
 
         return view('admin.suppliers.show', compact('supplier', 'purchases', 'totalSpent', 'totalTransactions', 'lastPurchaseDate'));
