@@ -84,7 +84,7 @@
       
       <header class="h-16 bg-white shadow-sm border-b border-gray-200 flex items-center justify-between px-4 lg:px-8 shrink-0 z-30">
         
-        <button @click="toggleSidebar" class="hidden lg:flex items-center justify-center w-10 h-10 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors">
+        <button @click="toggleSidebar" class="flex items-center justify-center w-10 h-10 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors">
             <i class="fas fa-bars text-xl"></i>
         </button>
 
@@ -138,10 +138,8 @@ export default {
   props: ['userName', 'userRole', 'pageTitle', 'csrfToken', 'outOfStock', 'lowStock'],
   data() {
     return {
-      // Principle: "Define breakpoints once".
-      // We use 1024px (Tailwind 'lg') as the mental model for "Desktop".
       isMobile: window.innerWidth < 1024,
-      isOpen: window.innerWidth >= 1024, // Open by default on Desktop
+      isOpen: window.innerWidth >= 1024,
       notifOpen: false,
       currentPath: window.location.pathname
     };
@@ -166,11 +164,9 @@ export default {
       this.notifOpen = false;
     },
     handleResize() {
-      // Logic: Sync JS state with CSS Breakpoint (lg: 1024px)
       const mobile = window.innerWidth < 1024;
       if (this.isMobile !== mobile) {
         this.isMobile = mobile;
-        // Auto-reset: Open on desktop, Closed on mobile
         this.isOpen = !this.isMobile; 
       }
     }
