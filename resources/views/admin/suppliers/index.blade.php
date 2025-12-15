@@ -71,12 +71,16 @@
                                 <a href="{{ route('suppliers.show', $supplier->id) }}" class="btn btn-sm btn-info text-white me-1 shadow-sm" title="View Profile">
                                     <i class="fas fa-eye"></i>
                                 </a>
-                                {{-- EDIT BUTTON --}}
+                                {{-- Replace the old button/modal code with this: --}}
+                                <a href="{{ route('suppliers.edit', $supplier->id) }}" class="btn btn-sm btn-outline-primary me-1 shadow-sm">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <!--{{-- EDIT BUTTON --}}
                                 <button class="btn btn-sm btn-outline-primary me-1 shadow-sm" 
                                         data-bs-toggle="modal" 
                                         data-bs-target="#editSupplierModal-{{ $supplier->id }}">
                                     <i class="fas fa-edit"></i>
-                                </button>
+                                </button>-->
                                 
                                 <form action="{{ route('suppliers.destroy', $supplier->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Delete this supplier?');">
                                     @csrf @method('DELETE')
@@ -154,11 +158,10 @@
                                 <i class="fas fa-eye"></i> View
                             </a>
                             {{-- MOBILE EDIT BUTTON --}}
-                            <button class="btn btn-sm btn-outline-primary flex-fill" 
-                                    data-bs-toggle="modal" 
-                                    data-bs-target="#editSupplierModal-{{ $supplier->id }}">
-                                <i class="fas fa-edit"></i> Edit
-                            </button>
+                            {{-- Replace the old button/modal code with this: --}}
+                                    <a href="{{ route('suppliers.edit', $supplier->id) }}" class="btn btn-sm btn-outline-primary flex-fill">
+                                        <i class="fas fa-edit"></i> Edit
+                                    </a>
                             
                             <form action="{{ route('suppliers.destroy', $supplier->id) }}" method="POST" class="d-inline flex-fill" onsubmit="return confirm('Delete supplier?');">
                                 @csrf @method('DELETE')

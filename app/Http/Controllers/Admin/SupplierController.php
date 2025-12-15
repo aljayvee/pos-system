@@ -84,4 +84,10 @@ class SupplierController extends Controller
 
         return view('admin.suppliers.show', compact('supplier', 'purchases', 'totalSpent', 'totalTransactions', 'lastPurchaseDate'));
     }
+
+    // Add this inside the SupplierController class
+    public function edit(Supplier $supplier)
+    {
+        return view('admin.suppliers.edit', compact('supplier'));
+    }
 }

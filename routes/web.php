@@ -35,7 +35,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->group(function () {
     Route::resource('customers', \App\Http\Controllers\Admin\CustomerController::class);
     // Removed 'show' from except array
     // Removed 'create' from except array
-    Route::resource('suppliers', \App\Http\Controllers\Admin\SupplierController::class)->except(['edit']);
+    Route::resource('suppliers', \App\Http\Controllers\Admin\SupplierController::class);
     
     // User Management (With Toggle)
     Route::post('/users/{user}/toggle', [UserController::class, 'toggleStatus'])->name('users.toggle');
