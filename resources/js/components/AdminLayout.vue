@@ -9,7 +9,7 @@
     ></div>
 
     <aside 
-      class="text-white d-flex flex-column shadow-lg sidebar-transition"
+      class="d-flex flex-column shadow-lg sidebar-transition"
       :class="sidebarClasses"
       style="z-index: 1050; background-color: #1e1e2d;"
     >
@@ -19,14 +19,14 @@
       >
          <div class="d-flex align-items-center overflow-hidden" :class="{ 'w-100 justify-content-center': !isOpen && !isMobile }">
              <button v-if="isMobile" @click="toggleSidebar" class="btn btn-link text-white p-0 me-3 text-decoration-none">
-                 <i class="fas fa-arrow-left fa-lg"></i>
+                 <i class="fas fa-times fa-lg"></i>
              </button>
 
              <div class="d-flex align-items-center text-nowrap">
                  <div class="rounded d-flex align-items-center justify-content-center text-white" style="width: 36px; height: 36px;">
                     <i class="fas fa-store fa-lg text-primary"></i>
                  </div>
-                 <span class="ms-2 fw-bold fs-5 tracking-wide fade-text" v-show="isOpen || isMobile">SariPOS</span>
+                 <span class="ms-2 fw-bold fs-5 tracking-wide text-white fade-text" v-show="isOpen || isMobile">SariPOS</span>
              </div>
          </div>
 
@@ -47,7 +47,7 @@
          <ul class="nav nav-pills flex-column px-2 gap-1">
             <template v-if="userRole === 'admin'">
                 
-                <li class="nav-header px-3 mt-2 mb-1 text-muted small fw-bold text-uppercase text-nowrap overflow-hidden" style="font-size: 0.7rem; letter-spacing: 1px;" v-show="isOpen || isMobile">Core</li>
+                <li class="nav-header px-3 mt-2 mb-1 text-muted small fw-bold text-uppercase overflow-hidden" v-show="isOpen || isMobile">Core</li>
                 <li class="nav-item">
                     <a href="/admin/dashboard" class="nav-link d-flex align-items-center" :class="{ 'active': currentPath === '/admin/dashboard' }">
                        <div class="icon-wrapper"><i class="fas fa-tachometer-alt"></i></div>
@@ -55,7 +55,7 @@
                     </a>
                 </li>
 
-                <li class="nav-header px-3 mt-3 mb-1 text-muted small fw-bold text-uppercase text-nowrap overflow-hidden" style="font-size: 0.7rem; letter-spacing: 1px;" v-show="isOpen || isMobile">Inventory</li>
+                <li class="nav-header px-3 mt-3 mb-1 text-muted small fw-bold text-uppercase overflow-hidden" v-show="isOpen || isMobile">Inventory</li>
                 <li class="nav-item">
                     <a href="/admin/products" class="nav-link d-flex align-items-center" :class="{ 'active': currentPath.includes('/products') }">
                        <div class="icon-wrapper"><i class="fas fa-box-open"></i></div>
@@ -75,7 +75,7 @@
                     </a>
                 </li>
 
-                <li class="nav-header px-3 mt-3 mb-1 text-muted small fw-bold text-uppercase text-nowrap overflow-hidden" style="font-size: 0.7rem; letter-spacing: 1px;" v-show="isOpen || isMobile">People</li>
+                <li class="nav-header px-3 mt-3 mb-1 text-muted small fw-bold text-uppercase overflow-hidden" v-show="isOpen || isMobile">Finance</li>
                 <li class="nav-item">
                     <a href="/admin/customers" class="nav-link d-flex align-items-center" :class="{ 'active': currentPath.includes('/customers') }">
                        <div class="icon-wrapper"><i class="fas fa-users"></i></div>
@@ -89,7 +89,7 @@
                     </a>
                 </li>
 
-                <li class="nav-header px-3 mt-3 mb-1 text-muted small fw-bold text-uppercase text-nowrap overflow-hidden" style="font-size: 0.7rem; letter-spacing: 1px;" v-show="isOpen || isMobile">System</li>
+                <li class="nav-header px-3 mt-3 mb-1 text-muted small fw-bold text-uppercase overflow-hidden" v-show="isOpen || isMobile">System</li>
                 <li class="nav-item">
                     <a href="/admin/transactions" class="nav-link d-flex align-items-center" :class="{ 'active': currentPath.includes('/transactions') }">
                        <div class="icon-wrapper"><i class="fas fa-history"></i></div>
@@ -124,6 +124,7 @@
                       <small class="text-muted" style="font-size: 0.7rem;">{{ userRole.toUpperCase() }}</small>
                   </div>
               </div>
+              
               <form action="/logout" method="POST" :class="{ 'w-100': !isOpen && !isMobile }">
                  <input type="hidden" name="_token" :value="csrfToken">
                  <button class="btn btn-link text-danger p-0 d-flex align-items-center justify-content-center" :class="{ 'mx-auto': !isOpen && !isMobile }" style="width: 38px; height: 38px;" title="Logout">
@@ -135,6 +136,7 @@
     </aside>
 
     <div class="d-flex flex-column flex-fill overflow-hidden position-relative w-100 bg-light">
+      
       <header class="navbar navbar-expand bg-white border-bottom shadow-sm px-4" style="height: 70px; min-height: 70px;">
         <button v-if="!isOpen && !isMobile" @click="toggleSidebar" class="btn btn-light border me-3 text-secondary"><i class="fas fa-bars"></i></button>
         <button v-if="isMobile" @click="toggleSidebar" class="btn btn-light border me-3 text-secondary"><i class="fas fa-bars"></i></button>
@@ -143,7 +145,7 @@
 
         <div class="ms-auto position-relative" v-click-outside="closeNotif">
              <button @click="toggleNotif" class="btn btn-light rounded-circle position-relative p-2 text-secondary hover-bg-light" style="width: 42px; height: 42px;">
-                 <i class="far fa-bell fa-lg"></i>
+                 <i class="fas fa-bell fa-lg"></i>
                  <span v-if="totalAlerts > 0" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger border border-light">{{ totalAlerts }}</span>
              </button>
 
@@ -153,7 +155,7 @@
                      <span v-if="totalAlerts > 0" class="badge bg-danger rounded-pill">{{ totalAlerts }}</span>
                  </div>
                  <div class="list-group list-group-flush" style="max-height: 300px; overflow-y: auto;">
-                     <div v-if="totalAlerts === 0" class="p-4 text-center text-muted small">All caught up!</div>
+                     <div v-if="totalAlerts === 0" class="p-4 text-center text-muted small">No new notifications</div>
                      <template v-else>
                          <a href="/admin/products" v-if="outOfStock > 0" class="list-group-item list-group-item-action p-3">
                              <small class="fw-bold text-danger d-block">Out of Stock</small>
@@ -183,8 +185,8 @@ export default {
   props: ['userName', 'userRole', 'pageTitle', 'csrfToken', 'outOfStock', 'lowStock'],
   data() {
     return {
-      isMobile: window.innerWidth < 992,
-      isOpen: window.innerWidth >= 992,
+      isMobile: window.innerWidth < 992, // Phablet/Mobile breakpoint
+      isOpen: window.innerWidth >= 992,  // Default: Open on desktop, closed on mobile
       notifOpen: false,
       currentPath: window.location.pathname
     };
@@ -192,7 +194,7 @@ export default {
   computed: {
     sidebarClasses() {
         return [
-            this.isMobile ? 'position-fixed h-100 z-3' : 'position-relative',
+            this.isMobile ? 'position-fixed h-100' : 'position-relative',
             this.isOpen ? 'sidebar-open' : (this.isMobile ? 'sidebar-closed-mobile' : 'sidebar-closed-desktop')
         ];
     },
@@ -220,14 +222,43 @@ export default {
 </script>
 
 <style scoped>
-.sidebar-transition { transition: width 0.3s ease, transform 0.3s ease; white-space: nowrap; }
-.sidebar-open { width: 265px; transform: translateX(0); }
-.sidebar-closed-desktop { width: 75px; }
-.sidebar-closed-mobile { width: 265px; transform: translateX(-100%); }
-.nav-link { color: #a2a3b7; padding: 0.75rem 1rem; border-radius: 0.4rem; transition: all 0.2s ease; margin-bottom: 2px; }
-.nav-link:hover { color: #ffffff; background-color: rgba(255, 255, 255, 0.05); }
-.nav-link.active { background-color: #1b1b28 !important; color: #3699ff !important; position: relative; }
-.nav-link.active::before { content: ''; position: absolute; left: 0; top: 10%; height: 80%; width: 4px; background-color: #3699ff; border-radius: 0 4px 4px 0; }
+/* FORCE TEXT COLOR VISIBILITY 
+   We explicitly set colors to override any default Bootstrap or User Agent styles
+*/
+.text-white { color: #ffffff !important; }
+.text-muted { color: #6c757d !important; }
+
+/* SIDEBAR TRANSITIONS */
+.sidebar-transition { transition: all 0.3s ease; white-space: nowrap; }
+.sidebar-open { width: 260px; transform: translateX(0); }
+.sidebar-closed-desktop { width: 80px; }
+/* Mobile: Slide completely off-screen */
+.sidebar-closed-mobile { width: 260px; transform: translateX(-100%); }
+
+/* NAVIGATION LINKS */
+.nav-link { 
+    color: #a2a3b7; /* Muted Blue-Grey */
+    padding: 0.8rem 1rem; 
+    border-radius: 0.4rem; 
+    transition: all 0.2s ease; 
+    margin-bottom: 2px; 
+}
+.nav-link:hover { 
+    color: #ffffff; /* White on hover */
+    background-color: rgba(255, 255, 255, 0.05); 
+}
+.nav-link.active { 
+    background-color: #1b1b28 !important; 
+    color: #3699ff !important; /* Bright Blue active */
+    position: relative; 
+}
+/* Active Left Border Indicator */
+.nav-link.active::before { 
+    content: ''; position: absolute; left: 0; top: 10%; height: 80%; width: 4px; 
+    background-color: #3699ff; border-radius: 0 4px 4px 0; 
+}
+
+/* UTILITIES */
 .hover-white:hover { color: #ffffff !important; }
 .icon-wrapper { width: 35px; display: flex; justify-content: center; align-items: center; font-size: 1.15rem; flex-shrink: 0; }
 .custom-scrollbar::-webkit-scrollbar { width: 5px; }
