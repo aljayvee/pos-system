@@ -55,7 +55,7 @@ class POSController extends Controller
         }], 'remaining_balance')->orderBy('name')->get();
 
         $categories = \App\Models\Category::select('id', 'name')->get();
-        $customers = \App\Models\Customer::select('id', 'name')->get(); // Fetch existing credit customers
+        $customers = \App\Models\Customer::select('id', 'name', 'address', 'contact')->get(); // Added address/contact
 
         // FETCH SETTINGS
         $loyaltyEnabled = \App\Models\Setting::where('key', 'enable_loyalty')->value('value') ?? '0';
@@ -70,6 +70,9 @@ class POSController extends Controller
         // Default to 12% if not set
         'rate'    => (\App\Models\Setting::where('key', 'tax_rate')->value('value') ?? 12) / 100 
     ];
+
+    // 3. FETCH PAYMONGO SETTING
+        $paymongoEnabled = \App\Models\Setting::where('key', 'enable_paymongo')->value('value') ?? '0';
 
         return view('cashier.index', compact('products', 'customers', 'categories', 'loyaltyEnabled', 'taxSettings', 'store', 'user'));
     }
