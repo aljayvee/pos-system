@@ -1,6 +1,7 @@
-<div class="modal fade" id="payCreditModal-{{ $credit->id }}" tabindex="-1">
+{{-- FIXED: Using $credit->credit_id instead of $credit->id --}}
+<div class="modal fade" id="payCreditModal-{{ $credit->credit_id }}" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
-        <form action="{{ route('credits.pay', $credit->id) }}" method="POST">
+        <form action="{{ route('credits.pay', $credit->credit_id) }}" method="POST">
             @csrf
             <div class="modal-content border-0 shadow">
                 <div class="modal-header bg-success text-white">

@@ -38,7 +38,7 @@
             <div class="card bg-danger text-white shadow-sm border-0">
                 <div class="card-body d-flex justify-content-between align-items-center p-4">
                     <div>
-                        <p class="text-white-50 text-uppercase fw-bold small mb-1">Total Collectibles (Utang)</p>
+                        <p class="text-white-50 text-uppercase fw-bold small mb-1">Total Collectibles</p>
                         <h2 class="fw-bold mb-0">₱{{ number_format($totalReceivables, 2) }}</h2>
                     </div>
                     <i class="fas fa-hand-holding-usd fa-3x opacity-25"></i>
@@ -111,14 +111,16 @@
                                 @endif
                             </td>
                             <td class="text-end pe-4">
-                                <button class="btn btn-sm btn-success shadow-sm" data-bs-toggle="modal" data-bs-target="#payCreditModal-{{ $credit->id }}">
+                                {{-- CORRECTED: Using credit_id --}}
+                                <button class="btn btn-sm btn-success shadow-sm" data-bs-toggle="modal" data-bs-target="#payCreditModal-{{ $credit->credit_id }}">
                                     <i class="fas fa-money-bill-wave me-1"></i> Pay
                                 </button>
-                                <a href="{{ route('credits.history', $credit->id) }}" class="btn btn-sm btn-outline-secondary shadow-sm ms-1" title="History">
+                                <a href="{{ route('credits.history', $credit->credit_id) }}" class="btn btn-sm btn-outline-secondary shadow-sm ms-1" title="History">
                                     <i class="fas fa-list"></i>
                                 </a>
                             </td>
                         </tr>
+                        {{-- INCLUDE MODAL --}}
                         @include('admin.credits.partials.pay-modal', ['credit' => $credit])
                         @empty
                         <tr>
@@ -172,19 +174,19 @@
                         </div>
 
                         <div class="d-grid gap-2 d-flex">
-                            <button class="btn btn-success flex-fill shadow-sm" data-bs-toggle="modal" data-bs-target="#payCreditModal-{{ $credit->id }}">
+                            {{-- CORRECTED: Using credit_id --}}
+                            <button class="btn btn-success flex-fill shadow-sm" data-bs-toggle="modal" data-bs-target="#payCreditModal-{{ $credit->credit_id }}">
                                 <i class="fas fa-hand-holding-usd me-1"></i> Pay
                             </button>
-                            <a href="{{ route('credits.history', $credit->id) }}" class="btn btn-outline-secondary flex-fill shadow-sm">
+                            <a href="{{ route('credits.history', $credit->credit_id) }}" class="btn btn-outline-secondary flex-fill shadow-sm">
                                 <i class="fas fa-history"></i> Log
                             </a>
                         </div>
                     </div>
                 </div>
             </div>
-            {{-- Modal must be included in the loop for mobile too (or move outside if using JS to populate) --}}
-            {{-- Since we are looping, reusing the include file is safest for now --}}
-            {{-- NOTE: To avoid ID conflicts if pagination splits, ensure IDs are unique or move modal logic --}}
+            {{-- Ensure modal is included for mobile loop too --}}
+            @include('admin.credits.partials.pay-modal', ['credit' => $credit])
             @empty
             <div class="col-12 text-center py-5 text-muted">
                 <i class="fas fa-check-circle fa-3x mb-3 text-success opacity-25"></i>
