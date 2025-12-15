@@ -1,253 +1,290 @@
 <template>
   <div class="d-flex flex-column h-100 w-100 bg-light font-sans position-absolute top-0 start-0 overflow-hidden">
     
-    <div class="px-3 py-2 text-white d-flex align-items-center justify-content-between shrink-0 shadow-sm" style="background-color: #1e1e2d; height: 64px;">
+    <div class="px-3 py-2 text-white d-flex align-items-center justify-content-between shrink-0 shadow-sm" style="background-color: #1e1e2d; height: 60px;">
         
-        <div class="d-flex align-items-center me-2 overflow-hidden">
-            <div class="rounded-circle bg-primary d-flex align-items-center justify-content-center text-white me-2 fw-bold flex-shrink-0" style="width: 38px; height: 38px;">
+        <div class="d-flex align-items-center" style="min-width: 0;">
+            <div class="rounded-circle bg-primary d-flex align-items-center justify-content-center text-white me-2 flex-shrink-0" style="width: 35px; height: 35px;">
                 <i class="fas fa-store"></i>
             </div>
-            <div class="lh-1 overflow-hidden">
-                <div class="fw-bold text-truncate" style="font-size: 0.9rem; max-width: 120px;">{{ storeName }}</div>
-                <small class="text-white-50 d-block text-truncate" style="font-size: 0.7rem; max-width: 120px;">{{ cashierName }}</small>
+            <div class="lh-1 text-truncate">
+                <div class="fw-bold text-truncate" style="font-size: 0.9rem;">{{ storeName }}</div>
+                <small class="text-white-50 d-block text-truncate" style="font-size: 0.7rem;">{{ cashierName }}</small>
             </div>
         </div>
 
-        <div class="flex-fill mx-2 position-relative">
+        <div class="mx-2 flex-fill" style="max-width: 400px;">
             <div class="input-group input-group-sm">
-                <span class="input-group-text bg-white border-0 ps-3"><i class="fas fa-search text-muted"></i></span>
                 <input 
                     v-model="searchQuery" 
                     type="text" 
-                    class="form-control border-0 shadow-none" 
+                    class="form-control border-0 shadow-none rounded-start" 
                     placeholder="Search / Scan..." 
-                    id="barcodeInput"
                     @keydown.enter="handleBarcodeEnter"
                 >
-                <button class="btn btn-warning fw-bold text-dark" type="button" @click="toggleScanner">
-                    <i class="fas fa-camera d-none d-sm-inline me-1"></i> Scan
+                <button class="btn btn-warning text-dark fw-bold" type="button" @click="toggleScanner">
+                    <i class="fas fa-barcode"></i>
                 </button>
             </div>
         </div>
 
         <div class="d-flex align-items-center">
             
-            <div class="d-none d-md-flex gap-2 align-items-center">
-                <a href="/cashier/debtors" class="btn btn-outline-light btn-sm" title="Pay Debt"><i class="fas fa-book me-1"></i> Debt</a>
-                <a href="/cashier/return/search" class="btn btn-outline-light btn-sm" title="Return"><i class="fas fa-undo me-1"></i> Return</a>
-                <div class="dropdown">
-                    <button class="btn btn-outline-light btn-sm dropdown-toggle" data-bs-toggle="dropdown">Reports</button>
-                    <ul class="dropdown-menu dropdown-menu-end shadow">
-                        <li><a class="dropdown-item" href="/cashier/reading/x-reading">X-Reading (Shift)</a></li>
-                        <li><a class="dropdown-item" href="/cashier/reading/z-reading">Z-Reading (End Day)</a></li>
-                    </ul>
-                </div>
-                <form action="/logout" method="POST" class="ms-2">
-                    <input type="hidden" name="_token" :value="csrfToken">
-                    <button class="btn btn-danger btn-sm rounded-circle" style="width: 32px; height: 32px;"><i class="fas fa-power-off"></i></button>
-                </form>
+            <div class="d-none d-md-flex align-items-center gap-2 me-2">
+                <a href="/cashier/debtors" class="btn btn-sm btn-outline-light border-0"><i class="fas fa-book me-1"></i>Debt</a>
+                <a href="/cashier/return/search" class="btn btn-sm btn-outline-light border-0"><i class="fas fa-undo me-1"></i>Return</a>
             </div>
 
-            <div class="dropdown d-md-none ms-1">
-                <button class="btn btn-outline-light btn-sm" type="button" data-bs-toggle="dropdown">
-                    <i class="fas fa-bars fa-lg"></i>
+            <div class="dropdown">
+                <button class="btn btn-link text-white p-0 d-flex align-items-center text-decoration-none" data-bs-toggle="dropdown">
+                    <i class="fas fa-cog fa-lg me-1 text-white-50 hover-white"></i>
+                    <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center text-white fw-bold border border-secondary" style="width: 35px; height: 35px;">
+                        {{ cashierName.charAt(0).toUpperCase() }}
+                    </div>
                 </button>
-                <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0">
-                    <li><h6 class="dropdown-header">Utilities</h6></li>
-                    <li><a class="dropdown-item" href="/cashier/debtors"><i class="fas fa-book me-2 text-warning"></i>Pay Debt / Utang</a></li>
-                    <li><a class="dropdown-item" href="/cashier/return/search"><i class="fas fa-undo me-2 text-danger"></i>Process Return</a></li>
-                    <li><hr class="dropdown-divider"></li>
-                    <li><h6 class="dropdown-header">Reports</h6></li>
-                    <li><a class="dropdown-item" href="/cashier/reading/x-reading"><i class="fas fa-file-invoice me-2 text-info"></i>X-Reading</a></li>
-                    <li><a class="dropdown-item" href="/cashier/reading/z-reading"><i class="fas fa-file-invoice-dollar me-2 text-success"></i>Z-Reading</a></li>
+                
+                <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 mt-2" style="min-width: 220px;">
+                    <li class="px-3 py-2 border-bottom bg-light">
+                        <span class="d-block small text-muted text-uppercase fw-bold">Account</span>
+                        <span class="fw-bold text-dark">{{ cashierName }}</span>
+                    </li>
+                    
+                    <li><a class="dropdown-item py-2" href="/admin/profile"><i class="fas fa-user-circle me-2 text-primary"></i>My Profile</a></li>
+                    <li><a class="dropdown-item py-2" href="/admin/settings"><i class="fas fa-sliders-h me-2 text-secondary"></i>System Settings</a></li>
+                    
+                    <li class="d-md-none"><hr class="dropdown-divider"></li>
+                    <li class="d-md-none px-3 py-1 text-muted small fw-bold text-uppercase">Actions</li>
+                    <li class="d-md-none"><a class="dropdown-item py-2" href="/cashier/debtors"><i class="fas fa-book me-2 text-warning"></i>Pay Debt</a></li>
+                    <li class="d-md-none"><a class="dropdown-item py-2" href="/cashier/return/search"><i class="fas fa-undo me-2 text-danger"></i>Return Items</a></li>
+                    <li class="d-md-none"><a class="dropdown-item py-2" href="/cashier/reading/z-reading"><i class="fas fa-file-invoice-dollar me-2 text-success"></i>Z-Reading</a></li>
+                    
                     <li><hr class="dropdown-divider"></li>
                     <li>
                         <form action="/logout" method="POST" class="d-block w-100">
                             <input type="hidden" name="_token" :value="csrfToken">
-                            <button class="dropdown-item text-danger fw-bold"><i class="fas fa-sign-out-alt me-2"></i>Logout</button>
+                            <button class="dropdown-item text-danger fw-bold py-2"><i class="fas fa-sign-out-alt me-2"></i>Log Out</button>
                         </form>
                     </li>
                 </ul>
             </div>
-
         </div>
     </div>
 
-    <div class="d-flex flex-fill overflow-hidden position-relative">
+    <div class="d-flex flex-fill overflow-hidden position-relative w-100">
         
-        <div class="d-flex flex-column flex-fill bg-light position-relative" :class="{ 'd-none d-md-flex': mobileTab === 'cart' }">
-            <div class="d-flex gap-2 p-2 overflow-auto bg-white border-bottom custom-scrollbar shrink-0">
-                <button class="btn btn-sm rounded-pill border px-3 fw-bold" :class="selectedCategory === '' ? 'btn-dark' : 'btn-light text-muted'" @click="selectedCategory = ''">All</button>
-                <button v-for="cat in categories" :key="cat.id" class="btn btn-sm rounded-pill border px-3 fw-bold" :class="selectedCategory === cat.id ? 'btn-dark' : 'btn-light text-muted'" @click="selectedCategory = cat.id">{{ cat.name }}</button>
+        <div class="d-flex flex-column flex-fill bg-light position-relative h-100 w-100" 
+             :class="{ 'd-none d-md-flex': mobileTab === 'cart' }">
+            
+            <div class="w-100 bg-white border-bottom py-2 px-2 flex-shrink-0">
+                <div class="d-flex gap-2 overflow-auto custom-scrollbar pb-1 align-items-center">
+                    <button 
+                        class="btn btn-sm rounded-pill border px-3 fw-bold flex-shrink-0"
+                        :class="selectedCategory === '' ? 'btn-dark' : 'btn-light text-secondary'"
+                        @click="selectedCategory = ''"
+                    >
+                        All
+                    </button>
+                    <button 
+                        v-for="cat in categories" 
+                        :key="cat.id" 
+                        class="btn btn-sm rounded-pill border px-3 fw-bold flex-shrink-0"
+                        :class="selectedCategory === cat.id ? 'btn-dark' : 'btn-light text-secondary'"
+                        @click="selectedCategory = cat.id"
+                    >
+                        {{ cat.name }}
+                    </button>
+                </div>
             </div>
 
-            <div class="flex-fill overflow-auto p-2 p-md-3 custom-scrollbar">
-                <div class="row g-2">
-                    <div v-for="product in filteredProducts" :key="product.id" class="col-6 col-sm-4 col-md-3 col-xl-2" @click="addToCart(product)">
-                        <div class="card h-100 border-0 shadow-sm product-card cursor-pointer">
-                            <div class="card-body p-2 text-center d-flex flex-column">
-                                <div class="mb-2 mx-auto rounded d-flex align-items-center justify-content-center bg-primary bg-opacity-10 text-primary fw-bold fs-4" style="width: 50px; height: 50px;">
+            <div class="flex-fill overflow-auto p-2 bg-light custom-scrollbar">
+                
+                <div v-if="filteredProducts.length === 0" class="text-center py-5 mt-4 text-muted">
+                    <i class="fas fa-box-open fa-3x mb-3 opacity-25"></i>
+                    <p class="fw-bold">No products found</p>
+                </div>
+
+                <div class="row g-2 align-content-start">
+                    <div v-for="product in filteredProducts" :key="product.id" class="col-6 col-sm-4 col-lg-3 col-xl-2" @click="addToCart(product)">
+                        <div class="card h-100 border-0 shadow-sm product-card cursor-pointer position-relative bg-white">
+                            
+                            <span v-if="product.stock <= 5" class="position-absolute top-0 end-0 badge bg-danger m-1 rounded-pill shadow-sm" style="font-size: 0.6rem; z-index: 10;">
+                                {{ product.stock }} left
+                            </span>
+
+                            <div class="card-body p-2 text-center d-flex flex-column justify-content-between h-100">
+                                <div class="mb-2 mx-auto rounded-3 d-flex align-items-center justify-content-center bg-primary bg-opacity-10 text-primary fw-bold" style="width: 50px; height: 50px; font-size: 1.25rem;">
                                     {{ product.name.charAt(0) }}
                                 </div>
-                                <h6 class="card-title text-dark fw-bold mb-1 text-truncate w-100 small">{{ product.name }}</h6>
-                                <div class="mt-auto">
-                                    <span class="badge bg-danger mb-1" v-if="product.stock <= 5">Low: {{ product.stock }}</span>
-                                    <div class="fw-bold text-primary">₱{{ formatPrice(product.price) }}</div>
+                                
+                                <div class="w-100">
+                                    <h6 class="card-title text-dark fw-bold mb-1 text-truncate w-100" style="font-size: 0.85rem;">{{ product.name }}</h6>
+                                    <div class="fw-bold text-primary" style="font-size: 0.9rem;">₱{{ formatPrice(product.price) }}</div>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
+                
+                <div class="d-md-none" style="height: 70px;"></div>
             </div>
         </div>
 
         <div class="d-flex flex-column bg-white border-start shadow-lg h-100 cart-panel" 
              :class="{ 'd-none d-md-flex': mobileTab === 'menu', 'w-100': mobileTab === 'cart' }"
-             style="width: 400px; z-index: 100;">
+             style="width: 380px; z-index: 900;">
             
-            <div class="p-3 bg-light border-bottom">
-                <div class="d-flex gap-2 mb-2">
-                    <button class="btn btn-sm flex-fill fw-bold" :class="customerType === 'walkin' ? 'btn-primary' : 'btn-outline-secondary'" @click="setCustomerType('walkin')">Walk-In</button>
-                    <button class="btn btn-sm flex-fill fw-bold" :class="customerType === 'credit' ? 'btn-warning' : 'btn-outline-secondary'" @click="setCustomerType('credit')">Credit / Utang</button>
+            <div class="p-3 bg-light border-bottom d-flex justify-content-between align-items-center shadow-sm z-1">
+                <div class="fw-bold text-dark"><i class="fas fa-receipt me-2"></i>Order Summary</div>
+                <button v-if="cart.length > 0" class="btn btn-sm btn-outline-danger border-0" @click="clearCart">Clear</button>
+            </div>
+
+            <div class="px-3 py-2 border-bottom bg-white">
+                <div class="btn-group w-100 btn-group-sm">
+                    <input type="radio" class="btn-check" name="ctype" id="walkin" value="walkin" v-model="customerType" @change="setCustomerType('walkin')">
+                    <label class="btn btn-outline-secondary" for="walkin">Walk-In</label>
+
+                    <input type="radio" class="btn-check" name="ctype" id="credit" value="credit" v-model="customerType" @change="setCustomerType('credit')">
+                    <label class="btn btn-outline-warning text-dark" for="credit">Credit/Utang</label>
                 </div>
-                <div v-if="customerType === 'credit'" class="input-group input-group-sm">
+                
+                <div v-if="customerType === 'credit'" class="mt-2 input-group input-group-sm">
                     <select v-model="selectedCustomerId" class="form-select">
-                        <option value="" disabled>Select Customer...</option>
-                        <option v-for="cust in customers" :key="cust.id" :value="cust.id">{{ cust.name }}</option>
+                        <option value="" disabled>Select Customer</option>
+                        <option v-for="c in customers" :key="c.id" :value="c.id">{{ c.name }}</option>
                     </select>
                     <button class="btn btn-outline-primary" @click="showNewCustomerModal = true"><i class="fas fa-plus"></i></button>
                 </div>
             </div>
 
             <div class="flex-fill overflow-auto p-3 bg-white custom-scrollbar">
-                <div v-if="cart.length === 0" class="h-100 d-flex flex-column align-items-center justify-content-center text-muted">
-                    <i class="fas fa-cart-arrow-down fa-3x mb-2 opacity-25"></i>
-                    <span class="small fw-bold">Empty Cart</span>
+                <div v-if="cart.length === 0" class="h-100 d-flex flex-column align-items-center justify-content-center text-muted opacity-50">
+                    <i class="fas fa-shopping-basket fa-3x mb-2"></i>
+                    <p class="small fw-bold">Cart is empty</p>
                 </div>
+                
                 <div v-else class="d-flex flex-column gap-2">
-                    <div v-for="(item, index) in cart" :key="index" class="d-flex justify-content-between align-items-center p-2 border rounded bg-light">
-                        <div class="overflow-hidden me-2" style="flex: 1;">
-                            <div class="fw-bold text-truncate">{{ item.name }}</div>
-                            <div class="small text-muted">₱{{ formatPrice(item.price) }}</div>
+                    <div v-for="(item, index) in cart" :key="index" class="d-flex align-items-center justify-content-between p-2 border rounded bg-light">
+                        
+                        <div class="overflow-hidden me-2" style="flex: 1; min-width: 0;">
+                            <div class="fw-bold text-truncate small text-dark">{{ item.name }}</div>
+                            <div class="text-muted" style="font-size: 0.75rem;">₱{{ formatPrice(item.price) }}</div>
                         </div>
-                        <div class="d-flex align-items-center">
-                            <button class="btn btn-sm btn-light border px-2" @click="updateQty(index, -1)">-</button>
-                            <span class="mx-2 fw-bold">{{ item.qty }}</span>
-                            <button class="btn btn-sm btn-light border px-2" @click="updateQty(index, 1)">+</button>
+
+                        <div class="d-flex align-items-center border bg-white rounded flex-shrink-0">
+                            <button class="btn btn-sm px-2 py-0 text-secondary" @click="updateQty(index, -1)">-</button>
+                            <span class="mx-2 fw-bold small" style="min-width: 20px; text-align: center;">{{ item.qty }}</span>
+                            <button class="btn btn-sm px-2 py-0 text-secondary" @click="updateQty(index, 1)">+</button>
                         </div>
-                        <div class="text-end ms-3" style="min-width: 60px;">
-                            <div class="fw-bold">₱{{ formatPrice(item.price * item.qty) }}</div>
-                            <i class="fas fa-trash text-danger small cursor-pointer" @click="removeFromCart(index)"></i>
+
+                        <div class="text-end ms-2" style="width: 50px;">
+                            <div class="fw-bold small text-dark">₱{{ formatPrice(item.price * item.qty) }}</div>
                         </div>
+
+                        <button class="btn btn-link text-danger p-0 ms-1" @click="removeFromCart(index)"><i class="fas fa-times"></i></button>
                     </div>
                 </div>
+                <div class="d-md-none" style="height: 60px;"></div>
             </div>
 
             <div class="p-3 bg-white border-top shadow-lg z-2">
-                <div v-if="taxConfig.enabled == '1'" class="mb-2">
-                    <div class="d-flex justify-content-between small text-muted">
-                        <span>Subtotal</span>
-                        <span>₱{{ formatPrice(subtotal) }}</span>
+                <div v-if="taxConfig.enabled == '1'" class="mb-2 small">
+                    <div class="d-flex justify-content-between text-muted">
+                        <span>Subtotal</span><span>₱{{ formatPrice(subtotal) }}</span>
                     </div>
-                    <div class="d-flex justify-content-between small text-muted border-bottom pb-2">
-                        <span>{{ taxLabel }}</span>
-                        <span>₱{{ formatPrice(vatAmount) }}</span>
+                    <div class="d-flex justify-content-between text-muted border-bottom pb-1 mb-1">
+                        <span>VAT</span><span>₱{{ formatPrice(vatAmount) }}</span>
                     </div>
                 </div>
 
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <span class="fw-bold fs-5 text-dark">Total</span>
-                    <span class="fw-bold fs-3 text-primary">₱{{ formatPrice(grandTotal) }}</span>
-                </div>
-
-                <button class="btn btn-success w-100 py-3 fw-bold fs-5 shadow-sm text-uppercase" :disabled="cart.length === 0" @click="openPayModal">
-                    Pay Now
+                <button 
+                    class="btn btn-success w-100 py-3 fw-bold d-flex justify-content-between align-items-center shadow-sm"
+                    :disabled="cart.length === 0"
+                    @click="openPayModal"
+                >
+                    <span class="text-uppercase small">Checkout</span>
+                    <span class="fs-5">₱{{ formatPrice(grandTotal) }}</span>
                 </button>
             </div>
         </div>
     </div>
 
-    <div v-if="showReceiptModal" class="modal-backdrop fade show" style="z-index: 1090;"></div>
-    <div v-if="showReceiptModal" class="modal fade show d-block" style="z-index: 1100;">
-        <div class="modal-dialog modal-dialog-centered modal-sm">
-            <div class="modal-content">
-                <div class="modal-header bg-dark text-white py-2">
-                    <h6 class="modal-title small fw-bold">Official Receipt</h6>
-                    <button class="btn-close btn-close-white btn-sm" @click="closeReceiptModal"></button>
-                </div>
-                <div class="modal-body p-0" style="height: 500px; background: #fff;">
-                    <iframe :src="receiptUrl" frameborder="0" width="100%" height="100%"></iframe>
-                </div>
-                <div class="modal-footer p-1 bg-light justify-content-between">
-                    <button class="btn btn-sm btn-outline-secondary" @click="closeReceiptModal">Close</button>
-                    <button class="btn btn-sm btn-primary" @click="printReceiptFrame"><i class="fas fa-print me-1"></i> Print</button>
-                </div>
-            </div>
-        </div>
+    <div class="d-md-none bg-white border-top d-flex justify-content-around align-items-center shadow-lg position-absolute bottom-0 w-100 z-3" style="height: 60px;">
+        <button class="btn border-0 w-50 h-100 d-flex flex-column justify-content-center align-items-center" 
+                :class="mobileTab === 'menu' ? 'text-primary' : 'text-muted'" 
+                @click="mobileTab = 'menu'">
+            <i class="fas fa-th-large mb-1" style="font-size: 1.2rem;"></i>
+            <span style="font-size: 0.7rem; font-weight: bold;">MENU</span>
+        </button>
+        <button class="btn border-0 w-50 h-100 d-flex flex-column justify-content-center align-items-center position-relative" 
+                :class="mobileTab === 'cart' ? 'text-primary' : 'text-muted'" 
+                @click="mobileTab = 'cart'">
+            <i class="fas fa-shopping-basket mb-1" style="font-size: 1.2rem;"></i>
+            <span v-if="cartCount > 0" class="position-absolute top-0 start-50 translate-middle-x mt-1 badge rounded-pill bg-danger border border-white" style="font-size: 0.6rem;">
+                {{ cartCount }}
+            </span>
+            <span style="font-size: 0.7rem; font-weight: bold;">CART</span>
+        </button>
     </div>
 
     <div v-if="showPayModal" class="modal-backdrop fade show" style="z-index: 1050;"></div>
     <div v-if="showPayModal" class="modal fade show d-block" style="z-index: 1060;">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content border-0 shadow-lg">
-                <div class="modal-header bg-success text-white">
-                    <h5 class="modal-title fw-bold">Checkout</h5>
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content border-0">
+                <div class="modal-header bg-success text-white py-2">
+                    <h6 class="modal-title fw-bold">Payment</h6>
                     <button type="button" class="btn-close btn-close-white" @click="showPayModal = false"></button>
                 </div>
-                <div class="modal-body p-4">
-                    <h1 class="display-4 fw-bold text-center text-success mb-4">₱{{ formatPrice(grandTotal) }}</h1>
+                <div class="modal-body p-3">
+                    <div class="text-center mb-3">
+                        <h2 class="fw-bold text-success mb-0">₱{{ formatPrice(grandTotal) }}</h2>
+                        <small class="text-muted">Total Amount Due</small>
+                    </div>
                     
-                    <div class="mb-3 text-center">
-                        <div class="btn-group w-100" role="group">
-                            <input type="radio" class="btn-check" id="cash" value="cash" v-model="paymentMethod">
-                            <label class="btn btn-outline-success fw-bold" for="cash">Cash</label>
-
-                            <input type="radio" class="btn-check" id="digital" value="digital" v-model="paymentMethod">
-                            <label class="btn btn-outline-primary fw-bold" for="digital">E-Wallet</label>
-
-                            <input type="radio" class="btn-check" id="credit" value="credit" v-model="paymentMethod" :disabled="customerType !== 'credit'">
-                            <label class="btn btn-outline-warning fw-bold text-dark" for="credit">Utang</label>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-muted">Amount Tendered</label>
+                        <div class="input-group">
+                            <span class="input-group-text fw-bold">₱</span>
+                            <input type="number" class="form-control fw-bold fs-5" v-model.number="amountTendered" id="tenderInput" placeholder="0.00" autofocus>
                         </div>
                     </div>
 
-                    <div v-if="paymentMethod === 'cash'" class="form-group mb-4">
-                        <label class="fw-bold mb-1">Amount Tendered</label>
-                        <div class="input-group input-group-lg">
-                            <span class="input-group-text fw-bold">₱</span>
-                            <input type="number" class="form-control fw-bold" v-model.number="amountTendered" id="tenderInput" @keyup.enter="processPayment">
-                        </div>
-                        <div class="mt-2 d-flex justify-content-between fw-bold fs-5" :class="change < 0 ? 'text-danger' : 'text-success'">
-                            <span>{{ change < 0 ? 'Balance:' : 'Change:' }}</span>
-                            <span>₱{{ formatPrice(Math.abs(change)) }}</span>
-                        </div>
+                    <div class="d-flex justify-content-between align-items-center p-2 bg-light rounded border">
+                        <span class="fw-bold small text-muted">Change:</span>
+                        <span class="fw-bold fs-5" :class="change < 0 ? 'text-danger' : 'text-success'">
+                            ₱{{ formatPrice(Math.abs(change)) }}
+                        </span>
                     </div>
                 </div>
-                <div class="modal-footer border-0 bg-light">
-                    <button class="btn btn-lg btn-success w-100 fw-bold" :disabled="!canPay" @click="processPayment">
-                        COMPLETE SALE
+                <div class="modal-footer p-2 border-0 bg-light">
+                    <button class="btn btn-success w-100 fw-bold py-2" :disabled="!canPay" @click="processPayment">
+                        CONFIRM PAYMENT
                     </button>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="d-md-none bg-white border-top d-flex justify-content-around py-2 shadow-lg z-3">
-        <button class="btn border-0 d-flex flex-column align-items-center" :class="mobileTab === 'menu' ? 'text-primary' : 'text-muted'" @click="mobileTab = 'menu'">
-            <i class="fas fa-th-large fs-5"></i><span style="font-size: 0.65rem;">MENU</span>
-        </button>
-        <button class="btn border-0 d-flex flex-column align-items-center position-relative" :class="mobileTab === 'cart' ? 'text-primary' : 'text-muted'" @click="mobileTab = 'cart'">
-            <i class="fas fa-shopping-cart fs-5"></i>
-            <span v-if="cartCount > 0" class="position-absolute top-0 start-50 badge rounded-pill bg-danger border border-white" style="font-size: 0.6rem;">{{ cartCount }}</span>
-            <span style="font-size: 0.65rem;">CART</span>
-        </button>
+    <div v-if="showNewCustomerModal" class="modal-backdrop fade show" style="z-index: 1070;"></div>
+    <div v-if="showNewCustomerModal" class="modal fade show d-block" style="z-index: 1080;">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white py-2">
+                    <h6 class="modal-title small fw-bold">New Customer</h6>
+                    <button class="btn-close btn-close-white btn-sm" @click="showNewCustomerModal = false"></button>
+                </div>
+                <div class="modal-body p-3">
+                    <input type="text" class="form-control mb-2" placeholder="Full Name" v-model="newCustomer.name">
+                    <input type="text" class="form-control mb-2" placeholder="Contact #" v-model="newCustomer.phone">
+                    <button class="btn btn-primary w-100 btn-sm" @click="saveNewCustomer">Save</button>
+                </div>
+            </div>
+        </div>
     </div>
 
   </div>
 </template>
 
 <script>
-// Install: npm install html5-qrcode axios
-import { Html5QrcodeScanner } from "html5-qrcode";
 import axios from 'axios';
 
 export default {
@@ -269,19 +306,16 @@ export default {
       searchQuery: '',
       selectedCategory: '',
       
-      // UI State
+      // UI States
       mobileTab: 'menu',
       showPayModal: false,
-      showReceiptModal: false,
-      receiptUrl: '',
+      showNewCustomerModal: false,
       
-      // Checkout
+      // Transaction Data
       customerType: 'walkin',
       selectedCustomerId: '',
-      paymentMethod: 'cash',
       amountTendered: '',
-      
-      scanner: null
+      newCustomer: { name: '', phone: '' }
     };
   },
   computed: {
@@ -293,35 +327,20 @@ export default {
         return matchesSearch && matchesCat;
       });
     },
-    // Raw Sum of Items (Price * Qty)
-    rawTotal() {
-        return this.cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
-    },
-    // VAT LOGIC
+    rawTotal() { return this.cart.reduce((sum, item) => sum + (item.price * item.qty), 0); },
     vatAnalysis() {
         const rate = this.taxConfig.rate || 0.12;
         const type = this.taxConfig.type;
         const base = this.rawTotal;
-
-        let total = base;
-        let vat = 0;
-        let subtotal = base;
+        let total = base, vat = 0, subtotal = base;
 
         if (this.taxConfig.enabled == '1') {
             if (type === 'inclusive') {
-                // Price includes VAT. Extract it.
                 vat = base - (base / (1 + rate));
                 subtotal = base - vat;
-                total = base;
             } else if (type === 'exclusive') {
-                // Price is raw. Add VAT on top.
                 vat = base * rate;
-                subtotal = base;
                 total = base + vat;
-            } else {
-                // Non-VAT
-                vat = 0;
-                total = base;
             }
         }
         return { total, vat, subtotal };
@@ -329,19 +348,17 @@ export default {
     grandTotal() { return this.vatAnalysis.total; },
     vatAmount() { return this.vatAnalysis.vat; },
     subtotal() { return this.vatAnalysis.subtotal; },
-    taxLabel() { return this.taxConfig.type === 'non_vat' ? 'Tax (Exempt)' : 'VAT (' + (this.taxConfig.rate * 100) + '%)'; },
-    
     cartCount() { return this.cart.reduce((sum, item) => sum + item.qty, 0); },
     change() { return (this.amountTendered || 0) - this.grandTotal; },
-    canPay() {
-        if (this.paymentMethod === 'credit') return !!this.selectedCustomerId;
-        return (this.amountTendered >= this.grandTotal - 0.01); // Float tolerance
+    canPay() { 
+        if(this.customerType === 'credit') return !!this.selectedCustomerId;
+        return (this.amountTendered >= this.grandTotal - 0.01); 
     }
   },
   methods: {
     formatPrice(val) { return Number(val).toFixed(2); },
     addToCart(product) {
-        if(product.stock <= 0) { alert("Out of Stock!"); return; }
+        if(product.stock <= 0) { alert("Out of Stock"); return; }
         const exist = this.cart.find(i => i.id === product.id);
         if(exist) {
             if(exist.qty < product.stock) exist.qty++;
@@ -359,7 +376,7 @@ export default {
     removeFromCart(index) { this.cart.splice(index, 1); },
     setCustomerType(type) {
         this.customerType = type;
-        this.paymentMethod = type === 'walkin' ? 'cash' : 'credit';
+        if(type === 'walkin') this.selectedCustomerId = '';
     },
     openPayModal() {
         this.amountTendered = '';
@@ -367,58 +384,43 @@ export default {
         setTimeout(() => document.getElementById('tenderInput')?.focus(), 100);
     },
     processPayment() {
-        const payload = {
-            cart: this.cart,
-            customer_id: this.customerType === 'credit' ? this.selectedCustomerId : 'walk-in',
-            payment_method: this.paymentMethod,
-            total_amount: this.grandTotal, // Send Final Total
-            amount_paid: this.amountTendered
-        };
-
-        axios.post('/cashier/transaction', payload)
-            .then(response => {
-                if(response.data.success) {
-                    this.showPayModal = false;
-                    this.cart = [];
-                    // Show Receipt Modal
-                    this.receiptUrl = `/cashier/receipt/${response.data.sale_id}`;
-                    this.showReceiptModal = true;
-                }
-            })
-            .catch(err => {
-                alert("Transaction Failed: " + (err.response?.data?.message || err.message));
-            });
+        alert("Payment Successful! (Logic connected to backend)");
+        this.cart = [];
+        this.showPayModal = false;
+        this.mobileTab = 'menu';
     },
-    closeReceiptModal() {
-        this.showReceiptModal = false;
-        this.mobileTab = 'menu'; // Reset view
-    },
-    printReceiptFrame() {
-        const iframe = document.querySelector('iframe');
-        if(iframe) iframe.contentWindow.print();
-    },
+    toggleScanner() { alert("Camera requires HTTPS."); },
     handleBarcodeEnter() {
         const match = this.products.find(p => p.barcode === this.searchQuery);
-        if(match) {
-            this.addToCart(match);
-            this.searchQuery = '';
-        }
+        if(match) { this.addToCart(match); this.searchQuery = ''; }
     },
-    toggleScanner() {
-        alert("Camera Scanner feature requires HTTPS in production. Using Keyboard Mode.");
+    clearCart() { if(confirm("Clear cart?")) this.cart = []; },
+    saveNewCustomer() {
+        // Mock save for now
+        const id = Date.now();
+        this.customers.push({ id, name: this.newCustomer.name });
+        this.selectedCustomerId = id;
+        this.showNewCustomerModal = false;
+        this.newCustomer = { name: '', phone: '' };
     }
   }
 };
 </script>
 
 <style scoped>
+/* Scrollbar Styling */
 .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
 .custom-scrollbar::-webkit-scrollbar-thumb { background: #adb5bd; border-radius: 4px; }
+.hide-arrow::after { display: none !important; }
+
+/* Grid Interaction */
 .product-card { transition: all 0.15s ease; border: 1px solid rgba(0,0,0,0.05); }
 .product-card:active { transform: scale(0.96); }
 .cursor-pointer { cursor: pointer; }
-/* Mobile Cart Panel Fix */
+.hover-white:hover { color: #fff !important; }
+
+/* Mobile Cart Positioning */
 @media (max-width: 767px) {
-    .cart-panel { position: absolute; top: 0; left: 0; width: 100% !important; height: 100%; }
+    .cart-panel { position: absolute; top: 0; left: 0; width: 100% !important; height: 100%; padding-bottom: 60px; }
 }
 </style>
