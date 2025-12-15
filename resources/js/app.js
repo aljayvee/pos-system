@@ -1,17 +1,16 @@
 import './bootstrap';
 import { createApp } from 'vue';
-import SidebarLayout from './components/SidebarLayout.vue'; // <--- IMPORT THIS
 
-const app = createApp({
-    // We can leave the root data empty now, as the component handles it
-});
+// CHANGED: Import AdminLayout instead of SidebarLayout to match your Blade template
+import AdminLayout from './components/AdminLayout.vue';
 
+const app = createApp({});
 
-
-// Register the click-outside directive (needed for notifications)
+// Register the click-outside directive (required for the notification dropdown in AdminLayout)
 app.directive('click-outside', {
     mounted(el, binding) {
         el.clickOutsideEvent = function(event) {
+            // Check that click was outside the el and its children
             if (!(el === event.target || el.contains(event.target))) {
                 binding.value(event);
             }
@@ -23,6 +22,7 @@ app.directive('click-outside', {
     }
 });
 
-// Register the component so Blade can use it
-app.component('sidebar-layout', SidebarLayout);
+// CHANGED: Register the component as 'admin-layout' so <admin-layout> works in Blade
+app.component('admin-layout', AdminLayout);
+
 app.mount('#app');
