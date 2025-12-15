@@ -53,10 +53,13 @@
                    
                     
                     <li class="d-md-none"><hr class="dropdown-divider"></li>
+                    <li class="d-md-none"><hr class="dropdown-divider"></li>
                     <li class="d-md-none px-3 py-1 text-muted small fw-bold text-uppercase">Actions</li>
                     <li class="d-md-none"><a class="dropdown-item py-2" href="/cashier/debtors"><i class="fas fa-book me-2 text-warning"></i>Pay Debt</a></li>
                     <li class="d-md-none"><a class="dropdown-item py-2" href="/cashier/return/search"><i class="fas fa-undo me-2 text-danger"></i>Return Items</a></li>
-                    <li class="d-md-none"><a class="dropdown-item py-2" href="/cashier/reading/z-reading"><i class="fas fa-file-invoice-dollar me-2 text-success"></i>Z-Reading</a></li>
+                    
+                    <li class="d-md-none"><a class="dropdown-item py-2" href="/cashier/reading/x-reading"><i class="fas fa-file-invoice me-2 text-info"></i>X-Reading (Shift)</a></li>
+                    <li class="d-md-none"><a class="dropdown-item py-2" href="/cashier/reading/z-reading"><i class="fas fa-file-invoice-dollar me-2 text-success"></i>Z-Reading (End)</a></li>
                     
                     <li><hr class="dropdown-divider"></li>
                     <li>
@@ -133,8 +136,12 @@
              :class="{ 'd-none d-md-flex': mobileTab === 'menu', 'w-100': mobileTab === 'cart' }"
              style="width: 380px; z-index: 900;">
             
-            <div class="p-3 bg-light border-bottom d-flex justify-content-between align-items-center shadow-sm z-1">
-                <div class="fw-bold text-dark"><i class="fas fa-receipt me-2"></i>Order Summary</div>
+            <div class="p-3 bg-light border-bottom d-flex align-items-center shadow-sm z-1">
+                <button class="btn btn-sm btn-white border d-md-none me-2 shadow-sm" @click="mobileTab = 'menu'">
+                    <i class="fas fa-arrow-left text-dark"></i>
+                </button>
+                
+                <div class="fw-bold text-dark flex-fill"><i class="fas fa-receipt me-2"></i>Order Summary</div>
                 <button v-if="cart.length > 0" class="btn btn-sm btn-outline-danger border-0" @click="clearCart">Clear</button>
             </div>
 
@@ -244,30 +251,32 @@
                     <label class="form-label small fw-bold text-muted mb-2">Select Payment Method</label>
                     <div class="row g-2">
                         <div class="col-4">
-                            <button class="btn w-100 fw-bold border" 
-                                :class="paymentMethod === 'cash' ? 'btn-success text-white' : 'btn-light'" 
+                            <button class="btn w-100 fw-bold border position-relative" 
+                                :class="paymentMethod === 'cash' ? 'btn-success text-white' : 'btn-light text-muted'" 
                                 @click="paymentMethod = 'cash'">
                                 <i class="fas fa-money-bill-wave d-block mb-1"></i> Cash
+                                <i v-if="paymentMethod === 'cash'" class="fas fa-check-circle position-absolute top-0 end-0 m-1 small"></i>
                             </button>
                         </div>
                         <div class="col-4">
-                            <button class="btn w-100 fw-bold border" 
-                                :class="paymentMethod === 'digital' ? 'btn-primary text-white' : 'btn-light'" 
+                            <button class="btn w-100 fw-bold border position-relative" 
+                                :class="paymentMethod === 'digital' ? 'btn-primary text-white' : 'btn-light text-muted'" 
                                 @click="paymentMethod = 'digital'">
                                 <i class="fas fa-qrcode d-block mb-1"></i> E-Wallet
+                                <i v-if="paymentMethod === 'digital'" class="fas fa-check-circle position-absolute top-0 end-0 m-1 small"></i>
                             </button>
                         </div>
                         <div class="col-4">
-                            <button class="btn w-100 fw-bold border" 
-                                :class="paymentMethod === 'credit' ? 'btn-warning text-dark' : 'btn-light'" 
-                                @click="paymentMethod = 'credit'"
-                                :disabled="customerType !== 'credit'">
+                            <button v-if="customerType === 'credit'" class="btn w-100 fw-bold border position-relative" 
+                                :class="paymentMethod === 'credit' ? 'btn-warning text-dark' : 'btn-light text-muted'" 
+                                @click="paymentMethod = 'credit'">
                                 <i class="fas fa-user-tag d-block mb-1"></i> Utang
+                                <i v-if="paymentMethod === 'credit'" class="fas fa-check-circle position-absolute top-0 end-0 m-1 small"></i>
                             </button>
+                            <div v-else class="btn w-100 border btn-light text-muted opacity-50" style="cursor: not-allowed;">
+                                <i class="fas fa-ban d-block mb-1"></i> No Credit
+                            </div>
                         </div>
-                    </div>
-                    <div v-if="customerType !== 'credit'" class="text-center mt-2">
-                        <small class="text-muted" style="font-size: 0.7rem;">*Select "Credit/Utang" in the cart to enable Credit payment.</small>
                     </div>
                 </div>
                 
@@ -411,11 +420,21 @@ export default {
         if(newQty > 0 && newQty <= product.stock) item.qty = newQty;
     },
     removeFromCart(index) { this.cart.splice(index, 1); },
+    // 1. Updated setCustomerType to reset payment method
     setCustomerType(type) {
         this.customerType = type;
-        if(type === 'walkin') this.selectedCustomerId = '';
+        if(type === 'walkin') {
+            this.selectedCustomerId = '';
+            this.paymentMethod = 'cash'; // <--- FIX: Force reset to cash
+        }
     },
+    // 2. Updated openPayModal to ensure valid method is selected
     openPayModal() {
+        // Safety check: If we somehow have 'credit' selected but are 'walkin', fix it.
+        if (this.customerType === 'walkin' && this.paymentMethod === 'credit') {
+            this.paymentMethod = 'cash';
+        }
+
         this.amountTendered = '';
         this.showPayModal = true;
         setTimeout(() => document.getElementById('tenderInput')?.focus(), 100);
