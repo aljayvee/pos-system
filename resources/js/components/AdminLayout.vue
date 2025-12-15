@@ -57,15 +57,21 @@
 
                 <li class="nav-header px-3 mt-3 mb-1 text-muted small fw-bold text-uppercase overflow-hidden" v-show="isOpen || isMobile">Inventory</li>
                 <li class="nav-item">
+                    <a href="/admin/inventory" class="nav-link d-flex align-items-center" :class="{ 'active': currentPath.includes('/inventory') }">
+                       <div class="icon-wrapper"><i class="fas fa-boxes"></i></div>
+                       <span class="text-nowrap fade-text ms-2" v-show="isOpen || isMobile">Stock Levels</span>
+                    </a>
+                </li>
+                <li class="nav-item">
                     <a href="/admin/products" class="nav-link d-flex align-items-center" :class="{ 'active': currentPath.includes('/products') }">
                        <div class="icon-wrapper"><i class="fas fa-box-open"></i></div>
                        <span class="text-nowrap fade-text ms-2" v-show="isOpen || isMobile">Products</span>
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a href="/admin/inventory" class="nav-link d-flex align-items-center" :class="{ 'active': currentPath.includes('/inventory') }">
-                       <div class="icon-wrapper"><i class="fas fa-boxes"></i></div>
-                       <span class="text-nowrap fade-text ms-2" v-show="isOpen || isMobile">Stock Levels</span>
+                    <a href="/admin/categories" class="nav-link d-flex align-items-center" :class="{ 'active': currentPath.includes('/categories') }">
+                       <div class="icon-wrapper"><i class="fas fa-tags"></i></div>
+                       <span class="text-nowrap fade-text ms-2" v-show="isOpen || isMobile">Categories</span>
                     </a>
                 </li>
                 <li class="nav-item">
@@ -76,6 +82,12 @@
                 </li>
 
                 <li class="nav-header px-3 mt-3 mb-1 text-muted small fw-bold text-uppercase overflow-hidden" v-show="isOpen || isMobile">Finance</li>
+                <li class="nav-item">
+                    <a href="/admin/credits" class="nav-link d-flex align-items-center" :class="{ 'active': currentPath.includes('/credits') }">
+                       <div class="icon-wrapper"><i class="fas fa-file-invoice-dollar"></i></div>
+                       <span class="text-nowrap fade-text ms-2" v-show="isOpen || isMobile">Credits (Utang)</span>
+                    </a>
+                </li>
                 <li class="nav-item">
                     <a href="/admin/customers" class="nav-link d-flex align-items-center" :class="{ 'active': currentPath.includes('/customers') }">
                        <div class="icon-wrapper"><i class="fas fa-users"></i></div>
@@ -89,6 +101,14 @@
                     </a>
                 </li>
 
+                <li class="nav-header px-3 mt-3 mb-1 text-muted small fw-bold text-uppercase overflow-hidden" v-show="isOpen || isMobile">Analytics</li>
+                <li class="nav-item">
+                    <a href="/admin/reports" class="nav-link d-flex align-items-center" :class="{ 'active': currentPath.includes('/reports') }">
+                       <div class="icon-wrapper"><i class="fas fa-chart-pie"></i></div>
+                       <span class="text-nowrap fade-text ms-2" v-show="isOpen || isMobile">Sales Reports</span>
+                    </a>
+                </li>
+
                 <li class="nav-header px-3 mt-3 mb-1 text-muted small fw-bold text-uppercase overflow-hidden" v-show="isOpen || isMobile">System</li>
                 <li class="nav-item">
                     <a href="/admin/transactions" class="nav-link d-flex align-items-center" :class="{ 'active': currentPath.includes('/transactions') }">
@@ -97,9 +117,15 @@
                     </a>
                 </li>
                 <li class="nav-item">
+                    <a href="/admin/logs" class="nav-link d-flex align-items-center" :class="{ 'active': currentPath.includes('/logs') }">
+                       <div class="icon-wrapper"><i class="fas fa-clipboard-list"></i></div>
+                       <span class="text-nowrap fade-text ms-2" v-show="isOpen || isMobile">Audit Logs</span>
+                    </a>
+                </li>
+                <li class="nav-item">
                     <a href="/admin/users" class="nav-link d-flex align-items-center" :class="{ 'active': currentPath.includes('/users') }">
                        <div class="icon-wrapper"><i class="fas fa-user-shield"></i></div>
-                       <span class="text-nowrap fade-text ms-2" v-show="isOpen || isMobile">Users</span>
+                       <span class="text-nowrap fade-text ms-2" v-show="isOpen || isMobile">User Management</span>
                     </a>
                 </li>
                 <li class="nav-item">
@@ -145,7 +171,7 @@
 
         <div class="ms-auto position-relative" v-click-outside="closeNotif">
              <button @click="toggleNotif" class="btn btn-light rounded-circle position-relative p-2 text-secondary hover-bg-light" style="width: 42px; height: 42px;">
-                 <i class="fas fa-bell fa-lg"></i>
+                 <i class="far fa-bell fa-lg"></i>
                  <span v-if="totalAlerts > 0" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger border border-light">{{ totalAlerts }}</span>
              </button>
 
@@ -185,8 +211,8 @@ export default {
   props: ['userName', 'userRole', 'pageTitle', 'csrfToken', 'outOfStock', 'lowStock'],
   data() {
     return {
-      isMobile: window.innerWidth < 992, // Phablet/Mobile breakpoint
-      isOpen: window.innerWidth >= 992,  // Default: Open on desktop, closed on mobile
+      isMobile: window.innerWidth < 992, 
+      isOpen: window.innerWidth >= 992,
       notifOpen: false,
       currentPath: window.location.pathname
     };
@@ -222,43 +248,23 @@ export default {
 </script>
 
 <style scoped>
-/* FORCE TEXT COLOR VISIBILITY 
-   We explicitly set colors to override any default Bootstrap or User Agent styles
-*/
+/* FORCE TEXT COLORS */
 .text-white { color: #ffffff !important; }
 .text-muted { color: #6c757d !important; }
 
-/* SIDEBAR TRANSITIONS */
+/* TRANSITIONS */
 .sidebar-transition { transition: all 0.3s ease; white-space: nowrap; }
 .sidebar-open { width: 260px; transform: translateX(0); }
 .sidebar-closed-desktop { width: 80px; }
-/* Mobile: Slide completely off-screen */
 .sidebar-closed-mobile { width: 260px; transform: translateX(-100%); }
 
-/* NAVIGATION LINKS */
-.nav-link { 
-    color: #a2a3b7; /* Muted Blue-Grey */
-    padding: 0.8rem 1rem; 
-    border-radius: 0.4rem; 
-    transition: all 0.2s ease; 
-    margin-bottom: 2px; 
-}
-.nav-link:hover { 
-    color: #ffffff; /* White on hover */
-    background-color: rgba(255, 255, 255, 0.05); 
-}
-.nav-link.active { 
-    background-color: #1b1b28 !important; 
-    color: #3699ff !important; /* Bright Blue active */
-    position: relative; 
-}
-/* Active Left Border Indicator */
-.nav-link.active::before { 
-    content: ''; position: absolute; left: 0; top: 10%; height: 80%; width: 4px; 
-    background-color: #3699ff; border-radius: 0 4px 4px 0; 
-}
+/* LINKS */
+.nav-link { color: #a2a3b7; padding: 0.8rem 1rem; border-radius: 0.4rem; transition: all 0.2s ease; margin-bottom: 2px; }
+.nav-link:hover { color: #ffffff; background-color: rgba(255, 255, 255, 0.05); }
+.nav-link.active { background-color: #1b1b28 !important; color: #3699ff !important; position: relative; }
+.nav-link.active::before { content: ''; position: absolute; left: 0; top: 10%; height: 80%; width: 4px; background-color: #3699ff; border-radius: 0 4px 4px 0; }
 
-/* UTILITIES */
+/* UTILS */
 .hover-white:hover { color: #ffffff !important; }
 .icon-wrapper { width: 35px; display: flex; justify-content: center; align-items: center; font-size: 1.15rem; flex-shrink: 0; }
 .custom-scrollbar::-webkit-scrollbar { width: 5px; }
