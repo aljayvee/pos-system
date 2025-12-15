@@ -152,7 +152,7 @@ class ReportController extends Controller
         return view('admin.reports.credits', compact('credits', 'totalReceivables'));
     }
 
-    // 4. Forecast Report
+    // 4. Forecast Report (FIXED)
     public function forecast()
     {
         $startDate = Carbon::now()->subDays(30);
@@ -178,8 +178,9 @@ class ReportController extends Controller
                     'category' => $product->category->name ?? '-',
                     'stock' => $product->stock,
                     'total_sold_30d' => $totalSold,
-                    'ads' => number_format($ads, 2),
-                    'days_left' => number_format($daysLeft, 1),
+                    // FIX: Pass raw numbers (floats), do not format here
+                    'ads' => $ads,
+                    'days_left' => $daysLeft, 
                     'status' => $this->getStockStatus($daysLeft, $product->stock, $product->reorder_point),
                     'reorder_qty' => ceil($reorderQty)
                 ];

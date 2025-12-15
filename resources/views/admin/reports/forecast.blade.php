@@ -1,60 +1,103 @@
 @extends('admin.layout')
 
 @section('content')
-<div class="container py-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
+<div class="container-fluid px-4">
+    {{-- HEADER --}}
+    <div class="d-flex flex-column flex-xl-row justify-content-between align-items-xl-center mt-4 mb-4 gap-3">
         <div>
-            <h2 class="mb-0"><i class="fas fa-magic text-primary"></i> Inventory Forecast</h2>
-            <p class="text-muted">Prediction based on last 30 days sales velocity.</p>
+            <h1 class="h2 mb-0 text-gray-800"><i class="fas fa-magic text-primary me-2"></i>Forecast</h1>
+            <p class="text-muted mb-0 small">Stock predictions based on 30-day sales velocity.</p>
         </div>
-        <a href="{{ route('reports.index') }}" class="btn btn-outline-secondary">Back to Reports</a>
+        <div class="d-flex flex-wrap gap-2">
+            <a href="{{ route('reports.index') }}" class="btn btn-outline-primary shadow-sm flex-fill flex-xl-grow-0">Sales</a>
+            <a href="{{ route('reports.inventory') }}" class="btn btn-outline-primary shadow-sm flex-fill flex-xl-grow-0">Inventory</a>
+            <a href="{{ route('reports.credits') }}" class="btn btn-outline-primary shadow-sm flex-fill flex-xl-grow-0">Credits</a>
+            <a href="{{ route('reports.forecast') }}" class="btn btn-primary shadow-sm flex-fill flex-xl-grow-0">Forecast</a>
+        </div>
     </div>
 
-    <div class="card shadow-sm border-0">
-        <div class="card-body p-0">
+    <div class="card shadow-sm border-0 mb-4">
+        
+        {{-- Desktop Table --}}
+        <div class="d-none d-lg-block">
             <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0">
-                    <thead class="bg-light">
+                    <thead class="bg-light text-uppercase small text-secondary">
                         <tr>
-                            <th>Product</th>
-                            <th class="text-center">Current Stock</th>
-                            <th class="text-center">Avg. Daily Sales</th>
-                            <th class="text-center">Est. Days Left</th>
+                            <th class="ps-4">Product</th>
+                            <th class="text-center">Stock</th>
+                            <th class="text-center">Daily Sales</th>
+                            <th class="text-center">Days Left</th>
                             <th>Status</th>
-                            <th class="text-end">Recommended Reorder (for 2 weeks)</th>
+                            <th class="text-end pe-4">Reorder Suggestion</th>
                         </tr>
                     </thead>
                     <tbody>
                         @forelse($forecastData as $item)
-                        <tr class="{{ $item['reorder_qty'] > 0 ? 'table-warning' : '' }}">
-                            <td class="fw-bold">{{ $item['name'] }} <br> <small class="text-muted fw-normal">{{ $item['category'] }}</small></td>
+                        <tr class="{{ $item['reorder_qty'] > 0 ? 'bg-warning-subtle' : '' }}">
+                            <td class="ps-4">
+                                <div class="fw-bold">{{ $item['name'] }}</div>
+                                <small class="text-muted">{{ $item['category'] }}</small>
+                            </td>
                             <td class="text-center">{{ $item['stock'] }}</td>
-                            <td class="text-center">{{ $item['ads'] }} / day</td>
+                            <td class="text-center text-muted">{{ $item['ads'] }}/day</td>
                             <td class="text-center fw-bold">{{ $item['days_left'] > 365 ? '> 1 Year' : $item['days_left'] . ' Days' }}</td>
                             <td>
-                                @if($item['status'] == 'Out of Stock') <span class="badge bg-dark">Out of Stock</span>
-                                @elseif(str_contains($item['status'], 'Critical')) <span class="badge bg-danger">{{ $item['status'] }}</span>
-                                @elseif(str_contains($item['status'], 'Low')) <span class="badge bg-warning text-dark">{{ $item['status'] }}</span>
+                                @if(str_contains($item['status'], 'Out')) <span class="badge bg-dark">Empty</span>
+                                @elseif(str_contains($item['status'], 'Critical')) <span class="badge bg-danger">Critical</span>
+                                @elseif(str_contains($item['status'], 'Low')) <span class="badge bg-warning text-dark">Low</span>
                                 @else <span class="badge bg-success">Healthy</span>
                                 @endif
                             </td>
-                            <td class="text-end">
+                            <td class="text-end pe-4">
                                 @if($item['reorder_qty'] > 0)
                                     <span class="text-success fw-bold">+{{ $item['reorder_qty'] }} units</span>
                                 @else
-                                    <span class="text-muted">-</span>
+                                    <span class="text-muted small">-</span>
                                 @endif
                             </td>
                         </tr>
                         @empty
-                        <tr>
-                            <td colspan="6" class="text-center py-5 text-muted">
-                                Not enough sales data to generate a forecast.
-                            </td>
-                        </tr>
+                        <tr><td colspan="6" class="text-center py-5 text-muted">Insufficient data to forecast.</td></tr>
                         @endforelse
                     </tbody>
                 </table>
+            </div>
+        </div>
+
+        {{-- Mobile Cards --}}
+        <div class="d-lg-none">
+            <div class="list-group list-group-flush">
+                @forelse($forecastData as $item)
+                <div class="list-group-item p-3 {{ $item['reorder_qty'] > 0 ? 'bg-warning-subtle' : '' }}">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div class="fw-bold">{{ $item['name'] }}</div>
+                        <span class="badge bg-light text-dark border">{{ $item['stock'] }} in stock</span>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <small class="text-muted">Avg: {{ $item['ads'] }} sold/day</small>
+                        @if($item['reorder_qty'] > 0)
+                            <span class="badge bg-success">+{{ $item['reorder_qty'] }} Reorder</span>
+                        @endif
+                    </div>
+
+                    <div class="d-flex align-items-center gap-2 mt-2">
+                        <small class="fw-bold">Days Left:</small>
+                        <div class="progress flex-grow-1" style="height: 10px;">
+                            @php
+                                $val = min($item['days_left'], 30);
+                                $pct = ($val / 30) * 100;
+                                $color = $item['days_left'] < 7 ? 'bg-danger' : ($item['days_left'] < 14 ? 'bg-warning' : 'bg-success');
+                            @endphp
+                            <div class="progress-bar {{ $color }}" style="width: {{ $pct }}%"></div>
+                        </div>
+                        <small class="text-muted" style="width: 60px; text-align: right">{{ $item['days_left'] > 365 ? '>1yr' : $item['days_left'] . 'd' }}</small>
+                    </div>
+                </div>
+                @empty
+                <div class="text-center py-5 text-muted">No data.</div>
+                @endforelse
             </div>
         </div>
     </div>
