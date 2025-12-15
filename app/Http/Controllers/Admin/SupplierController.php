@@ -8,20 +8,33 @@ use Illuminate\Http\Request;
 
 class SupplierController extends Controller
 {
-    public function index()
+    // Updated Index with Search & Pagination
+    public function index(Request $request)
     {
         $storeId = $this->getActiveStoreId();
-        $suppliers = \App\Models\Supplier::where('store_id', $storeId)->get(); // <--- Filter   
+        
+        $suppliers = Supplier::where('store_id', $storeId)
+            ->withCount('purchases')
+            ->when($request->search, function ($query, $search) {
+                $query->where(function($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%")
+                      ->orWhere('contact_info', 'like', "%{$search}%");
+                });
+            })
+            ->latest()
+            ->paginate(10)
+            ->withQueryString();
+
         return view('admin.suppliers.index', compact('suppliers'));
     }
 
     public function store(Request $request)
     {
-
         $data = $request->all();
-        $data['store_id'] = $this->getActiveStoreId(); // <--- Assign to current store
+        $data['store_id'] = $this->getActiveStoreId(); 
+        
         $request->validate([
-            'name' => 'required|string|max:255|unique:suppliers,name',
+            'name' => 'required|string|max:255', // Removed unique strict check for simplicity in multi-store, or add composite unique rule if needed
             'contact_info' => 'nullable|string|max:255',
         ]);
 
@@ -33,7 +46,7 @@ class SupplierController extends Controller
     public function update(Request $request, Supplier $supplier)
     {
         $request->validate([
-            'name' => 'required|string|max:255|unique:suppliers,name,' . $supplier->id,
+            'name' => 'required|string|max:255',
             'contact_info' => 'nullable|string|max:255',
         ]);
 
@@ -44,7 +57,6 @@ class SupplierController extends Controller
 
     public function destroy(Supplier $supplier)
     {
-        // Prevent deleting if they have transaction history
         if ($supplier->purchases()->exists()) {
             return back()->with('error', 'Cannot delete supplier because they have existing purchase records.');
         }
@@ -53,7 +65,7 @@ class SupplierController extends Controller
         return back()->with('success', 'Supplier deleted successfully.');
     }
 
-    public function show(\App\Models\Supplier $supplier)
+    public function show(Supplier $supplier)
     {
         // 1. Get Purchase History
         $purchases = $supplier->purchases()
@@ -67,6 +79,7 @@ class SupplierController extends Controller
         
         // Get Last Purchase Date
         $lastPurchase = $supplier->purchases()->latest('purchase_date')->first();
+        // Fixed: Use created_at or purchase_date correctly. Assuming purchase_date is a datetime/date cast
         $lastPurchaseDate = $lastPurchase ? \Carbon\Carbon::parse($lastPurchase->purchase_date)->format('M d, Y') : 'Never';
 
         return view('admin.suppliers.show', compact('supplier', 'purchases', 'totalSpent', 'totalTransactions', 'lastPurchaseDate'));

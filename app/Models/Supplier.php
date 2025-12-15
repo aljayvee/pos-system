@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Supplier extends Model
 {
-    protected $fillable = ['name', 'contact_info'];
+    protected $fillable = ['name', 'contact_info', 'store_id'];
 
     // Add this relationship
     public function purchases()
