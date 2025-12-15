@@ -30,3 +30,104 @@
 ::-webkit-scrollbar-thumb:hover {
     background: #3699ff;
 }
+
+/* ... keep existing code ... */
+
+/* === ADD THIS TO THE BOTTOM === */
+
+/* General Sidebar Styling */
+#sidebar {
+    min-width: 250px;
+    max-width: 250px;
+    height: 100vh;
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 9999;
+    background: #fff;
+    color: #333;
+    transition: all 0.3s;
+    box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+    overflow-y: auto;
+}
+
+#sidebar .sidebar-header {
+    padding: 20px;
+    background: #f8f9fa;
+    border-bottom: 1px solid #ddd;
+}
+
+#sidebar ul.components {
+    padding: 20px 0;
+}
+
+#sidebar ul li a {
+    padding: 10px 20px;
+    font-size: 1.1em;
+    display: block;
+    color: #333;
+    text-decoration: none;
+}
+
+#sidebar ul li a:hover {
+    background: #f1f1f1;
+}
+
+#sidebar ul li.active > a {
+    color: #fff;
+    background: #0d6efd; /* Bootstrap Primary Blue */
+}
+
+/* Label styling */
+.menu-label {
+    color: #999;
+    font-size: 0.85em;
+    padding: 10px 20px 5px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 0;
+    font-weight: bold;
+}
+
+/* Content wrapper to prevent overlap */
+#content {
+    width: 100%;
+    padding: 20px;
+    min-height: 100vh;
+    transition: all 0.3s;
+    margin-left: 250px; /* Push content to the right */
+}
+
+/* MOBILE SPECIFIC: Hide sidebar by default on small screens */
+@media (max-width: 768px) {
+    #sidebar {
+        margin-left: -250px;
+    }
+    #sidebar.active {
+        margin-left: 0;
+    }
+    #content {
+        margin-left: 0;
+    }
+    #content.active {
+        margin-left: 250px; /* Optional: push content when menu opens */
+    }
+    
+    /* Overlay */
+    .overlay {
+        display: none;
+        position: fixed;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(0, 0, 0, 0.7);
+        z-index: 9998;
+        opacity: 0;
+        transition: all 0.5s ease-in-out;
+        top: 0;
+        left: 0;
+    }
+    .overlay.active {
+        display: block;
+        opacity: 1;
+    }
+}

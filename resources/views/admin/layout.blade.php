@@ -18,22 +18,109 @@
 </head>
 
 <body class="bg-gray-100">
-    <div id="app">
-        {{-- The Vue Component now handles the full layout (Sidebar + Header + Main) --}}
-        <admin-layout
-            user-name="{{ Auth::user()->name }}"
-            user-role="{{ Auth::user()->role }}"
-            page-title="{{ $pageTitle ?? 'Dashboard' }}"
-            csrf-token="{{ csrf_token() }}"
-            :out-of-stock="{{ $outOfStockCount ?? 0 }}"
-            :low-stock="{{ $lowStockCount ?? 0 }}"
-        >
-            {{-- This slot content goes inside the Vue component's <main> tag --}}
+    <div id="app" class="wrapper d-flex align-items-stretch">
+        
+        <nav id="sidebar">
+            <div class="sidebar-header">
+                <h3><i class="fas fa-cash-register"></i> Cashier POS</h3>
+            </div>
+
+            <ul class="list-unstyled components">
+                <li class="{{ request()->is('dashboard') ? 'active' : '' }}">
+                    <a href="{{ url('/dashboard') }}"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
+                </li>
+
+                <p class="menu-label">Inventory</p>
+                <li class="{{ request()->is('inventory*') ? 'active' : '' }}">
+                    <a href="{{ url('/inventory') }}"><i class="fas fa-boxes"></i> Inventory Overview</a>
+                </li>
+                <li class="{{ request()->is('products*') ? 'active' : '' }}">
+                    <a href="{{ url('/products') }}"><i class="fas fa-box-open"></i> Product</a>
+                </li>
+                <li class="{{ request()->is('categories*') ? 'active' : '' }}">
+                    <a href="{{ url('/categories') }}"><i class="fas fa-tags"></i> Category</a>
+                </li>
+                <li class="{{ request()->is('stock*') ? 'active' : '' }}">
+                    <a href="{{ url('/stock') }}"><i class="fas fa-layer-group"></i> Stock Level</a>
+                </li>
+                <li class="{{ request()->is('restocking*') ? 'active' : '' }}">
+                    <a href="{{ url('/restocking') }}"><i class="fas fa-truck-loading"></i> Restocking</a>
+                </li>
+
+                <p class="menu-label">People</p>
+                <li class="{{ request()->is('customers*') ? 'active' : '' }}">
+                    <a href="{{ url('/customers') }}"><i class="fas fa-users"></i> Customers</a>
+                </li>
+                <li class="{{ request()->is('credits*') ? 'active' : '' }}">
+                    <a href="{{ url('/credits') }}"><i class="fas fa-file-invoice-dollar"></i> Credits</a>
+                </li>
+                <li class="{{ request()->is('suppliers*') ? 'active' : '' }}">
+                    <a href="{{ url('/suppliers') }}"><i class="fas fa-truck"></i> Suppliers</a>
+                </li>
+
+                <p class="menu-label">System</p>
+                <li class="{{ request()->is('transactions*') ? 'active' : '' }}">
+                    <a href="{{ url('/transactions') }}"><i class="fas fa-history"></i> Transaction History</a>
+                </li>
+                <li class="{{ request()->is('audit-logs*') ? 'active' : '' }}">
+                    <a href="{{ url('/audit-logs') }}"><i class="fas fa-clipboard-list"></i> Audit Logs</a>
+                </li>
+                <li class="{{ request()->is('users*') ? 'active' : '' }}">
+                    <a href="{{ url('/users') }}"><i class="fas fa-user-shield"></i> User Management</a>
+                </li>
+                <li class="{{ request()->is('settings*') ? 'active' : '' }}">
+                    <a href="{{ url('/settings') }}"><i class="fas fa-cog"></i> Settings</a>
+                </li>
+                
+                <li>
+                    <form method="POST" action="{{ route('logout') }}" class="d-inline">
+                        @csrf
+                        <a href="#" onclick="this.closest('form').submit()" class="text-danger">
+                            <i class="fas fa-sign-out-alt"></i> Logout
+                        </a>
+                    </form>
+                </li>
+            </ul>
+        </nav>
+
+        <div id="content">
+            <nav class="navbar navbar-expand-lg navbar-light bg-light mb-4 d-md-none">
+                <div class="container-fluid">
+                    <button type="button" id="sidebarCollapse" class="btn btn-primary">
+                        <i class="fas fa-bars"></i> Menu
+                    </button>
+                </div>
+            </nav>
+
             @yield('content')
-            
-        </admin-layout>
+        </div>
+
+        <div class="overlay"></div>
+
     </div>
 
     @stack('scripts')
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const sidebar = document.getElementById('sidebar');
+            const content = document.getElementById('content');
+            const sidebarCollapseBtn = document.getElementById('sidebarCollapse');
+            const overlay = document.querySelector('.overlay');
+
+            function toggleSidebar() {
+                sidebar.classList.toggle('active');
+                if(overlay) overlay.classList.toggle('active');
+            }
+
+            if(sidebarCollapseBtn) {
+                sidebarCollapseBtn.addEventListener('click', toggleSidebar);
+            }
+
+            if(overlay) {
+                overlay.addEventListener('click', toggleSidebar);
+            }
+        });
+    </script>
 </body>
 </html>
