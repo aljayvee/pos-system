@@ -60,10 +60,18 @@ class POSController extends Controller
         // FETCH SETTINGS
         $loyaltyEnabled = \App\Models\Setting::where('key', 'enable_loyalty')->value('value') ?? '0';
         
-        // --- FIXED: Fetch BIR/Tax Setting ---
-        $birEnabled = \App\Models\Setting::where('key', 'enable_tax')->value('value') ?? '0';
+        
 
-        return view('cashier.index', compact('products', 'customers', 'categories', 'loyaltyEnabled', 'birEnabled', 'store', 'user'));
+        // 2. FETCH TAX SETTINGS
+    $taxSettings = [
+        'enabled' => \App\Models\Setting::where('key', 'enable_tax')->value('value') ?? '0',
+        // Default to 'inclusive' if not set
+        'type'    => \App\Models\Setting::where('key', 'tax_type')->value('value') ?? 'inclusive', 
+        // Default to 12% if not set
+        'rate'    => (\App\Models\Setting::where('key', 'tax_rate')->value('value') ?? 12) / 100 
+    ];
+
+        return view('cashier.index', compact('products', 'customers', 'categories', 'loyaltyEnabled', 'taxSettings', 'store', 'user'));
     }
 
     public function payCredit(Request $request)
