@@ -28,7 +28,7 @@ export default defineConfig({
     server: {
         host: '0.0.0.0', // Listen on all network addresses
         hmr: {
-            host: '192.168.0.144' // <--- REPLACE THIS with your computer's IP address
+            host: '192.168.0.14' // <--- REPLACE THIS with your computer's IP address
         },
         watch: {
             ignored: ['**/storage/framework/views/**'],
