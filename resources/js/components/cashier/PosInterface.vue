@@ -49,7 +49,7 @@
                         <span class="fw-bold text-dark">{{ cashierName }}</span>
                     </li>
                     
-                    <li><a class="dropdown-item py-2" href="/admin/profile"><i class="fas fa-user-circle me-2 text-primary"></i>My Profile Settings</a></li>
+                    <li><a class="dropdown-item py-2" href="/profile"><i class="fas fa-user-circle me-2 text-primary"></i>My Profile</a></li>
                    
                     
                     <li class="d-md-none"><hr class="dropdown-divider"></li>
@@ -227,42 +227,79 @@
     </div>
 
     <div v-if="showPayModal" class="modal-backdrop fade show" style="z-index: 1050;"></div>
-    <div v-if="showPayModal" class="modal fade show d-block" style="z-index: 1060;">
-        <div class="modal-dialog modal-dialog-centered modal-sm">
-            <div class="modal-content border-0">
-                <div class="modal-header bg-success text-white py-2">
-                    <h6 class="modal-title fw-bold">Payment</h6>
-                    <button type="button" class="btn-close btn-close-white" @click="showPayModal = false"></button>
+<div v-if="showPayModal" class="modal fade show d-block" style="z-index: 1060;">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-success text-white py-2">
+                <h6 class="modal-title fw-bold">Checkout</h6>
+                <button type="button" class="btn-close btn-close-white" @click="showPayModal = false"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="text-center mb-4">
+                    <h2 class="fw-bold text-success mb-0">₱{{ formatPrice(grandTotal) }}</h2>
+                    <small class="text-muted">Total Amount Due</small>
                 </div>
-                <div class="modal-body p-3">
-                    <div class="text-center mb-3">
-                        <h2 class="fw-bold text-success mb-0">₱{{ formatPrice(grandTotal) }}</h2>
-                        <small class="text-muted">Total Amount Due</small>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label class="form-label small fw-bold text-muted">Amount Tendered</label>
-                        <div class="input-group">
-                            <span class="input-group-text fw-bold">₱</span>
-                            <input type="number" class="form-control fw-bold fs-5" v-model.number="amountTendered" id="tenderInput" placeholder="0.00" autofocus>
+
+                <div class="mb-4">
+                    <label class="form-label small fw-bold text-muted mb-2">Select Payment Method</label>
+                    <div class="row g-2">
+                        <div class="col-4">
+                            <button class="btn w-100 fw-bold border" 
+                                :class="paymentMethod === 'cash' ? 'btn-success text-white' : 'btn-light'" 
+                                @click="paymentMethod = 'cash'">
+                                <i class="fas fa-money-bill-wave d-block mb-1"></i> Cash
+                            </button>
+                        </div>
+                        <div class="col-4">
+                            <button class="btn w-100 fw-bold border" 
+                                :class="paymentMethod === 'digital' ? 'btn-primary text-white' : 'btn-light'" 
+                                @click="paymentMethod = 'digital'">
+                                <i class="fas fa-qrcode d-block mb-1"></i> E-Wallet
+                            </button>
+                        </div>
+                        <div class="col-4">
+                            <button class="btn w-100 fw-bold border" 
+                                :class="paymentMethod === 'credit' ? 'btn-warning text-dark' : 'btn-light'" 
+                                @click="paymentMethod = 'credit'"
+                                :disabled="customerType !== 'credit'">
+                                <i class="fas fa-user-tag d-block mb-1"></i> Utang
+                            </button>
                         </div>
                     </div>
-
-                    <div class="d-flex justify-content-between align-items-center p-2 bg-light rounded border">
-                        <span class="fw-bold small text-muted">Change:</span>
-                        <span class="fw-bold fs-5" :class="change < 0 ? 'text-danger' : 'text-success'">
-                            ₱{{ formatPrice(Math.abs(change)) }}
-                        </span>
+                    <div v-if="customerType !== 'credit'" class="text-center mt-2">
+                        <small class="text-muted" style="font-size: 0.7rem;">*Select "Credit/Utang" in the cart to enable Credit payment.</small>
                     </div>
                 </div>
-                <div class="modal-footer p-2 border-0 bg-light">
-                    <button class="btn btn-success w-100 fw-bold py-2" :disabled="!canPay" @click="processPayment">
-                        CONFIRM PAYMENT
-                    </button>
+                
+                <div v-if="paymentMethod !== 'credit'" class="mb-3">
+                    <label class="form-label small fw-bold text-muted">Amount Tendered</label>
+                    <div class="input-group input-group-lg">
+                        <span class="input-group-text fw-bold">₱</span>
+                        <input type="number" class="form-control fw-bold fs-5" v-model.number="amountTendered" id="tenderInput" placeholder="0.00" @keyup.enter="processPayment">
+                    </div>
                 </div>
+
+                <div v-else class="alert alert-warning small d-flex align-items-center">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <div>This transaction will be charged to the customer's account.</div>
+                </div>
+
+                <div v-if="paymentMethod !== 'credit'" class="d-flex justify-content-between align-items-center p-2 bg-light rounded border">
+                    <span class="fw-bold small text-muted">Change:</span>
+                    <span class="fw-bold fs-5" :class="change < 0 ? 'text-danger' : 'text-success'">
+                        ₱{{ formatPrice(Math.abs(change)) }}
+                    </span>
+                </div>
+            </div>
+            <div class="modal-footer p-2 border-0 bg-light">
+                <button class="btn btn-outline-secondary px-4 fw-bold" @click="showPayModal = false">Back</button>
+                <button class="btn btn-success flex-fill fw-bold py-2" :disabled="!canPay" @click="processPayment">
+                    CONFIRM PAYMENT
+                </button>
             </div>
         </div>
     </div>
+</div>
 
     <div v-if="showNewCustomerModal" class="modal-backdrop fade show" style="z-index: 1070;"></div>
     <div v-if="showNewCustomerModal" class="modal fade show d-block" style="z-index: 1080;">
@@ -384,10 +421,30 @@ export default {
         setTimeout(() => document.getElementById('tenderInput')?.focus(), 100);
     },
     processPayment() {
-        alert("Payment Successful! (Logic connected to backend)");
-        this.cart = [];
-        this.showPayModal = false;
-        this.mobileTab = 'menu';
+        // Logic to send to backend
+        const payload = {
+            cart: this.cart,
+            customer_id: this.customerType === 'credit' ? this.selectedCustomerId : null,
+            payment_method: this.paymentMethod,
+            amount_tendered: this.paymentMethod === 'credit' ? 0 : this.amountTendered,
+            total_amount: this.grandTotal
+        };
+
+        axios.post('/cashier/transaction', payload)
+            .then(response => {
+                if(response.data.success) {
+                    // Show Receipt logic here (omitted for brevity, keep your existing logic)
+                    alert("Payment Successful!"); 
+                    this.cart = [];
+                    this.showPayModal = false;
+                    this.mobileTab = 'menu';
+                    this.amountTendered = '';
+                    this.paymentMethod = 'cash'; // Reset
+                }
+            })
+            .catch(error => {
+                alert("Transaction Failed: " + (error.response?.data?.message || "Unknown Error"));
+            });
     },
     toggleScanner() { alert("Camera requires HTTPS."); },
     handleBarcodeEnter() {
