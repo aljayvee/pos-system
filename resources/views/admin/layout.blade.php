@@ -145,10 +145,9 @@
 </style>
 </head>
 
-<body>
+<body class="antialiased">
     <div id="app">
-        {{-- Pass Blade variables into Vue Props here --}}
-        <sidebar-layout
+        <admin-layout
             user-name="{{ Auth::user()->name }}"
             user-role="{{ Auth::user()->role }}"
             page-title="@yield('title', 'Dashboard')"
@@ -156,13 +155,11 @@
             :out-of-stock="{{ $outOfStockCount ?? 0 }}"
             :low-stock="{{ $lowStockCount ?? 0 }}"
         >
-            {{-- This content goes into the <slot> --}}
             @yield('content')
             
-        </sidebar-layout>
+        </admin-layout>
     </div>
 
-    {{-- STACK: SCRIPTS --}}
     @stack('scripts')
 </body>
 </html>
