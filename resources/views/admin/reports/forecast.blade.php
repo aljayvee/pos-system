@@ -40,8 +40,11 @@
                                 <small class="text-muted">{{ $item['category'] }}</small>
                             </td>
                             <td class="text-center">{{ $item['stock'] }}</td>
-                            <td class="text-center text-muted">{{ $item['ads'] }}/day</td>
-                            <td class="text-center fw-bold">{{ $item['days_left'] > 365 ? '> 1 Year' : $item['days_left'] . ' Days' }}</td>
+                            {{-- FIX: Format number here --}}
+                            <td class="text-center text-muted">{{ number_format($item['ads'], 2) }}/day</td>
+                            <td class="text-center fw-bold">
+                                {{ $item['days_left'] > 365 ? '> 1 Year' : number_format($item['days_left'], 1) . ' Days' }}
+                            </td>
                             <td>
                                 @if(str_contains($item['status'], 'Out')) <span class="badge bg-dark">Empty</span>
                                 @elseif(str_contains($item['status'], 'Critical')) <span class="badge bg-danger">Critical</span>
@@ -76,7 +79,8 @@
                     </div>
                     
                     <div class="d-flex justify-content-between align-items-center mb-2">
-                        <small class="text-muted">Avg: {{ $item['ads'] }} sold/day</small>
+                        {{-- FIX: Format number here --}}
+                        <small class="text-muted">Avg: {{ number_format($item['ads'], 2) }} sold/day</small>
                         @if($item['reorder_qty'] > 0)
                             <span class="badge bg-success">+{{ $item['reorder_qty'] }} Reorder</span>
                         @endif
@@ -86,13 +90,16 @@
                         <small class="fw-bold">Days Left:</small>
                         <div class="progress flex-grow-1" style="height: 10px;">
                             @php
+                                // FIX: $item['days_left'] is now a float, so math works safely
                                 $val = min($item['days_left'], 30);
                                 $pct = ($val / 30) * 100;
                                 $color = $item['days_left'] < 7 ? 'bg-danger' : ($item['days_left'] < 14 ? 'bg-warning' : 'bg-success');
                             @endphp
                             <div class="progress-bar {{ $color }}" style="width: {{ $pct }}%"></div>
                         </div>
-                        <small class="text-muted" style="width: 60px; text-align: right">{{ $item['days_left'] > 365 ? '>1yr' : $item['days_left'] . 'd' }}</small>
+                        <small class="text-muted" style="width: 60px; text-align: right">
+                            {{ $item['days_left'] > 365 ? '>1yr' : number_format($item['days_left'], 1) . 'd' }}
+                        </small>
                     </div>
                 </div>
                 @empty
