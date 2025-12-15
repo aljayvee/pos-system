@@ -10,6 +10,7 @@ use App\Models\SalesReturn; // Import SalesReturn
 use App\Models\CreditPayment; 
 use App\Models\Customer;
 use App\Models\CustomerCredit;
+use App\Models\Store;
 use App\Models\Inventory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -20,14 +21,29 @@ class POSController extends Controller
 {
     public function index()
     {
+
+        $user = auth()->user();
+        $store = $user->store ?? \App\Models\Store::first(); // Fallback if single store
+
         $storeId = $this->getActiveStoreId(); 
 
-        $products = Product::join('inventories', 'products.id', '=', 'inventories.product_id')
-            ->where('inventories.store_id', $storeId)
-            ->where('inventories.stock', '>', 0)
-            ->whereNull('products.deleted_at')
-            ->select('products.*', 'inventories.stock as current_stock')
-            ->get();
+        $products = \App\Models\Product::whereHas('inventory', function($q) use ($storeId) {
+            $q->where('store_id', $storeId);
+        })
+        ->with(['inventory' => function($q) use ($storeId) {
+            $q->where('store_id', $storeId);
+        }, 'category'])
+        ->get()
+        ->map(function($product) {
+            return [
+                'id' => $product->id,
+                'name' => $product->name,
+                'barcode' => $product->barcode,
+                'price' => $product->price,
+                'category_id' => $product->category_id,
+                'stock' => $product->inventory->first()->stock ?? 0,
+            ];
+        });
 
         $customers = Customer::withSum(['credits as balance' => function($q) use ($storeId) {
             $q->where('is_paid', false)
@@ -36,7 +52,8 @@ class POSController extends Controller
               });
         }], 'remaining_balance')->orderBy('name')->get();
 
-        $categories = \App\Models\Category::has('products')->orderBy('name')->get();
+        $categories = \App\Models\Category::select('id', 'name')->get();
+        $customers = \App\Models\Customer::select('id', 'name')->get(); // Fetch existing credit customers
 
         // FETCH SETTINGS
         $loyaltyEnabled = \App\Models\Setting::where('key', 'enable_loyalty')->value('value') ?? '0';
@@ -44,7 +61,7 @@ class POSController extends Controller
         // --- FIXED: Fetch BIR/Tax Setting ---
         $birEnabled = \App\Models\Setting::where('key', 'enable_tax')->value('value') ?? '0';
 
-        return view('cashier.index', compact('products', 'customers', 'categories', 'loyaltyEnabled', 'birEnabled'));
+        return view('cashier.index', compact('products', 'customers', 'categories', 'loyaltyEnabled', 'birEnabled', 'store', 'user'));
     }
 
     public function payCredit(Request $request)
