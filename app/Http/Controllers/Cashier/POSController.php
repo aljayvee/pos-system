@@ -27,10 +27,11 @@ class POSController extends Controller
 
         $storeId = $this->getActiveStoreId(); 
 
-        $products = \App\Models\Product::whereHas('inventory', function($q) use ($storeId) {
+        // FIXED: Changed 'inventory' to 'inventories' to match Product.php
+    $products = \App\Models\Product::whereHas('inventories', function($q) use ($storeId) {
             $q->where('store_id', $storeId);
         })
-        ->with(['inventory' => function($q) use ($storeId) {
+        ->with(['inventories' => function($q) use ($storeId) {
             $q->where('store_id', $storeId);
         }, 'category'])
         ->get()
@@ -41,7 +42,8 @@ class POSController extends Controller
                 'barcode' => $product->barcode,
                 'price' => $product->price,
                 'category_id' => $product->category_id,
-                'stock' => $product->inventory->first()->stock ?? 0,
+                // FIXED: Changed 'inventory' to 'inventories'
+                'stock' => $product->inventories->first()->stock ?? 0, 
             ];
         });
 
