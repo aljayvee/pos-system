@@ -1,134 +1,146 @@
 @extends('admin.layout')
 
 @section('content')
-<div class="container py-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2><i class="fas fa-user-cog text-primary"></i> User Management</h2>
-        <a href="{{ route('users.create') }}" class="btn btn-primary">
-            <i class="fas fa-plus"></i> Create New User
+<div class="container-fluid px-4">
+    
+    {{-- HEADER --}}
+    <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center mt-4 mb-4 gap-2">
+        <h1 class="h2 mb-0 text-gray-800"><i class="fas fa-users-cog text-primary me-2"></i>User Management</h1>
+        <a href="{{ route('users.create') }}" class="btn btn-primary shadow-sm">
+            <i class="fas fa-user-plus me-1"></i> New User
         </a>
     </div>
 
+    {{-- ALERTS --}}
     @if(session('success'))
-        <div class="alert alert-success">{{ session('success') }}</div>
+        <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+            <i class="fas fa-check-circle me-1"></i> {{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+    @if(session('error'))
+        <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+            <i class="fas fa-exclamation-circle me-1"></i> {{ session('error') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
     @endif
 
-    <div class="card shadow-sm">
-        <div class="card-body p-0">
-            <table class="table table-striped table-hover mb-0">
-                <thead class="table-dark">
-                    <tr>
-                        <th>Name</th>
-                        <th>Email</th>
-                        <th>Role</th>
-                        <th>Status</th>
-                        <th>Created At</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse($users as $user)
-                    <tr>
-                        <td class="fw-bold">{{ $user->name }}</td>
-                        <td>{{ $user->email }}</td>
-                        <td>
-                            <span class="badge {{ $user->role == 'admin' ? 'bg-danger' : 'bg-info text-dark' }}">
-                                {{ ucfirst($user->role) }}
-                            </span>
-                        </td>
-                        <td>
-                            <span class="badge {{ $user->is_active ? 'bg-success' : 'bg-secondary' }}">
-                                {{ $user->is_active ? 'Active' : 'Inactive' }}
-                            </span>
-                        </td>
-                        <td>{{ $user->created_at->format('M d, Y') }}</td>
-                        <td>
-                            {{-- NEW: Edit Button --}}
-                                <a href="{{ route('users.edit', $user->id) }}" class="btn btn-sm btn-warning col-md-3" title="Edit User" >
-                                    <i class="fas fa-edit"></i>
-                                </a>
-                            <div class="btn-group">
-                                 
-                                <!--<button class="btn btn-sm btn-outline-primary" 
-                                        data-bs-toggle="modal" 
-                                        data-bs-target="#editUserModal-{{ $user->id }}">
-                                    <i class="fas fa-edit"></i>
-                                </button>-->
-
-                                <form action="{{ route('users.toggle', $user->id) }}" method="POST">
-                                    @csrf
-                                    <button class="btn btn-sm btn-outline-secondary" title="Toggle Access">
-                                        <i class="fas {{ $user->is_active ? 'fa-ban' : 'fa-check' }}"></i>
-                                    </button>
-                                </form>
-
-                               
-                                
-                                <form action="{{ route('users.destroy', $user->id) }}" method="POST" onsubmit="return confirm('Permanently delete this user?');" class="ms-1">
-                                    @csrf @method('DELETE')
-                                    <button class="btn btn-sm btn-outline-danger" title="Delete User">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </form>
-                            </div>
-
-                            <!--<div class="modal fade" id="editUserModal-{{ $user->id }}" tabindex="-1">
-                                <div class="modal-dialog">
-                                    <form action="{{ route('users.update', $user->id) }}" method="POST">
-                                        @csrf @method('PUT')
-                                        <div class="modal-content text-start">
-                                            <div class="modal-header">
-                                                <h5 class="modal-title">Edit Account: {{ $user->name }}</h5>
-                                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                            </div>
-                                            <div class="modal-body">
-                                                <div class="mb-3">
-                                                    <label class="form-label">Name</label>
-                                                    <input type="text" name="name" class="form-control" value="{{ $user->name }}" required>
-                                                </div>
-                                                <div class="mb-3">
-                                                    <label class="form-label">Email</label>
-                                                    <input type="email" name="email" class="form-control" value="{{ $user->email }}" required>
-                                                </div>
-                                                <div class="mb-3">
-                                                    <label class="form-label">Role</label>
-                                                    <select name="role" class="form-select">
-                                                        <option value="cashier" {{ $user->role == 'cashier' ? 'selected' : '' }}>Cashier</option>
-                                                        <option value="admin" {{ $user->role == 'admin' ? 'selected' : '' }}>Admin</option>
-                                                    </select>
-                                                </div>
-                                                
-                                                <hr>
-                                                <h6 class="text-danger">Change Password (Optional)</h6>
-                                                <p class="text-muted small">Leave blank if you don't want to change it.</p>
-                                                
-                                                <div class="mb-3">
-                                                    <label class="form-label">New Password</label>
-                                                    <input type="password" name="password" class="form-control" placeholder="New Password">
-                                                </div>
-                                                <div class="mb-3">
-                                                    <label class="form-label">Confirm New Password</label>
-                                                    <input type="password" name="password_confirmation" class="form-control" placeholder="Confirm Password">
-                                                </div>
-                                            </div>
-                                            <div class="modal-footer">
-                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                                                <button type="submit" class="btn btn-primary">Save Changes</button>
-                                            </div>
-                                        </div>
+    <div class="card shadow-sm border-0 mb-4">
+        
+        {{-- DESKTOP TABLE --}}
+        <div class="d-none d-lg-block">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="bg-light text-secondary small text-uppercase">
+                        <tr>
+                            <th class="ps-4 py-3">User</th>
+                            <th class="py-3">Role</th>
+                            <th class="py-3">Status</th>
+                            <th class="py-3">Created</th>
+                            <th class="text-end pe-4 py-3">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($users as $user)
+                        <tr>
+                            <td class="ps-4">
+                                <div class="fw-bold text-dark">{{ $user->name }}</div>
+                                <div class="small text-muted">{{ $user->email }}</div>
+                            </td>
+                            <td>
+                                <span class="badge {{ $user->role == 'admin' ? 'bg-danger-subtle text-danger border border-danger' : 'bg-info-subtle text-info-emphasis border border-info' }}">
+                                    {{ ucfirst($user->role) }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge rounded-pill {{ $user->is_active ? 'bg-success' : 'bg-secondary' }}">
+                                    {{ $user->is_active ? 'Active' : 'Inactive' }}
+                                </span>
+                            </td>
+                            <td class="text-muted small">
+                                {{ $user->created_at->format('M d, Y') }}
+                            </td>
+                            <td class="text-end pe-4">
+                                <div class="d-flex justify-content-end gap-2">
+                                    <form action="{{ route('users.toggle', $user->id) }}" method="POST">
+                                        @csrf
+                                        <button class="btn btn-sm btn-outline-secondary" title="{{ $user->is_active ? 'Deactivate' : 'Activate' }}">
+                                            <i class="fas {{ $user->is_active ? 'fa-ban' : 'fa-check' }}"></i>
+                                        </button>
+                                    </form>
+                                    <a href="{{ route('users.edit', $user->id) }}" class="btn btn-sm btn-warning text-dark" title="Edit">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <form action="{{ route('users.destroy', $user->id) }}" method="POST" onsubmit="return confirm('Permanently delete {{ $user->name }}?');">
+                                        @csrf @method('DELETE')
+                                        <button class="btn btn-sm btn-outline-danger" title="Delete">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
                                     </form>
                                 </div>
-                            </div>-->
                             </td>
-                    </tr>
-                    @empty
-                    <tr>
-                        <td colspan="6" class="text-center py-4 text-muted">No other users found.</td>
-                    </tr>
-                    @endforelse
-                </tbody>
-            </table>
+                        </tr>
+                        @empty
+                        <tr>
+                            <td colspan="5" class="text-center py-5 text-muted">No users found.</td>
+                        </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
         </div>
+
+        {{-- MOBILE CARDS --}}
+        <div class="d-lg-none">
+            <div class="list-group list-group-flush">
+                @forelse($users as $user)
+                <div class="list-group-item p-3">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div>
+                            <div class="fw-bold text-dark">{{ $user->name }}</div>
+                            <div class="small text-muted">{{ $user->email }}</div>
+                        </div>
+                        <span class="badge {{ $user->role == 'admin' ? 'bg-danger' : 'bg-info text-dark' }}">
+                            {{ ucfirst($user->role) }}
+                        </span>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between align-items-center mt-3 pt-3 border-top">
+                        <span class="badge rounded-pill {{ $user->is_active ? 'bg-success' : 'bg-secondary' }}">
+                            {{ $user->is_active ? 'Active' : 'Inactive' }}
+                        </span>
+                        
+                        <div class="d-flex gap-2">
+                            <form action="{{ route('users.toggle', $user->id) }}" method="POST">
+                                @csrf
+                                <button class="btn btn-sm btn-outline-secondary" title="Toggle Status">
+                                    <i class="fas {{ $user->is_active ? 'fa-ban' : 'fa-check' }}"></i>
+                                </button>
+                            </form>
+                            <a href="{{ route('users.edit', $user->id) }}" class="btn btn-sm btn-warning">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            <form action="{{ route('users.destroy', $user->id) }}" method="POST" onsubmit="return confirm('Delete user?');">
+                                @csrf @method('DELETE')
+                                <button class="btn btn-sm btn-danger">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                @empty
+                <div class="text-center py-5 text-muted">No users found.</div>
+                @endforelse
+            </div>
+        </div>
+        
+        {{-- Pagination (if enabled in controller) --}}
+        @if(method_exists($users, 'links'))
+        <div class="card-footer bg-white border-top-0 py-3">
+            {{ $users->links() }}
+        </div>
+        @endif
     </div>
 </div>
 @endsection
