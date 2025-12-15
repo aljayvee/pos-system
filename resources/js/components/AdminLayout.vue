@@ -9,12 +9,12 @@
     ></div>
 
     <aside 
-      class="bg-dark text-white d-flex flex-column shadow-lg sidebar-transition"
+      class="text-white d-flex flex-column shadow-lg sidebar-transition"
       :class="sidebarClasses"
-      style="z-index: 1050;"
+      style="z-index: 1050; background-color: #1e1e2d;"
     >
-      <div class="d-flex align-items-center px-3 border-bottom border-secondary border-opacity-25" 
-           style="height: 70px; min-height: 70px;"
+      <div class="d-flex align-items-center px-3 border-bottom border-secondary border-opacity-10" 
+           style="height: 70px; min-height: 70px; background-color: #151521;"
            :class="(!isMobile && !isOpen) ? 'justify-content-center' : 'justify-content-between'"
       >
          <div class="d-flex align-items-center overflow-hidden" :class="{ 'w-100 justify-content-center': !isOpen && !isMobile }">
@@ -23,18 +23,17 @@
              </button>
 
              <div class="d-flex align-items-center text-nowrap">
-                 <div class="rounded bg-primary d-flex align-items-center justify-content-center text-white shadow-sm" style="width: 36px; height: 36px;">
-                    <i class="fas fa-store"></i>
+                 <div class="rounded d-flex align-items-center justify-content-center text-white" style="width: 36px; height: 36px;">
+                    <i class="fas fa-store fa-lg text-primary"></i>
                  </div>
-                 <span class="ms-3 fw-bold fs-5 tracking-wide fade-text" v-show="isOpen || isMobile">SariPOS</span>
+                 <span class="ms-2 fw-bold fs-5 tracking-wide fade-text" v-show="isOpen || isMobile">SariPOS</span>
              </div>
          </div>
 
          <button 
             v-if="!isMobile && isOpen" 
             @click="toggleSidebar" 
-            class="btn btn-sm btn-outline-secondary border-0 text-white opacity-50 hover-opacity-100"
-            title="Collapse Sidebar"
+            class="btn btn-sm btn-link text-muted p-0 text-decoration-none hover-white"
          >
              <i class="fas fa-bars fa-lg"></i>
          </button>
@@ -43,103 +42,95 @@
       <div class="flex-fill overflow-auto py-3 custom-scrollbar">
          
          <div class="px-3 mb-4">
-             <a href="/cashier" class="btn btn-primary w-100 d-flex align-items-center justify-content-center py-2 shadow-sm">
-                 <i class="fas fa-cash-register fa-lg"></i>
-                 <span class="ms-2 fw-semibold text-nowrap" v-show="isOpen || isMobile">Cashier POS</span>
+             <a href="/cashier" class="btn btn-primary w-100 d-flex align-items-center justify-content-center py-2 shadow-sm text-uppercase fw-bold" style="letter-spacing: 0.5px;">
+                 <i class="fas fa-cash-register"></i>
+                 <span class="ms-2" v-show="isOpen || isMobile">Cashier POS</span>
              </a>
          </div>
 
          <ul class="nav nav-pills flex-column px-2 gap-1">
-            
             <template v-if="userRole === 'admin'">
                 
-                <li class="nav-header px-3 mt-2 mb-1 text-muted small fw-bold text-uppercase text-nowrap overflow-hidden" v-show="isOpen || isMobile">
+                <li class="nav-header px-3 mt-2 mb-1 text-muted small fw-bold text-uppercase text-nowrap overflow-hidden" style="font-size: 0.75rem; letter-spacing: 1px;" v-show="isOpen || isMobile">
                     Overview
                 </li>
                 <li class="nav-item">
-                    <a href="/admin/dashboard" class="nav-link text-white d-flex align-items-center" 
+                    <a href="/admin/dashboard" class="nav-link d-flex align-items-center" 
                        :class="{ 'active': currentPath === '/admin/dashboard' }">
                        <div class="icon-wrapper"><i class="fas fa-tachometer-alt"></i></div>
                        <span class="text-nowrap fade-text" v-show="isOpen || isMobile">Dashboard</span>
                     </a>
                 </li>
 
-                <li class="nav-header px-3 mt-3 mb-1 text-muted small fw-bold text-uppercase text-nowrap overflow-hidden" v-show="isOpen || isMobile">
+                <li class="nav-header px-3 mt-3 mb-1 text-muted small fw-bold text-uppercase text-nowrap overflow-hidden" style="font-size: 0.75rem; letter-spacing: 1px;" v-show="isOpen || isMobile">
                     Inventory
                 </li>
                 <li class="nav-item">
-                    <a href="/admin/inventory" class="nav-link text-white d-flex align-items-center"
-                       :class="{ 'active': currentPath.includes('/inventory') && !currentPath.includes('history') }">
-                       <div class="icon-wrapper"><i class="fas fa-boxes"></i></div>
-                       <span class="text-nowrap fade-text" v-show="isOpen || isMobile">Overview</span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="/admin/products" class="nav-link text-white d-flex align-items-center"
+                    <a href="/admin/products" class="nav-link d-flex align-items-center"
                        :class="{ 'active': currentPath.includes('/products') }">
                        <div class="icon-wrapper"><i class="fas fa-box-open"></i></div>
                        <span class="text-nowrap fade-text" v-show="isOpen || isMobile">Products</span>
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a href="/admin/categories" class="nav-link text-white d-flex align-items-center"
-                       :class="{ 'active': currentPath.includes('/categories') }">
-                       <div class="icon-wrapper"><i class="fas fa-tags"></i></div>
-                       <span class="text-nowrap fade-text" v-show="isOpen || isMobile">Categories</span>
+                    <a href="/admin/inventory" class="nav-link d-flex align-items-center"
+                       :class="{ 'active': currentPath.includes('/inventory') && !currentPath.includes('history') }">
+                       <div class="icon-wrapper"><i class="fas fa-boxes"></i></div>
+                       <span class="text-nowrap fade-text" v-show="isOpen || isMobile">Stock Level</span>
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a href="/admin/purchases" class="nav-link text-white d-flex align-items-center"
+                    <a href="/admin/purchases" class="nav-link d-flex align-items-center"
                        :class="{ 'active': currentPath.includes('/purchases') }">
                        <div class="icon-wrapper"><i class="fas fa-truck-loading"></i></div>
                        <span class="text-nowrap fade-text" v-show="isOpen || isMobile">Restocking</span>
                     </a>
                 </li>
 
-                <li class="nav-header px-3 mt-3 mb-1 text-muted small fw-bold text-uppercase text-nowrap overflow-hidden" v-show="isOpen || isMobile">
+                <li class="nav-header px-3 mt-3 mb-1 text-muted small fw-bold text-uppercase text-nowrap overflow-hidden" style="font-size: 0.75rem; letter-spacing: 1px;" v-show="isOpen || isMobile">
                     People
                 </li>
                 <li class="nav-item">
-                    <a href="/admin/customers" class="nav-link text-white d-flex align-items-center"
+                    <a href="/admin/customers" class="nav-link d-flex align-items-center"
                        :class="{ 'active': currentPath.includes('/customers') }">
                        <div class="icon-wrapper"><i class="fas fa-users"></i></div>
                        <span class="text-nowrap fade-text" v-show="isOpen || isMobile">Customers</span>
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a href="/admin/suppliers" class="nav-link text-white d-flex align-items-center"
+                    <a href="/admin/suppliers" class="nav-link d-flex align-items-center"
                        :class="{ 'active': currentPath.includes('/suppliers') }">
                        <div class="icon-wrapper"><i class="fas fa-truck"></i></div>
                        <span class="text-nowrap fade-text" v-show="isOpen || isMobile">Suppliers</span>
                     </a>
                 </li>
 
-                <li class="nav-header px-3 mt-3 mb-1 text-muted small fw-bold text-uppercase text-nowrap overflow-hidden" v-show="isOpen || isMobile">
+                <li class="nav-header px-3 mt-3 mb-1 text-muted small fw-bold text-uppercase text-nowrap overflow-hidden" style="font-size: 0.75rem; letter-spacing: 1px;" v-show="isOpen || isMobile">
                     System
                 </li>
                 <li class="nav-item">
-                    <a href="/admin/transactions" class="nav-link text-white d-flex align-items-center"
+                    <a href="/admin/transactions" class="nav-link d-flex align-items-center"
                        :class="{ 'active': currentPath.includes('/transactions') }">
                        <div class="icon-wrapper"><i class="fas fa-history"></i></div>
                        <span class="text-nowrap fade-text" v-show="isOpen || isMobile">Transactions</span>
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a href="/admin/logs" class="nav-link text-white d-flex align-items-center"
-                       :class="{ 'active': currentPath.includes('/logs') }">
-                       <div class="icon-wrapper"><i class="fas fa-clipboard-list"></i></div>
-                       <span class="text-nowrap fade-text" v-show="isOpen || isMobile">Audit Logs</span>
+                    <a href="/admin/reports" class="nav-link d-flex align-items-center"
+                       :class="{ 'active': currentPath.includes('/reports') }">
+                       <div class="icon-wrapper"><i class="fas fa-chart-pie"></i></div>
+                       <span class="text-nowrap fade-text" v-show="isOpen || isMobile">Reports</span>
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a href="/admin/users" class="nav-link text-white d-flex align-items-center"
+                    <a href="/admin/users" class="nav-link d-flex align-items-center"
                        :class="{ 'active': currentPath.includes('/users') }">
                        <div class="icon-wrapper"><i class="fas fa-user-shield"></i></div>
                        <span class="text-nowrap fade-text" v-show="isOpen || isMobile">Users</span>
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a href="/admin/settings" class="nav-link text-white d-flex align-items-center"
+                    <a href="/admin/settings" class="nav-link d-flex align-items-center"
                        :class="{ 'active': currentPath.includes('/settings') }">
                        <div class="icon-wrapper"><i class="fas fa-cog"></i></div>
                        <span class="text-nowrap fade-text" v-show="isOpen || isMobile">Settings</span>
@@ -150,10 +141,10 @@
          </ul>
       </div>
 
-      <div class="p-3 border-top border-secondary border-opacity-25 bg-dark">
+      <div class="p-3 border-top border-secondary border-opacity-10" style="background-color: #151521;">
           <form action="/logout" method="POST">
              <input type="hidden" name="_token" :value="csrfToken">
-             <button class="btn btn-outline-danger w-100 d-flex align-items-center justify-content-center border-0 hover-bg-danger">
+             <button class="btn btn-outline-danger w-100 d-flex align-items-center justify-content-center border-0 hover-bg-danger" style="background-color: rgba(246, 78, 96, 0.1); color: #F64E60;">
                  <div class="icon-wrapper"><i class="fas fa-sign-out-alt"></i></div>
                  <span class="fw-semibold ms-1 text-nowrap fade-text" v-show="isOpen || isMobile">Log Out</span>
              </button>
@@ -191,7 +182,7 @@
                  </span>
              </button>
 
-             <div v-if="notifOpen" class="dropdown-menu dropdown-menu-end show shadow-lg border-0 mt-3 p-0 overflow-hidden" style="width: 320px; position: absolute; right: 0;">
+             <div v-if="notifOpen" class="dropdown-menu dropdown-menu-end show shadow-lg border-0 mt-3 p-0 overflow-hidden" style="width: 320px; position: absolute; right: 0; z-index: 1060;">
                  <div class="px-3 py-3 bg-white border-bottom d-flex justify-content-between align-items-center">
                      <span class="fw-bold">Notifications</span>
                      <span v-if="totalAlerts > 0" class="badge bg-danger rounded-pill">{{ totalAlerts }}</span>
@@ -241,14 +232,19 @@ export default {
   props: ['userName', 'userRole', 'pageTitle', 'csrfToken', 'outOfStock', 'lowStock'],
   data() {
     return {
-      // Logic: 992px is the standard Bootstrap 'lg' breakpoint
       isMobile: window.innerWidth < 992,
-      isOpen: window.innerWidth >= 992, // Open by default on Desktop
+      isOpen: window.innerWidth >= 992,
       notifOpen: false,
       currentPath: window.location.pathname
     };
   },
   computed: {
+    sidebarClasses() {
+        return [
+            this.isMobile ? 'position-fixed h-100 z-3' : 'position-relative',
+            this.isOpen ? 'sidebar-open' : (this.isMobile ? 'sidebar-closed-mobile' : 'sidebar-closed-desktop')
+        ];
+    },
     totalAlerts() { return (this.outOfStock || 0) + (this.lowStock || 0); }
   },
   mounted() {
@@ -279,94 +275,67 @@ export default {
 </script>
 
 <style scoped>
-/* CUSTOM SIDEBAR CSS 
-   Bootstrap handles grids, but we need custom transitions for the sidebar width 
-*/
-
+/* SIDEBAR TRANSITIONS */
 .sidebar-transition {
     transition: width 0.3s ease, transform 0.3s ease;
     white-space: nowrap;
 }
 
-/* DESKTOP: Expanded Mode (280px) */
-.sidebar-transition:not(.position-fixed).sidebar-open {
-    width: 280px;
-}
-
-/* DESKTOP: Mini Mode (80px) */
-.sidebar-transition:not(.position-fixed):not(.sidebar-open) {
-    width: 80px;
-}
-
-/* MOBILE: Slide-in Panel (280px) */
-.sidebar-transition.position-fixed {
-    width: 280px;
-    top: 0;
-    left: 0;
-    bottom: 0;
-    transform: translateX(-100%);
-}
-.sidebar-transition.position-fixed.sidebar-open {
-    transform: translateX(0);
-}
-
-/* ICON ALIGNMENT 
-   This ensures every icon sits in a 40px box, so text aligns perfectly 
-*/
-.icon-wrapper {
-    width: 40px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-size: 1.1rem;
-    flex-shrink: 0;
-}
+.sidebar-open { width: 265px; transform: translateX(0); }
+.sidebar-closed-desktop { width: 75px; }
+.sidebar-closed-mobile { width: 265px; transform: translateX(-100%); }
 
 /* NAVIGATION LINKS */
 .nav-link {
-    color: #aeb2b7; /* Muted text */
-    padding: 0.75rem 1rem;
-    border-radius: 0.5rem;
-    transition: all 0.2s;
-    margin-bottom: 2px;
+    color: #a2a3b7; /* Muted Light Blue-Grey */
+    padding: 0.8rem 1rem;
+    border-radius: 0.4rem;
+    transition: all 0.2s ease;
 }
 
 .nav-link:hover {
-    background-color: rgba(255, 255, 255, 0.08);
-    color: #fff;
+    color: #ffffff;
+    background-color: rgba(255, 255, 255, 0.05);
 }
 
 .nav-link.active {
-    background-color: #0d6efd !important; /* Bootstrap Primary */
-    color: #fff !important;
-    box-shadow: 0 4px 6px rgba(13, 110, 253, 0.3);
+    background-color: #1b1b28 !important; /* Slightly Darker */
+    color: #3699ff !important; /* Premium Blue */
+    position: relative;
+}
+/* Left Border Accent for Active Item */
+.nav-link.active::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 10%;
+    height: 80%;
+    width: 4px;
+    background-color: #3699ff;
+    border-radius: 0 4px 4px 0;
 }
 
-.hover-opacity-100:hover {
-    opacity: 1 !important;
+/* HOVER UTILS */
+.hover-white:hover { color: #ffffff !important; }
+.hover-bg-danger:hover { background-color: #F64E60 !important; color: white !important; }
+
+/* ICON WRAPPER */
+.icon-wrapper {
+    width: 35px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 1.15rem;
+    flex-shrink: 0;
 }
 
-/* CUSTOM SCROLLBAR */
-.custom-scrollbar::-webkit-scrollbar {
-    width: 5px;
-}
-.custom-scrollbar::-webkit-scrollbar-track {
-    background: transparent; 
-}
-.custom-scrollbar::-webkit-scrollbar-thumb {
-    background: #495057; 
-    border-radius: 10px;
-}
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: #6c757d; 
-}
+/* SCROLLBAR */
+.custom-scrollbar::-webkit-scrollbar { width: 5px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: #3f4254; border-radius: 10px; }
+.custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #5e6278; }
 
 /* ANIMATIONS */
-.fade-in {
-    animation: fadeIn 0.2s ease-out;
-}
-@keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-}
+.fade-in { animation: fadeIn 0.2s ease-out; }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 </style>
