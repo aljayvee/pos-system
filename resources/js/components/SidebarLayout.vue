@@ -71,16 +71,6 @@
       </div>
 
       <div class="sidebar-footer">
-        <div class="user-card" v-show="isOpen || isMobile">
-          <div class="user-avatar">{{ userName.charAt(0) }}</div>
-          <div class="user-info">
-            <div class="user-name">{{ userName }}</div>
-            <div class="user-role">{{ userRole }}</div>
-          </div>
-        </div>
-    </div>
-
-      <div class="sidebar-footer">
         <form action="/logout" method="POST" class="w-100">
            <input type="hidden" name="_token" :value="csrfToken">
            <button class="btn-logout" :class="{ 'collapsed': !isOpen && !isMobile }">
@@ -279,7 +269,7 @@ export default {
     /* Transition for smooth pushing */
     transition: margin-left 0.3s ease;
     /* Default Desktop State (Sidebar Open) */
-    margin-left: 260px;
+    margin-left: 260px; 
 }
 
 /* Navbar */
