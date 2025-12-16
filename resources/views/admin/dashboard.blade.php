@@ -1,7 +1,7 @@
 @extends('admin.layout')
 
 @section('content')
-<div class="container-fluid px-3 px-md-4">
+<div class="container-fluid px-3 px-md-4 ">
     <div class="d-flex align-items-center justify-content-between mb-4 mt-4">
         <div>
             <h4 class="fw-bold text-dark mb-1">Store Overview</h4>

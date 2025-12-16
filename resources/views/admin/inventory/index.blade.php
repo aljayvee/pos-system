@@ -1,7 +1,7 @@
 @extends('admin.layout')
 
 @section('content')
-<div class="container-fluid px-4">
+<div class="container-fluid px-14 py-14">
     {{-- HEADER: Flex column on mobile, row on desktop --}}
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mt-4 mb-4 gap-3">
         <h1 class="h2 mb-0 text-gray-800">

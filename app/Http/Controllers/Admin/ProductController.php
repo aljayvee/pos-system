@@ -8,6 +8,10 @@ use Illuminate\Support\Facades\DB;
 use App\Models\Category;
 use Illuminate\Http\Request;
 use App\Models\ActivityLog;
+use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Storage;
 use App\Models\Inventory; // <--- IMPORTANT IMPORT
 
 class ProductController extends Controller
@@ -211,6 +215,7 @@ class ProductController extends Controller
             'stock' => 'integer|min:0',
             'reorder_point' => 'nullable|integer|min:0',
             'expiration_date' => 'nullable|date',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
         DB::beginTransaction();
@@ -218,14 +223,33 @@ class ProductController extends Controller
             // 1. Create Product Global Record
             // We set 'stock' to 0 here because the real stock is in Inventory table
             $productData = $request->except(['stock', 'reorder_point']);
-            $product = Product::create($productData);
+            // 1. Create Product Global Record
+            $product = Product::create([
+                'name' => Str::title($request->name),
+                'price' => $request->price,
+                'unit' => $request->unit,
+                'category_id' => $request->category_id,
+                'cost' => $request->cost,
+                'sku' => $request->sku,
+                'expiration_date' => $request->expiration_date,
+                'image' => $imagePath, // Save Path
+                'stock' => 0, // Global stock dummy
+            ]);
 
             // 2. Identify Current Active Store
             $storeId = $this->getActiveStoreId();
 
+            $imagePath = null;
+            if ($request->hasFile('image')) {
+                // Save to 'storage/app/public/products'
+                $imagePath = $request->file('image')->store('products', 'public');
+            }
+
             $request->merge([
                 'name' => Str::title($request->name) 
             ]);
+
+            
 
             // 3. Create Inventory Record for THIS Store
             Inventory::create([
@@ -247,6 +271,8 @@ class ProductController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack(); // (Atomicity: Undo everything if ANY error occurs)
+            // Delete image if DB fail
+            if(isset($imagePath)) Storage::disk('public')->delete($imagePath);
             return response()->json(['status' => 'error', 'message' => 'Failed to add product'], 500);
         }
     }
@@ -269,17 +295,32 @@ class ProductController extends Controller
             'stock' => 'nullable|integer|min:0', // Ensure this is validated
             'reorder_point' => 'nullable|integer|min:0',
             'expiration_date' => 'nullable|date',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
         DB::beginTransaction();
         try {
+
+            $data = $request->except(['stock', 'reorder_point', 'image']);
+            $data['name'] = Str::title($request->name);
+
+            // Handle Image Upload
+            if ($request->hasFile('image')) {
+                // Delete Old Image
+                if ($product->image && Storage::disk('public')->exists($product->image)) {
+                    Storage::disk('public')->delete($product->image);
+                }
+                // Store New
+                $data['image'] = $request->file('image')->store('products', 'public');
+            }
+
             // Apply Title Case Formatting (Consistency)
             $request->merge([
                 'name' => \Illuminate\Support\Str::title($request->name) 
             ]);
 
             // Update Global Product Details
-            $product->update($request->except(['stock', 'reorder_point']));
+            $product->update($data);
 
             // 2. Identify Current Active Store
             $storeId = $this->getActiveStoreId();
@@ -341,6 +382,7 @@ class ProductController extends Controller
             'description' => "Archived product: {$product->name}"
         ]);
 
+        Storage::disk('public')->delete($product->image);
         $product->delete();
         return back()->with('success', 'Product deleted successfully.');
     }

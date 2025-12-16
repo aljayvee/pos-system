@@ -175,7 +175,11 @@
                             </span>
 
                             <div class="product-img-box">
-                                <i class="fas fa-box fa-2x opacity-25"></i>
+                                @if($product->image)
+                                    <img src="{{ asset('storage/' . $product->image) }}" alt="{{ $product->name }}" style="width: 100%; height: 100%; object-fit: cover;">
+                                @else
+                                    <i class="fas fa-box fa-3x opacity-25"></i>
+                                @endif
                             </div>
                             
                             <div class="product-content">

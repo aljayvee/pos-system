@@ -1,19 +1,19 @@
 @extends('admin.layout')
 
 @section('content')
-<div class="container-fluid px-4">
-    
+<div class="container-fluid px-14 py-14">
+    <a href="{{ route('products.index') }}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-1"></i> Back to products
+        </a>
     <div class="d-flex align-items-center justify-content-between mt-4 mb-4">
         <div>
             <h1 class="h2 mb-0 text-gray-800">Edit Product</h1>
             <p class="text-muted small mb-0">Updating details for: <strong>{{ $product->name }}</strong></p>
         </div>
-        <a href="{{ route('products.index') }}" class="btn btn-outline-secondary">
-            <i class="fas fa-arrow-left me-1"></i> Back
-        </a>
+        
     </div>
 
-    <form id="editProductForm" action="{{ route('products.update', $product->id) }}" method="POST">
+    <form id="editProductForm" action="{{ route('products.update', $product->id) }}" method="POST" enctype="multipart/form-data">
         @csrf
         @method('PUT')
 
@@ -37,6 +37,33 @@
                                     @endforeach
                                 </select>
                             </div>
+
+                            {{-- Image Upload Section (Edit) --}}
+                                <div class="mb-4">
+                                    <label class="form-label fw-bold">Product Image</label>
+                                    <div class="d-flex align-items-center gap-3">
+                                        {{-- Current/Preview Box --}}
+                                        <div class="border rounded d-flex align-items-center justify-content-center bg-light" 
+                                            style="width: 100px; height: 100px; overflow: hidden; position: relative;">
+                                            
+                                            @if($product->image)
+                                                <img id="imagePreview" src="{{ asset('storage/' . $product->image) }}" alt="Product" style="width: 100%; height: 100%; object-fit: cover;">
+                                                <i id="placeholderIcon" class="fas fa-image text-muted fa-2x" style="display: none;"></i>
+                                            @else
+                                                <img id="imagePreview" src="#" alt="Preview" style="display: none; width: 100%; height: 100%; object-fit: cover;">
+                                                <i id="placeholderIcon" class="fas fa-image text-muted fa-2x"></i>
+                                            @endif
+                                        </div>
+                                        
+                                        
+                                    </div>
+                                    <hr>
+                                    {{-- File Input --}}
+                                        <div class="flex-grow-1">
+                                            <input type="file" name="image" class="form-control" accept="image/*" onchange="previewImage(this)">
+                                            <div class="form-text text-muted">Upload new image to replace current one.</div>
+                                        </div>
+                                </div>
 
                             <div class="col-12">
                                 <label class="form-label">Category</label>
@@ -197,5 +224,20 @@
             form.submit();
         }
     }
+
+    function previewImage(input) {
+    const preview = document.getElementById('imagePreview');
+    const placeholder = document.getElementById('placeholderIcon');
+    
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            preview.src = e.target.result;
+            preview.style.display = 'block';
+            placeholder.style.display = 'none';
+        }
+        reader.readAsDataURL(input.files[0]);
+    }
+}
 </script>
 @endsection

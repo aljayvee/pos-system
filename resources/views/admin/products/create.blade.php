@@ -24,7 +24,7 @@
         </a>
     </div>
 
-    <form id="addProductForm" action="{{ route('products.store') }}" method="POST">
+    <form id="addProductForm" action="{{ route('products.store') }}" method="POST" enctype="multipart/form-data">
     <form action="{{ route('products.store') }}" method="POST">
         @csrf
 
@@ -53,6 +53,26 @@
                                     @endforeach
                                 </select>
                             </div>
+
+                            {{-- Image Upload Section --}}
+                            <div class="mb-4">
+                                <label class="form-label fw-bold">Product Image</label>
+                                <div class="d-flex align-items-center gap-3">
+                                    {{-- Preview Box --}}
+                                    <div class="border rounded d-flex align-items-center justify-content-center bg-light" 
+                                        style="width: 100px; height: 100px; overflow: hidden; position: relative;">
+                                        <img id="imagePreview" src="#" alt="Preview" style="display: none; width: 100%; height: 100%; object-fit: cover;">
+                                        <i id="placeholderIcon" class="fas fa-image text-muted fa-2x"></i>
+                                    </div>
+                                    
+                                    {{-- File Input --}}
+                                    <div class="flex-grow-1">
+                                        <input type="file" name="image" class="form-control" accept="image/*" onchange="previewImage(this)">
+                                        <div class="form-text text-muted">Supported: JPG, PNG, GIF (Max 2MB)</div>
+                                    </div>
+                                </div>
+                            </div>
+
                             <div class="col-12 col-md-6">
                                 <label class="form-label">Unit <span class="text-danger">*</span></label>
                                 <select name="unit" class="form-select" required>
@@ -324,6 +344,24 @@
             });
         }
     }
+
+    function previewImage(input) {
+    const preview = document.getElementById('imagePreview');
+    const placeholder = document.getElementById('placeholderIcon');
+    
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            preview.src = e.target.result;
+            preview.style.display = 'block';
+            placeholder.style.display = 'none';
+        }
+        reader.readAsDataURL(input.files[0]);
+    } else {
+        preview.style.display = 'none';
+        placeholder.style.display = 'block';
+    }
+}
 
     // AUTOMATIC CAPITALIZATION SCRIPT
     document.addEventListener("DOMContentLoaded", function() {

@@ -1,7 +1,7 @@
 @extends('admin.layout')
 
 @section('content')
-<div class="container-fluid px-4">
+<div class="container-fluid px-1 py-14">
     <h1 class="mt-4">Stock Adjustment History</h1>
     <ol class="breadcrumb mb-4">
         <li class="breadcrumb-item"><a href="{{ route('inventory.index') }}">Inventory</a></li>
