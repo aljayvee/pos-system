@@ -147,15 +147,19 @@
                             data-sku="{{ $product->sku }}"
                             data-category="{{ strtolower($product->category->name ?? '') }}">
                         
-                        <div class="product-item p-3 d-flex flex-column" onclick='addToCart(@json($product))'>
+                        {{-- 1. ADD ID TO THE CARD CONTAINER --}}
+                        <div class="product-item p-3 d-flex flex-column" 
+                            id="product-card-{{ $product->id }}" 
+                            onclick='addToCart(@json($product))'>
                             {{-- Stock Badge --}}
-                            @if($product->current_stock <= ($product->reorder_point ?? 10))
+                            {{-- 2. STOCK BADGE (Always render, control visibility with style) --}}
                                 <div class="position-absolute top-0 end-0 m-2">
-                                    <span class="badge bg-danger bg-opacity-10 text-danger rounded-pill px-2 py-1" style="font-size: 0.7rem;">
+                                    <span class="badge bg-danger bg-opacity-10 text-danger rounded-pill px-2 py-1" 
+                                        id="product-stock-{{ $product->id }}"
+                                        style="font-size: 0.7rem; display: {{ $product->current_stock <= ($product->reorder_point ?? 10) ? 'inline-block' : 'none' }};">
                                         {{ $product->current_stock }} left
                                     </span>
                                 </div>
-                            @endif
 
                             <div class="product-icon-area">
                                 <i class="fas fa-box fa-2x opacity-50"></i>
@@ -812,6 +816,8 @@ const soundError = new Audio("https://actions.google.com/sounds/v1/alarms/spaces
         .then(data => {
             if (data.success) {
                 bootstrap.Modal.getInstance(document.getElementById('paymentModal')).hide();
+                // --- ADD THIS LINE HERE ---
+                updateLocalStock(cart);
                 Swal.fire({
                     icon: 'success', title: 'Paid!', showCancelButton: true, confirmButtonText: 'Receipt', cancelButtonText: 'New Sale'
                 }).then((r) => {
@@ -850,5 +856,39 @@ const soundError = new Audio("https://actions.google.com/sounds/v1/alarms/spaces
         if(!isOffline && localStorage.getItem('offline_queue_sales')) 
             Swal.fire({toast:true, title:'Syncing...', position:'top-end', timer:2000, showConfirmButton:false}); 
     }
+
+    // --- OPTIMISTIC UI UPDATE (INSTANT STOCK DEDUCTION) ---
+function updateLocalStock(soldItems) {
+    soldItems.forEach(item => {
+        // 1. Find elements
+        const stockEl = document.getElementById(`product-stock-${item.id}`);
+        const cardEl = document.getElementById(`product-card-${item.id}`);
+
+        // 2. Locate the product in your global list to update its data
+        const globalProduct = ALL_PRODUCTS.find(p => p.id === item.id);
+
+        if (stockEl && globalProduct) {
+            // Calculate new stock
+            let newStock = globalProduct.current_stock - item.qty;
+            if (newStock < 0) newStock = 0;
+
+            // Update Global Variable (So next click checks new stock)
+            globalProduct.current_stock = newStock;
+
+            // Update Visual Badge
+            stockEl.innerText = `${newStock} left`;
+            stockEl.style.display = 'inline-block'; // Show badge (even if it was hidden)
+
+            // 3. Visual "Out of Stock" State
+            if (newStock === 0 && cardEl) {
+                cardEl.style.opacity = '0.5';
+                cardEl.style.pointerEvents = 'none'; // Disable clicks
+                cardEl.classList.add('bg-secondary'); // Optional gray background
+                stockEl.innerText = 'Out of Stock';
+                stockEl.className = 'badge bg-dark text-white rounded-pill px-2 py-1';
+            }
+        }
+    });
+}
 </script>
 @endsection
