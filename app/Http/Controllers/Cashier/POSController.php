@@ -15,6 +15,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Crypt; // Import Crypt
+use Illuminate\Contracts\Encryption\DecryptException; // <--- Add this one!
 
 class POSController extends Controller
 {
@@ -438,7 +439,30 @@ class POSController extends Controller
     public function showReceipt(Sale $sale)
     {
         $sale->load('saleItems.product', 'user', 'customer');
-        return view('cashier.receipt', compact('sale'));
+        $storeId = $sale->store_id; 
+
+        // 1. Fetch Basic Settings
+        $settings = \App\Models\Setting::where('store_id', $storeId)
+                    ->whereIn('key', ['store_name', 'store_address', 'store_contact', 'receipt_footer'])
+                    ->pluck('value', 'key');
+
+        // 2. Decrypt TIN (Your Logic + Store Check)
+        $rawTin = \App\Models\Setting::where('store_id', $storeId)->where('key', 'store_tin')->value('value');
+        try {
+            $tin = $rawTin ? Crypt::decryptString($rawTin) : '';
+        } catch (DecryptException $e) {
+            $tin = $rawTin; // Fallback to raw text if not encrypted
+        }
+
+        // 3. Decrypt Permit (Your Logic + Store Check)
+        $rawPermit = \App\Models\Setting::where('store_id', $storeId)->where('key', 'business_permit')->value('value');
+        try {
+            $permit = $rawPermit ? Crypt::decryptString($rawPermit) : '';
+        } catch (DecryptException $e) {
+            $permit = $rawPermit; // Fallback
+        }
+
+        return view('cashier.receipt', compact('sale', 'settings', 'tin', 'permit'));
     }
 
     // --- API: Get Latest Debtors ---
