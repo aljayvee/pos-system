@@ -158,6 +158,7 @@ class POSController extends Controller
         ]);
     }
 
+    // REPLACE the 'processReturn' method with this ACID-compliant version:
     public function processReturn(Request $request)
     {
         $request->validate([
@@ -171,21 +172,37 @@ class POSController extends Controller
         $saleId = $request->sale_id;
         $storeId = $this->getActiveStoreId();
 
+        // Start ACID Transaction
         DB::beginTransaction();
         try {
+            // 1. LOCK THE PARENT SALE RECORD
+            // This acts as a "Gatekeeper". Only one return process can happen 
+            // for this specific Receipt ID at a time.
+            $sale = Sale::where('id', $saleId)->lockForUpdate()->firstOrFail();
+
             foreach ($request->items as $itemData) {
                 $pid = $itemData['product_id'];
                 $qty = $itemData['quantity'];
                 
-                $saleItem = SaleItem::where('sale_id', $saleId)->where('product_id', $pid)->firstOrFail();
-                $alreadyReturned = SalesReturn::where('sale_id', $saleId)->where('product_id', $pid)->sum('quantity');
+                // 2. FETCH SALE ITEM (Consistency Check)
+                $saleItem = SaleItem::where('sale_id', $saleId)
+                                    ->where('product_id', $pid)
+                                    ->firstOrFail();
+
+                // 3. CALCULATE ALREADY RETURNED (Inside the Lock)
+                // Because we hold the lock on $sale, no one else can add 
+                // to 'SalesReturn' for this sale right now.
+                $alreadyReturned = SalesReturn::where('sale_id', $saleId)
+                                            ->where('product_id', $pid)
+                                            ->sum('quantity');
 
                 if (($qty + $alreadyReturned) > $saleItem->quantity) {
-                    throw new \Exception("Cannot return more than sold qty for {$saleItem->product->name}");
+                    throw new \Exception("Cannot return {$qty} items. Only " . ($saleItem->quantity - $alreadyReturned) . " left eligible for return.");
                 }
 
                 $refundAmount = $saleItem->price * $qty;
 
+                // 4. CREATE RETURN RECORD
                 SalesReturn::create([
                     'sale_id' => $saleId,
                     'product_id' => $pid,
@@ -193,23 +210,30 @@ class POSController extends Controller
                     'quantity' => $qty,
                     'refund_amount' => $refundAmount,
                     'condition' => $itemData['condition'],
-                    'reason' => $itemData['reason'] ?? 'Customer Return'
+                    'reason' => $itemData['reason'] ?? 'Customer Return (POS)'
                 ]);
 
+                // 5. RESTORE STOCK (If Good Condition)
                 if ($itemData['condition'] === 'good') {
-                    $inventory = Inventory::firstOrCreate(
-                        ['product_id' => $pid, 'store_id' => $storeId],
-                        ['stock' => 0, 'reorder_point' => 10]
-                    );
-                    $inventory->increment('stock', $qty);
+                    $inventory = Inventory::where('product_id', $pid)
+                                    ->where('store_id', $storeId)
+                                    ->lockForUpdate() // Lock inventory too
+                                    ->first();
+                                    
+                    if($inventory) {
+                        $inventory->increment('stock', $qty);
+                    }
                 }
 
-                $sale = Sale::find($saleId);
+                // 6. ADJUST CUSTOMER CREDIT (If applicable)
                 if ($sale->payment_method === 'credit' && $sale->customer_id) {
-                    $credit = CustomerCredit::where('sale_id', $saleId)->first();
+                    $credit = CustomerCredit::where('sale_id', $saleId)
+                                ->lockForUpdate() // Lock the debt record
+                                ->first();
+                                
                     if ($credit) {
                         $credit->remaining_balance -= $refundAmount;
-                        if ($credit->remaining_balance <= 0) {
+                        if ($credit->remaining_balance <= 0.01) {
                             $credit->remaining_balance = 0;
                             $credit->is_paid = true;
                         }
