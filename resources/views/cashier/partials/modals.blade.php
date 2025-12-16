@@ -48,33 +48,33 @@
 
                 {{-- Digital Flow --}}
                 {{-- Digital Flow (G-Cash / PayMongo) --}}
-<div id="flow-digital" style="display:none;">
-    @if(\App\Models\Setting::where('key', 'enable_paymongo')->value('value') == '1')
-        {{-- PAYMONGO MODE --}}
-        <div id="paymongo-controls">
-            <button id="btn-gen-qr" class="btn btn-primary w-100 py-3 fw-bold shadow-sm" onclick="generatePaymentLink()">
-                <i class="fas fa-qrcode me-2"></i> Generate G-Cash QR
-            </button>
-        </div>
+                {{-- Digital Flow --}}
+                <div id="flow-digital" style="display:none;">
+                    @if(\App\Models\Setting::where('key', 'enable_paymongo')->value('value') == '1')
+                        {{-- PAYMONGO MODE --}}
+                        <div id="paymongo-controls">
+                            <button id="btn-gen-qr" class="btn btn-primary w-100 py-3 fw-bold shadow-sm" onclick="generatePaymentLink()">
+                                <i class="fas fa-qrcode me-2"></i> Generate QR Code
+                            </button>
+                        </div>
 
-        {{-- QR Display Area (Hidden by default) --}}
-        <div id="paymongo-qr-area" class="text-center mt-3" style="display:none;">
-            <p class="mb-2 fw-bold text-primary animate-pulse">Scan to Pay</p>
-            <div class="d-flex justify-content-center mb-3">
-                <div id="qrcode-container" class="p-3 bg-white border rounded shadow-sm"></div>
-            </div>
-            <p class="small text-muted mb-0">Waiting for payment confirmation...</p>
-            <div class="spinner-border text-primary spinner-border-sm mt-2" role="status"></div>
-        </div>
+                        {{-- QR Display Area --}}
+                        <div id="paymongo-qr-area" class="text-center mt-3" style="display:none;">
+                            <p class="mb-2 fw-bold text-primary animate-pulse">Scan to Pay</p>
+                            <div class="d-flex justify-content-center mb-3">
+                                <div id="qrcode-container" class="p-3 bg-white border rounded shadow-sm"></div>
+                            </div>
+                            <p class="small text-muted mb-0">Waiting for payment confirmation...</p>
+                            <div class="spinner-border text-primary spinner-border-sm mt-2" role="status"></div>
+                        </div>
 
-        {{-- Hidden Input for Backend Requirement --}}
-        <input type="hidden" id="reference-number">
-    @else
-        {{-- MANUAL MODE --}}
-        <label class="form-label fw-bold small text-muted">Reference Number</label>
-        <input type="text" id="reference-number" class="form-control form-control-lg fw-bold text-center" placeholder="Enter Ref #">
-    @endif
-</div>
+                        <input type="hidden" id="reference-number">
+                    @else
+                        {{-- MANUAL MODE --}}
+                        <label class="form-label fw-bold small text-muted">Reference Number</label>
+                        <input type="text" id="reference-number" class="form-control form-control-lg fw-bold text-center" placeholder="Enter Ref #">
+                    @endif
+                </div>
 
                 {{-- FIND THIS SECTION IN modals.blade.php --}}
 <div id="flow-credit" style="display:none;">
