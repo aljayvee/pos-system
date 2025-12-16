@@ -227,6 +227,7 @@ class POSController extends Controller
         }
     }
 
+    // REPLACE the 'store' method with this ROBUST version:
     public function store(Request $request)
     {
         $request->validate([
@@ -235,64 +236,31 @@ class POSController extends Controller
             'payment_method' => 'required|in:cash,digital,credit',
             'amount_paid' => 'nullable|numeric',
             'reference_number' => 'required_if:payment_method,digital',
-            'credit_details.name' => 'required_if:payment_method,credit',
-            'credit_details.due_date' => 'required_if:payment_method,credit|date',
-
-            // NEW: Details required ONLY if creating a NEW Customer
+            
+            // Validation for new customers
             'credit_details.name' => 'required_if:customer_id,new',
             'credit_details.address' => 'required_if:customer_id,new',
             'credit_details.contact' => 'required_if:customer_id,new',
-        ],
-    [
-        // Custom Error Messages for clarity
+            'credit_details.due_date' => 'required_if:payment_method,credit|date',
+        ], [
             'credit_details.name.required_if' => 'Customer Name is required.',
             'credit_details.address.required_if' => 'Full Address is required for new customers.',
             'credit_details.contact.required_if' => 'Mobile Number is required for new customers.',
             'credit_details.due_date.required_if' => 'Due Date is required for credit transactions.'
-    ]);
+        ]);
 
+        // Start ACID Transaction
         DB::beginTransaction();
+
         try {
             $storeId = $this->getActiveStoreId();
 
-            // 1. FETCH SETTINGS
-            $taxType = \App\Models\Setting::where('key', 'tax_type')->value('value') ?? 'inclusive'; // 'inclusive', 'exclusive', or 'non_vat'
-            $taxRate = 0.12; // 12% standard
-
-            // 2. CALCULATE VAT
-            $rawTotal = $request->total_amount;
-            $vatableSales = 0;
-            $outputVat = 0;
-            $finalTotal = $rawTotal;
-
-            if ($taxType === 'inclusive') {
-                // Example: 112 pesos. Vatable = 100. VAT = 12.
-                $vatableSales = $rawTotal / (1 + $taxRate);
-                $outputVat = $rawTotal - $vatableSales;
-                $finalTotal = $rawTotal;
-            } 
-            elseif ($taxType === 'exclusive') {
-                // Example: 100 pesos. VAT = 12. Final to Pay = 112.
-                $vatableSales = $rawTotal;
-                $outputVat = $rawTotal * $taxRate;
-                $finalTotal = $rawTotal + $outputVat;
-            }
-            else {
-                // Non-VAT
-                $vatableSales = $rawTotal;
-                $outputVat = 0;
-                $finalTotal = $rawTotal;
-            }
-
-            $loyaltyEnabled = \App\Models\Setting::where('key', 'enable_loyalty')->value('value') ?? '0';
-            $loyaltyRatio = \App\Models\Setting::where('key', 'loyalty_ratio')->value('value') ?? 100;
-            $pointsValue = \App\Models\Setting::where('key', 'points_conversion')->value('value') ?? 1;
-
-            $customerId = $request->customer_id;
+            // 1. IDENTIFY & LOCK CUSTOMER (The Critical Fix)
             $customer = null;
+            $customerId = $request->customer_id;
 
-            // 2. CREATE NEW CUSTOMER WITH FULL DETAILS
-            if ($customerId === 'new' && $request->payment_method === 'credit') {
+            if ($customerId === 'new') {
+                // Create new customer (No lock needed, they are new)
                 $customer = Customer::create([
                     'store_id' => $storeId, 
                     'name' => $request->input('credit_details.name'),
@@ -300,30 +268,63 @@ class POSController extends Controller
                     'contact' => $request->input('credit_details.contact'),
                     'points' => 0
                 ]);
-                $customerId = $customer->id;
             } 
-            elseif ($customerId && $customerId !== 'walk-in' && $customerId !== 'new') {
-                $customer = Customer::find($customerId);
-            } else {
-                $customerId = null;
-            }
-
-            $pointsUsed = 0;
-            $pointsDiscount = 0;
-            if ($loyaltyEnabled == '1' && $customer && $request->points_used > 0) {
-                if ($customer->points >= $request->points_used) {
-                    $pointsUsed = $request->points_used;
-                    $pointsDiscount = $pointsUsed * $pointsValue;
-                    $customer->decrement('points', $pointsUsed);
-                } else {
-                    throw new \Exception("Customer does not have enough points.");
+            elseif ($customerId && $customerId !== 'walk-in') {
+                // LOCK EXISTING CUSTOMER to prevent "Double Spending" points
+                $customer = Customer::where('id', $customerId)->lockForUpdate()->first();
+                
+                if (!$customer) {
+                    throw new \Exception("Customer not found.");
                 }
             }
 
+            // 2. FETCH SETTINGS
+            $taxType = \App\Models\Setting::where('key', 'tax_type')->value('value') ?? 'inclusive'; 
+            $taxRate = 0.12; 
+            $loyaltyEnabled = \App\Models\Setting::where('key', 'enable_loyalty')->value('value') ?? '0';
+            $loyaltyRatio = \App\Models\Setting::where('key', 'loyalty_ratio')->value('value') ?? 100;
+            $pointsValue = \App\Models\Setting::where('key', 'points_conversion')->value('value') ?? 1;
+
+            // 3. HANDLE POINTS REDEMPTION (Now Safe)
+            $pointsUsed = 0;
+            $pointsDiscount = 0;
+
+            if ($loyaltyEnabled == '1' && $customer && $request->points_used > 0) {
+                // Re-verify balance AFTER locking
+                if ($customer->points < $request->points_used) {
+                    throw new \Exception("Insufficient points! You have {$customer->points}, but tried to use {$request->points_used}.");
+                }
+                
+                $pointsUsed = $request->points_used;
+                $pointsDiscount = $pointsUsed * $pointsValue;
+                
+                // Atomic Deduction
+                $customer->decrement('points', $pointsUsed);
+            }
+
+            // 4. CALCULATE FINANCIALS
+            $rawTotal = $request->total_amount;
+            $vatableSales = 0;
+            $outputVat = 0;
+            $finalTotal = $rawTotal;
+
+            // ... (Tax Calculation Logic remains the same) ...
+            if ($taxType === 'inclusive') {
+                $vatableSales = $rawTotal / (1 + $taxRate);
+                $outputVat = $rawTotal - $vatableSales;
+            } elseif ($taxType === 'exclusive') {
+                $vatableSales = $rawTotal;
+                $outputVat = $rawTotal * $taxRate;
+                $finalTotal = $rawTotal + $outputVat;
+            } else {
+                $vatableSales = $rawTotal;
+            }
+
+            // 5. CREATE SALE RECORD
             $sale = Sale::create([
                 'store_id' => $storeId,
                 'user_id' => Auth::id(),
-                'customer_id' => $customerId,
+                'customer_id' => $customer ? $customer->id : null,
                 'total_amount' => $finalTotal, 
                 'vatable_sales' => $vatableSales,
                 'output_vat' => $outputVat,
@@ -334,21 +335,22 @@ class POSController extends Controller
                 'points_discount' => $pointsDiscount,
             ]);
 
+            // 6. PROCESS CART ITEMS (Inventory Locking)
             foreach ($request->cart as $item) {
+                // LOCK INVENTORY ROW
+                // This prevents selling stock that someone else just bought
                 $inventory = Inventory::where('product_id', $item['id'])
                                 ->where('store_id', $storeId)
-                                ->lockForUpdate()
+                                ->lockForUpdate() // <--- CRITICAL LOCK
                                 ->first();
 
                 if (!$inventory) {
                     $prod = Product::find($item['id']);
-                    $prodName = $prod ? $prod->name : "Item #".$item['id'];
-                    throw new \Exception("Stock record not found for '{$prodName}' in this branch.");
+                    throw new \Exception("Stock record not found for '{$prod->name}' in this branch.");
                 }
 
                 if ($inventory->stock < $item['qty']) {
-                    $prodName = $inventory->product->name ?? 'Item';
-                    throw new \Exception("Insufficient stock for '$prodName' in this branch (Available: {$inventory->stock}).");
+                    throw new \Exception("Insufficient stock for '{$inventory->product->name}'. Available: {$inventory->stock}");
                 }
 
                 $inventory->decrement('stock', $item['qty']);
@@ -362,6 +364,7 @@ class POSController extends Controller
                 ]);
             }
 
+            // 7. AWARD NEW POINTS
             if ($loyaltyEnabled == '1' && $customer) {
                 $pointsEarned = floor($request->total_amount / $loyaltyRatio);
                 if ($pointsEarned > 0) {
@@ -369,11 +372,8 @@ class POSController extends Controller
                 }
             }
 
-            // 3. CREDIT RECORD CREATION
-            // 6. RECORD CREDIT (UTANG)
+            // 8. RECORD CREDIT (Utang)
             if ($request->payment_method === 'credit' && $customer) {
-                $dueDate = $request->input('credit_details.due_date');
-                
                 CustomerCredit::create([
                     'customer_id' => $customer->id,
                     'sale_id' => $sale->id,
@@ -381,15 +381,15 @@ class POSController extends Controller
                     'remaining_balance' => $request->total_amount,
                     'amount_paid' => 0,
                     'is_paid' => false,
-                    'due_date' => $dueDate,
+                    'due_date' => $request->input('credit_details.due_date'),
                 ]);
             }
 
-            DB::commit();
+            DB::commit(); // Save Everything
             return response()->json(['success' => true, 'sale_id' => $sale->id]);
 
         } catch (\Exception $e) {
-            DB::rollBack();
+            DB::rollBack(); // Undo Everything
             return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }
     }
