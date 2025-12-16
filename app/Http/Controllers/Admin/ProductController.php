@@ -219,6 +219,10 @@ class ProductController extends Controller
             // 2. Identify Current Active Store
             $storeId = $this->getActiveStoreId();
 
+            $request->merge([
+                'name' => Str::title($request->name) 
+            ]);
+
             // 3. Create Inventory Record for THIS Store
             Inventory::create([
                 'product_id' => $product->id,
@@ -229,6 +233,10 @@ class ProductController extends Controller
 
             // Create Product
             Product::create($validated);
+
+            // Create Product Global Record
+            $productData = $request->except(['stock', 'reorder_point']);
+            $product = Product::create($productData);
 
             DB::commit();
             return redirect()->route('products.index')->with('success', 'Product created successfully in current branch.');
@@ -261,7 +269,12 @@ class ProductController extends Controller
 
         DB::beginTransaction();
         try {
-            // 1. Update Global Product Details (Name, Price, etc.)
+            // 1. FORMAT THE NAME HERE TOO
+             $request->merge([
+                'name' => Str::title($request->name) 
+            ]);
+
+            // Update Global Product Details
             $product->update($request->except(['stock', 'reorder_point']));
 
             // 2. Identify Current Active Store

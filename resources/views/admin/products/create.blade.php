@@ -324,5 +324,26 @@
             });
         }
     }
+
+    // AUTOMATIC CAPITALIZATION SCRIPT
+    document.addEventListener("DOMContentLoaded", function() {
+        const nameInput = document.querySelector('input[name="name"]');
+        
+        if(nameInput){
+            nameInput.addEventListener('input', function(e) {
+                let words = this.value.split(' ');
+                
+                // Capitalize first letter of each word
+                for (let i = 0; i < words.length; i++) {
+                    if (words[i].length > 0) {
+                        words[i] = words[i][0].toUpperCase() + words[i].substr(1);
+                    }
+                }
+                
+                // Join back together
+                this.value = words.join(' ');
+            });
+        }
+    });
 </script>
 @endsection
