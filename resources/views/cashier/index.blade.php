@@ -712,5 +712,95 @@
             }
         });
     }
+
+    // --- 13. PAYMONGO INTEGRATION (GCash) ---
+    let paymentCheckInterval = null;
+
+    window.generatePaymentLink = function() {
+        const total = parseFloat(document.getElementById('modal-total').innerText.replace(/,/g, ''));
+        const btn = document.getElementById('btn-gen-qr');
+
+        if (total <= 0) return Swal.fire('Error', 'Amount must be greater than 0', 'error');
+
+        // UI Loading State
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Generating...';
+
+        fetch("{{ route('payment.create') }}", {
+            method: "POST",
+            headers: { 
+                "Content-Type": "application/json", 
+                "X-CSRF-TOKEN": CONFIG.csrfToken 
+            },
+            body: JSON.stringify({ amount: total })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                // 1. Switch UI to QR Mode
+                document.getElementById('paymongo-controls').style.display = 'none';
+                document.getElementById('paymongo-qr-area').style.display = 'block';
+
+                // 2. Render QR Code (using existing library)
+                document.getElementById('qrcode-container').innerHTML = "";
+                new QRCode(document.getElementById("qrcode-container"), {
+                    text: data.checkout_url,
+                    width: 200,
+                    height: 200
+                });
+
+                // 3. Start Polling for Status
+                startPaymentPolling(data.id);
+            } else {
+                Swal.fire('API Error', data.message, 'error');
+                resetPayMongoUI();
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            Swal.fire('Error', 'Connection failed. Check internet.', 'error');
+            resetPayMongoUI();
+        });
+    };
+
+    function startPaymentPolling(id) {
+        if (paymentCheckInterval) clearInterval(paymentCheckInterval);
+
+        paymentCheckInterval = setInterval(() => {
+            fetch(`/cashier/payment/check/${id}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === 'paid') {
+                        // SUCCESS!
+                        clearInterval(paymentCheckInterval);
+                        playSuccessBeep();
+                        
+                        // Set the reference number so the backend accepts it
+                        document.getElementById('reference-number').value = id;
+                        
+                        // Auto-submit the payment
+                        processPayment(); 
+                    }
+                })
+                .catch(err => console.error("Polling error:", err));
+        }, 3000); // Check every 3 seconds
+    }
+
+    function resetPayMongoUI() {
+        const btn = document.getElementById('btn-gen-qr');
+        if(btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-qrcode me-2"></i> Generate G-Cash QR';
+        }
+        document.getElementById('paymongo-controls').style.display = 'block';
+        document.getElementById('paymongo-qr-area').style.display = 'none';
+        if (paymentCheckInterval) clearInterval(paymentCheckInterval);
+    }
+
+    // Stop polling if user closes modal
+    document.getElementById('paymentModal')?.addEventListener('hidden.bs.modal', function () {
+        if (paymentCheckInterval) clearInterval(paymentCheckInterval);
+        resetPayMongoUI();
+    });
 </script>
 @endsection
