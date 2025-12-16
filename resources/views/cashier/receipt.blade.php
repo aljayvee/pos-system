@@ -11,6 +11,21 @@
     // 2. Fetch & Decrypt Tax Settings
     $enableTax = \App\Models\Setting::where('key', 'enable_tax')->value('value') ?? '0';
     
+    // Decrypt TIN
+    $rawTin = \App\Models\Setting::where('key', 'store_tin')->value('value');
+    try {
+        $tin = $rawTin ? Crypt::decryptString($rawTin) : '';
+    } catch (DecryptException $e) {
+        $tin = $rawTin; // Fallback
+    }
+
+    // Decrypt Permit
+    $rawPermit = \App\Models\Setting::where('key', 'business_permit')->value('value');
+    try {
+        $permit = $rawPermit ? Crypt::decryptString($rawPermit) : '';
+    } catch (DecryptException $e) {
+        $permit = $rawPermit; // Fallback
+    }
     
     // Tax Calculation Variables
     $taxRate = (float) (\App\Models\Setting::where('key', 'tax_rate')->value('value') ?? 12);
@@ -67,17 +82,17 @@
             <div>{{ $storeAddress }}</div>
             <div>{{ $storeContact }}</div>
             
-            {{-- PASTE YOUR CODE HERE --}}
-            <div style="margin-top: 5px;">
-                @if(!empty($tin))
-                    <div style="font-size: 10px;">TIN: {{ $tin }}</div>
-                @endif
-
-                @if(!empty($permit))
-                    <div style="font-size: 10px;">Permit: {{ $permit }}</div>
-                @endif
-            </div>
-            {{-- END PASTE --}}
+            {{-- TAX INFO (Only if Enabled) --}}
+            @if($enableTax == '1')
+                <div style="margin-top: 5px; font-size: 10px;">
+                    @if($taxType === 'non_vat')
+                        <div><strong>NON-VAT REG. TIN: {{ $tin }}</strong></div>
+                    @else
+                        <div><strong>VAT REG. TIN: {{ $tin }}</strong></div>
+                    @endif
+                    @if($permit) <div>Permit #: {{ $permit }}</div> @endif
+                </div>
+            @endif
         </div>
 
         {{-- TRANSACTION DETAILS --}}
