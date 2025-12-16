@@ -231,8 +231,24 @@
 
     // --- 2. SOUNDS (Base64) ---
     // Sci-Fi Beep for Success
-    const soundBeep = new Audio("data:audio/wav;base64,UklGRl9vT1BXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YU"); 
-    soundBeep.src = "https://actions.google.com/sounds/v1/science_fiction/scifi_laser.ogg"; 
+    // --- 2. SOUNDS (Web Audio API) ---
+function playSuccessBeep() {
+    const context = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = context.createOscillator();
+    const gain = context.createGain();
+
+    osc.connect(gain);
+    gain.connect(context.destination);
+
+    osc.type = "square";        // Sharp digital sound
+    osc.frequency.value = 1500; // High pitch
+    gain.gain.value = 0.1;      // Lower volume
+    
+    osc.start();
+    osc.stop(context.currentTime + 0.1); // Short duration
+}
+
+const soundError = new Audio("https://actions.google.com/sounds/v1/alarms/spaceship_alarm.ogg");
     // Alarm for Error
     //const soundError = new Audio("https://actions.google.com/sounds/v1/alarms/spaceship_alarm.ogg");
 
@@ -331,7 +347,8 @@
             Toast.fire({ icon: 'success', title: `${product.name} Added` });
 
         } else {
-            soundError.currentTime = 0; soundError.play().catch(e=>{});
+            
+            playSuccessBeep();
             Swal.fire({ toast: true, position: 'top', icon: 'error', title: 'Item Not Found', timer: 1500, showConfirmButton: false });
         }
     }
@@ -475,7 +492,7 @@
 
         // 2. HIGH PERFORMANCE CONFIGURATION (From create.blade.php)
         const config = { 
-            fps: 20, // Fast scanning (20 frames per second)
+            fps: 60, // Fast scanning (20 frames per second)
             qrbox: { width: 300, height: 150 }, // Rectangular box for 1D barcodes
             aspectRatio: 1.0, 
             
@@ -520,6 +537,8 @@
         if (product) {
             // 2. Add to Cart (Batch Mode)
             addToCart(product);
+            // ADD THIS LINE:
+            playSuccessBeep();
             
             // 3. Visual Feedback (Toast)
             Swal.fire({

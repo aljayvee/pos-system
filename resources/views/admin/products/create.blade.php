@@ -170,7 +170,23 @@
 
 <script>
     let html5QrCode;
-    const beepSound = new Audio("data:audio/wav;base64,UklGRl9vT1BXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YU");
+    
+    // --- ADD THIS: Classic Scanner Beep Generator ---
+function playScannerBeep() {
+    const context = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = context.createOscillator();
+    const gain = context.createGain();
+
+    osc.connect(gain);
+    gain.connect(context.destination);
+
+    osc.type = "square";             // "square" gives that sharp digital scanner sound
+    osc.frequency.value = 1500;      // 1500Hz is a high-pitch beep
+    gain.gain.value = 0.1;           // Volume (10%)
+    
+    osc.start();
+    osc.stop(context.currentTime + 0.1); // Stop after 0.1 seconds (short beep)
+}
     
 
     function openScanner() {
@@ -191,7 +207,7 @@
             { facingMode: "environment" }, 
             config, 
             (decodedText) => {
-                beepSound.play();
+                playScannerBeep();
                 document.getElementById('sku').value = decodedText;
                 stopScanner();
             },
