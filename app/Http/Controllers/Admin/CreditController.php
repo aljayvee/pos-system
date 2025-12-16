@@ -45,24 +45,36 @@ class CreditController extends Controller
         return view('admin.credits.index', compact('credits', 'totalReceivables'));
     }
 
-    // NEW: Process Debt Payment (Consolidated Method)
-    public function storePayment(Request $request, CustomerCredit $credit)
+    // REPLACE the existing 'storePayment' method with this:
+    
+    public function storePayment(Request $request, $id) // Accept ID, not Model
     {
         $request->validate([
             'amount' => 'required|numeric|min:1',
             'notes' => 'nullable|string|max:255'
         ]);
 
-        if ($credit->is_paid) {
-            return back()->with('error', 'This credit is already fully paid.');
-        }
+        // Start ACID Transaction
+        DB::beginTransaction();
 
-        if ($request->amount > $credit->remaining_balance) {
-            return back()->with('error', 'Payment amount cannot exceed balance.');
-        }
+        try {
+            // 1. LOCK the record. 
+            // This pauses any other process trying to touch this specific credit.
+            $credit = CustomerCredit::where('id', $id)->lockForUpdate()->firstOrFail();
 
-        DB::transaction(function () use ($request, $credit) {
-            // 1. Record Payment Log
+            // 2. Validate Fresh Data (Consistency)
+            if ($credit->is_paid) {
+                // Return error immediately if someone else just paid it
+                DB::rollBack();
+                return back()->with('error', 'This credit was already fully paid by another transaction just now.');
+            }
+
+            if ($request->amount > $credit->remaining_balance) {
+                DB::rollBack();
+                return back()->with('error', "Payment amount (₱{$request->amount}) cannot exceed current balance (₱{$credit->remaining_balance}).");
+            }
+
+            // 3. Process Payment (Atomicity)
             CreditPayment::create([
                 'customer_credit_id' => $credit->id,
                 'user_id' => Auth::id(),
@@ -71,26 +83,33 @@ class CreditController extends Controller
                 'notes' => $request->notes
             ]);
 
-            // 2. Update Credit Record
+            // 4. Update Balance
+            // We use direct math here because we hold the lock.
             $credit->amount_paid += $request->amount;
             $credit->remaining_balance -= $request->amount;
 
-            if ($credit->remaining_balance <= 0) {
+            // Handle strict floating point comparisons
+            if ($credit->remaining_balance <= 0.01) { 
                 $credit->remaining_balance = 0;
                 $credit->is_paid = true;
             }
             
             $credit->save();
 
-            // 3. Log Activity
+            // 5. Log Activity
             ActivityLog::create([
                 'user_id' => Auth::id(),
                 'action' => 'Collected Payment',
                 'description' => "Collected ₱{$request->amount} from {$credit->customer->name} for Transaction #{$credit->sale_id}"
             ]);
-        });
 
-        return back()->with('success', 'Payment recorded successfully.');
+            DB::commit(); // Release Lock
+            return back()->with('success', 'Payment recorded successfully.');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->with('error', 'Error processing payment: ' . $e->getMessage());
+        }
     }
 
     public function history(CustomerCredit $credit)

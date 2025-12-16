@@ -21,7 +21,8 @@ class ReturnController extends Controller
         return view('admin.transactions.return', compact('sale'));
     }
 
-    // Process the return
+    // REPLACE the existing 'store' method with this:
+
     public function store(Request $request, $saleId)
     {
         $request->validate([
@@ -32,29 +33,36 @@ class ReturnController extends Controller
             'items.*.reason' => 'nullable|string|max:255',
         ]);
 
-        $sale = Sale::findOrFail($saleId);
+        DB::beginTransaction(); // Start Transaction
 
-        DB::beginTransaction();
         try {
+            // Lock the Sale record first to ensure it exists and isn't being modified
+            $sale = Sale::with(['saleItems.product', 'customer'])
+                        ->where('id', $saleId)
+                        ->lockForUpdate()
+                        ->firstOrFail();
+
             foreach ($request->items as $itemData) {
                 $productId = $itemData['product_id'];
                 $returnQty = $itemData['quantity'];
                 
-                // 1. Verify user isn't returning more than they bought
+                // 1. Verify Item Quantity (Consistency)
                 $saleItem = SaleItem::where('sale_id', $sale->id)
                             ->where('product_id', $productId)
                             ->firstOrFail();
 
-                // Check previously returned quantity to prevent double returns
+                // Check previously returned quantity
+                // We lock this query too to prevent double returns happening simultaneously
                 $alreadyReturned = SalesReturn::where('sale_id', $sale->id)
                                     ->where('product_id', $productId)
+                                    ->lockForUpdate() 
                                     ->sum('quantity');
 
                 if (($returnQty + $alreadyReturned) > $saleItem->quantity) {
-                    throw new \Exception("Cannot return more items than purchased.");
+                    throw new \Exception("Cannot return more items than purchased for Product ID: $productId");
                 }
 
-                // 2. Calculate Refund Amount
+                // 2. Calculate Refund
                 $refundAmount = $saleItem->price * $returnQty;
 
                 // 3. Create Return Record
@@ -70,29 +78,36 @@ class ReturnController extends Controller
 
                 // 4. Restore Stock (Only if condition is GOOD)
                 if ($itemData['condition'] === 'good') {
+                    // Atomic Increment (Prevents lost updates on stock)
                     Product::where('id', $productId)->increment('stock', $returnQty);
                 }
-                // If 'damaged', stock is not restored (it's essentially wastage)
 
-                // 5. Adjust Financials
-                // If Sale was Credit (Utang), reduce the debt instead of giving cash
+                // 5. Adjust Financials (The Critical Fix)
                 if ($sale->payment_method === 'credit' && $sale->customer_id) {
-                    $credit = CustomerCredit::where('sale_id', $sale->id)->first();
+                    
+                    // LOCK the credit record before modifying it
+                    $credit = CustomerCredit::where('sale_id', $sale->id)
+                                ->lockForUpdate()
+                                ->first();
+
                     if ($credit) {
+                        // Safe to modify now
                         $credit->remaining_balance -= $refundAmount;
-                        if ($credit->remaining_balance < 0) $credit->remaining_balance = 0;
                         
-                        // If balance is now 0, mark as paid
-                        if ($credit->remaining_balance == 0) $credit->is_paid = true;
+                        if ($credit->remaining_balance <= 0) {
+                            $credit->remaining_balance = 0;
+                            $credit->is_paid = true;
+                        } else {
+                            // If balance reappears (e.g., negative refund?), mark unpaid
+                            $credit->is_paid = false; 
+                        }
                         
                         $credit->save();
                     }
                 }
-                
-                // If Sale was Cash, this represents a Cash Out from the drawer (Handled via physical cash return)
             }
 
-            DB::commit();
+            DB::commit(); // Commit all changes
             return redirect()->route('admin.transactions.show', $sale->id)
                              ->with('success', 'Return processed successfully.');
 
