@@ -128,6 +128,9 @@ Route::middleware(['auth', 'role:cashier,admin'])->prefix('cashier')->group(func
     // ... inside 'cashier' prefix group ...
     Route::get('/debtors', [POSController::class, 'getDebtors'])->name('cashier.debtors');
 
+    // In routes/web.php (inside cashier group)
+    Route::get('/inventory/sync', [POSController::class, 'getStockUpdates'])->name('cashier.inventory.sync');
+
 
 });
 

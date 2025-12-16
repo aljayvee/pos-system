@@ -273,6 +273,8 @@ const soundError = new Audio("https://actions.google.com/sounds/v1/alarms/spaces
         const cartHtml = document.getElementById('cart-template').innerHTML;
         document.querySelectorAll('.desktop-cart-col, .offcanvas-body').forEach(el => el.innerHTML = cartHtml);
 
+        startLiveStockSync();
+
         // Bind Customer Selectors
         document.querySelectorAll('#customer-id').forEach(sel => {
             sel.addEventListener('change', function() {
@@ -320,6 +322,8 @@ const soundError = new Audio("https://actions.google.com/sounds/v1/alarms/spaces
                 scanTimeout = setTimeout(() => scanBuffer = "", 200); // Reset if too slow (human typing)
             }
         });
+
+        
 
         updateCartUI();
         updateConnectionStatus();
@@ -846,6 +850,55 @@ const soundError = new Audio("https://actions.google.com/sounds/v1/alarms/spaces
         bootstrap.Modal.getInstance(document.getElementById('paymentModal')).hide();
         Swal.fire('Saved Offline', 'Transaction stored locally.', 'info');
     }
+
+    function startLiveStockSync() {
+    setInterval(() => {
+        // 1. Don't sync if offline
+        if (!navigator.onLine) return;
+
+        fetch("{{ route('cashier.inventory.sync') }}")
+            .then(res => res.json())
+            .then(data => {
+                data.forEach(item => {
+                    // 2. Find the product in your global JS variable
+                    let product = ALL_PRODUCTS.find(p => p.id === item.id);
+                    if (product) {
+                        // Update the data in memory
+                        product.current_stock = item.stock;
+
+                        // 3. Update the UI Badge
+                        const badge = document.getElementById(`product-stock-${item.id}`);
+                        const card = document.getElementById(`product-card-${item.id}`);
+
+                        if (badge && card) {
+                            if (item.stock <= 0) {
+                                // CASE: SOLD OUT
+                                badge.innerText = "Out of Stock";
+                                badge.className = "badge bg-dark text-white rounded-pill px-2 py-1";
+                                badge.style.display = "inline-block";
+                                
+                                // Dim the card and disable clicks
+                                card.style.opacity = "0.5";
+                                card.style.pointerEvents = "none";
+                                card.classList.add("bg-secondary");
+                            } else {
+                                // CASE: IN STOCK
+                                badge.innerText = `${item.stock} left`;
+                                // Only show badge if low stock (optional, matches your logic)
+                                badge.style.display = item.stock <= (product.reorder_point ?? 10) ? 'inline-block' : 'none';
+                                
+                                // Restore card visibility
+                                card.style.opacity = "1";
+                                card.style.pointerEvents = "auto";
+                                card.classList.remove("bg-secondary");
+                            }
+                        }
+                    }
+                });
+            })
+            .catch(err => console.error("Stock sync failed", err)); // Silent fail is fine
+    }, 5000); // Run every 5000ms (5 seconds)
+}
 
     function updateConnectionStatus() {
        isOffline = !navigator.onLine;

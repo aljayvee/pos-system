@@ -251,6 +251,23 @@ class POSController extends Controller
         }
     }
 
+    // In app/Http/Controllers/Cashier/POSController.php
+
+        public function getStockUpdates()
+        {
+            $storeId = $this->getActiveStoreId();
+            
+            // Fetch only ID and Stock for active products
+            $updates = \Illuminate\Support\Facades\DB::table('products')
+                ->join('inventories', 'products.id', '=', 'inventories.product_id')
+                ->where('inventories.store_id', $storeId)
+                ->whereNull('products.deleted_at')
+                ->select('products.id', 'inventories.stock')
+                ->get();
+
+            return response()->json($updates);
+        }
+
     // REPLACE the 'store' method with this ROBUST version:
     public function store(Request $request)
     {
