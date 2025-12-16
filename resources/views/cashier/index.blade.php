@@ -714,17 +714,23 @@
     }
 
     // --- 13. PAYMONGO INTEGRATION (GCash) ---
+    // --- PAYMONGO & PAYMENT LOGIC ---
     let paymentCheckInterval = null;
+    let isProcessing = false; // Prevents double submission
 
     window.generatePaymentLink = function() {
         const total = parseFloat(document.getElementById('modal-total').innerText.replace(/,/g, ''));
         const btn = document.getElementById('btn-gen-qr');
+        const completeBtn = document.getElementById('btn-complete-payment');
 
         if (total <= 0) return Swal.fire('Error', 'Amount must be greater than 0', 'error');
 
         // UI Loading State
         btn.disabled = true;
         btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Generating...';
+        
+        // HIDE Complete button to prevent premature clicking (Fixes 422 Error)
+        if(completeBtn) completeBtn.style.display = 'none';
 
         fetch("{{ route('payment.create') }}", {
             method: "POST",
@@ -737,11 +743,10 @@
         .then(res => res.json())
         .then(data => {
             if (data.success) {
-                // 1. Switch UI to QR Mode
+                // Switch UI to QR Mode
                 document.getElementById('paymongo-controls').style.display = 'none';
                 document.getElementById('paymongo-qr-area').style.display = 'block';
 
-                // 2. Render QR Code (using existing library)
                 document.getElementById('qrcode-container').innerHTML = "";
                 new QRCode(document.getElementById("qrcode-container"), {
                     text: data.checkout_url,
@@ -749,7 +754,6 @@
                     height: 200
                 });
 
-                // 3. Start Polling for Status
                 startPaymentPolling(data.id);
             } else {
                 Swal.fire('API Error', data.message, 'error');
@@ -758,7 +762,7 @@
         })
         .catch(err => {
             console.error(err);
-            Swal.fire('Error', 'Connection failed. Check internet.', 'error');
+            Swal.fire('Error', 'Connection failed.', 'error');
             resetPayMongoUI();
         });
     };
@@ -771,36 +775,109 @@
                 .then(res => res.json())
                 .then(data => {
                     if (data.status === 'paid') {
-                        // SUCCESS!
                         clearInterval(paymentCheckInterval);
                         playSuccessBeep();
                         
-                        // Set the reference number so the backend accepts it
                         document.getElementById('reference-number').value = id;
                         
-                        // Auto-submit the payment
+                        // Auto-submit
                         processPayment(); 
                     }
                 })
                 .catch(err => console.error("Polling error:", err));
-        }, 3000); // Check every 3 seconds
+        }, 3000); 
     }
 
     function resetPayMongoUI() {
         const btn = document.getElementById('btn-gen-qr');
+        const completeBtn = document.getElementById('btn-complete-payment');
+        
         if(btn) {
             btn.disabled = false;
             btn.innerHTML = '<i class="fas fa-qrcode me-2"></i> Generate G-Cash QR';
         }
+        if(completeBtn) completeBtn.style.display = 'block'; // Show button again
+        
         document.getElementById('paymongo-controls').style.display = 'block';
         document.getElementById('paymongo-qr-area').style.display = 'none';
+        
         if (paymentCheckInterval) clearInterval(paymentCheckInterval);
     }
 
-    // Stop polling if user closes modal
+    // Process Payment with Debounce (Fixes Race Conditions)
+    window.processPayment = function() {
+        if (isProcessing) return; // Stop if already running
+        
+        const method = document.querySelector('input[name="paymethod"]:checked').value;
+        const total = parseFloat(document.getElementById('modal-total').innerText.replace(/,/g,''));
+        
+        if (method === 'cash') {
+            const paid = parseFloat(document.getElementById('amount-paid').value) || 0;
+            if (paid < total) return Swal.fire('Error', 'Insufficient Cash Payment', 'error');
+        } 
+
+        const payload = {
+            cart: cart,
+            total_amount: total,
+            payment_method: method,
+            customer_id: currentCustomer.id,
+            amount_paid: method === 'cash' ? document.getElementById('amount-paid').value : 0,
+            reference_number: document.getElementById('reference-number')?.value,
+            credit_details: method === 'credit' ? {
+                name: document.getElementById('credit-name')?.value,
+                due_date: document.getElementById('credit-due-date')?.value,
+                contact: document.getElementById('credit-contact')?.value,
+                address: document.getElementById('credit-address')?.value
+            } : null
+        };
+
+        if (isOffline) { saveToOfflineQueue(payload); return; }
+
+        isProcessing = true; // LOCK
+        Swal.showLoading();
+        
+        fetch("{{ route('cashier.store') }}", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Accept": "application/json", "X-CSRF-TOKEN": CONFIG.csrfToken },
+            body: JSON.stringify(payload)
+        })
+        .then(async res => {
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.message || 'Server Error');
+            return data;
+        })
+        .then(data => {
+            if (data.success) {
+                bootstrap.Modal.getInstance(document.getElementById('paymentModal')).hide();
+                updateLocalStock(cart);
+                
+                Swal.fire({
+                    icon: 'success', title: 'Paid!', showCancelButton: true, confirmButtonText: 'Receipt', cancelButtonText: 'New Sale'
+                }).then((r) => {
+                    cart = []; localStorage.removeItem('pos_cart'); updateCartUI(); 
+                    document.getElementById('customer-id').value = 'walk-in'; 
+                    currentCustomer = { id: 'walk-in', points: 0, balance: 0 };
+                    if (r.isConfirmed) window.open(`/cashier/receipt/${data.sale_id}`, '_blank', 'width=400,height=600');
+                });
+            }
+        })
+        .catch(err => {
+            if (err.message.toLowerCase().includes('fetch') || err.message.toLowerCase().includes('network')) {
+                saveToOfflineQueue(payload);
+            } else {
+                Swal.fire('Validation Error', err.message, 'warning');
+            }
+        })
+        .finally(() => {
+            isProcessing = false; // UNLOCK
+        });
+    };
+
+    // Clean up if modal is closed
     document.getElementById('paymentModal')?.addEventListener('hidden.bs.modal', function () {
         if (paymentCheckInterval) clearInterval(paymentCheckInterval);
         resetPayMongoUI();
+        isProcessing = false;
     });
 </script>
 @endsection

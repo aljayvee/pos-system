@@ -23,13 +23,13 @@
                     <div class="col-4">
                         <input type="radio" class="btn-check" name="paymethod" id="pm-digital" value="digital" onchange="toggleFlow()">
                         <label class="btn btn-outline-secondary w-100 py-3 rounded-3 fw-bold" for="pm-digital">
-                            <i class="fas fa-qrcode d-block mb-1 fs-4"></i> G-Cash
+                            <i class="fas fa-qrcode d-block mb-1 fs-4"></i> E-Wallet
                         </label>
                     </div>
                     <div class="col-4">
                         <input type="radio" class="btn-check" name="paymethod" id="pm-credit" value="credit" disabled onchange="toggleFlow()">
                         <label class="btn btn-outline-secondary w-100 py-3 rounded-3 fw-bold" for="pm-credit">
-                            <i class="fas fa-user-clock d-block mb-1 fs-4"></i> Credit
+                            <i class="fas fa-user-clock d-block mb-1 fs-4"></i> Utang
                         </label>
                     </div>
                 </div>
