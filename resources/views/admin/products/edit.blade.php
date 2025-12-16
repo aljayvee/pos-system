@@ -13,7 +13,7 @@
         </a>
     </div>
 
-    <form action="{{ route('products.update', $product->id) }}" method="POST">
+    <form id="editProductForm" action="{{ route('products.update', $product->id) }}" method="POST">
         @csrf
         @method('PUT')
 
@@ -110,13 +110,92 @@
                 </div>
 
                 <div class="d-grid gap-2">
-                    <button type="submit" class="btn btn-primary btn-lg shadow-sm">
-                        <i class="fas fa-save me-2"></i> Update Product
-                    </button>
+                    {{-- Change Submit Button to Button type --}}
+                    <div class="d-grid">
+                        <button type="button" onclick="validateAndUpdate({{ $product->id }})" class="btn btn-primary btn-lg shadow-sm">
+                            <i class="fas fa-save me-2"></i> Update Product
+                        </button>
+                    </div>
                     <a href="{{ route('products.index') }}" class="btn btn-light text-muted">Cancel</a>
                 </div>
             </div>
         </div>
     </form>
 </div>
+
+{{-- DUPLICATE WARNING MODAL --}}
+<div class="modal fade" id="duplicateModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title"><i class="fas fa-exclamation-circle me-2"></i>Duplicate Found</h5>
+            </div>
+            <div class="modal-body">
+                <p id="modalMessage"></p>
+                <p>You cannot use this name/SKU because it is already taken by another product.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close & Change</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Auto-Capitalization Script
+    document.querySelector('input[name="name"]').addEventListener('input', function(e) {
+        let words = this.value.split(' ');
+        for (let i = 0; i < words.length; i++) {
+            if (words[i].length > 0) {
+                words[i] = words[i][0].toUpperCase() + words[i].substr(1);
+            }
+        }
+        this.value = words.join(' ');
+    });
+
+    // Validation Logic
+    async function validateAndUpdate(currentId) {
+        const name = document.querySelector('input[name="name"]').value;
+        const sku = document.querySelector('input[name="sku"]').value;
+        const form = document.getElementById('editProductForm');
+        const csrfToken = document.querySelector('input[name="_token"]').value;
+
+        if (!name) {
+            alert("Product Name is required");
+            return;
+        }
+
+        try {
+            const response = await fetch("{{ route('products.check_duplicate') }}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Accept": "application/json",
+                },
+                body: JSON.stringify({
+                    name: name,
+                    sku: sku,
+                    exclude_id: currentId, // PASS ID TO EXCLUDE SELF
+                    _token: csrfToken
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.exists) {
+                // Show Warning
+                document.getElementById('modalMessage').innerText = data.message;
+                const modal = new bootstrap.Modal(document.getElementById('duplicateModal'));
+                modal.show();
+            } else {
+                // Submit if valid
+                form.submit();
+            }
+        } catch (error) {
+            console.error(error);
+            // Fallback: submit anyway if check fails, let backend handle it
+            form.submit();
+        }
+    }
+</script>
 @endsection

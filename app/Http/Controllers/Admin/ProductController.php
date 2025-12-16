@@ -160,14 +160,16 @@ class ProductController extends Controller
     // ... inside ProductController class ...
 
     // --- ADD THIS METHOD ---
+    // 1. UPDATE THE VALIDATION METHOD
     public function checkDuplicate(Request $request)
     {
         $sku = $request->input('sku');
         $name = strtolower($request->input('name'));
+        $excludeId = $request->input('exclude_id'); // New parameter
 
-        // Query for duplicate SKU or Name (Case Insensitive)
         $query = Product::query();
 
+        // Check for SKU or Name match
         $query->where(function($q) use ($sku, $name) {
             if ($sku) {
                 $q->where('sku', $sku);
@@ -177,16 +179,18 @@ class ProductController extends Controller
             }
         });
 
-        // Exclude deleted items if you want to allow reusing names of archived products, 
-        // otherwise remove ->withoutTrashed() to check everything.
+        // IMPORTANT: Exclude the product we are currently editing
+        if ($excludeId) {
+            $query->where('id', '!=', $excludeId);
+        }
+
         $product = $query->first();
 
         if ($product) {
             return response()->json([
                 'exists' => true,
                 'message' => "Product '{$product->name}' (SKU: {$product->sku}) already exists.",
-                // Return ID so frontend can redirect to edit/restock
-                'product_id' => $product->id 
+                'product_id' => $product->id
             ]);
         }
 
@@ -269,9 +273,9 @@ class ProductController extends Controller
 
         DB::beginTransaction();
         try {
-            // 1. FORMAT THE NAME HERE TOO
-             $request->merge([
-                'name' => Str::title($request->name) 
+            // Apply Title Case Formatting (Consistency)
+            $request->merge([
+                'name' => \Illuminate\Support\Str::title($request->name) 
             ]);
 
             // Update Global Product Details
