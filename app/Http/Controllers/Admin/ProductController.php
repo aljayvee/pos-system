@@ -215,7 +215,7 @@ class ProductController extends Controller
             'stock' => 'integer|min:0',
             'reorder_point' => 'nullable|integer|min:0',
             'expiration_date' => 'nullable|date',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:10240',
         ]);
 
         DB::beginTransaction();
@@ -295,7 +295,7 @@ class ProductController extends Controller
             'stock' => 'nullable|integer|min:0', // Ensure this is validated
             'reorder_point' => 'nullable|integer|min:0',
             'expiration_date' => 'nullable|date',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:10240',
         ]);
 
         DB::beginTransaction();
