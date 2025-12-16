@@ -168,8 +168,6 @@
     </div>
 </div>
 
-
-
 <script>
     let html5QrCode;
     const beepSound = new Audio("data:audio/wav;base64,UklGRl9vT1BXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YU");
@@ -208,12 +206,12 @@
         if (html5QrCode) {
             html5QrCode.stop().then(() => {
                 html5QrCode.clear();
-                const modalEl = new bootstrap.Modal(document.getElementById('scanModal'));
+                const modalEl = document.getElementById('scanModal');
                 const modal = bootstrap.Modal.getInstance(modalEl);
                 if (modal) modal.hide();
             }).catch(err => {
                 // Force close if stop fails
-                const modalEl = new bootstrap.Modal(document.getElementById('scanModal'));
+                const modalEl = document.getElementById('scanModal');
                 const modal = bootstrap.Modal.getInstance(modalEl);
                 if (modal) modal.hide();
             });
