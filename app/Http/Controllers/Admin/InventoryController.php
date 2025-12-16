@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use App\Models\Product;
 use App\Models\StockAdjustment;
 use App\Models\ActivityLog;
+use App\Models\Inventory;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
@@ -51,6 +52,7 @@ class InventoryController extends Controller
     }
 
     // 3. Process Adjustment (Consolidated)
+    // REPLACE the 'storeAdjustment' method with this:
     public function storeAdjustment(Request $request)
     {
         $request->validate([
@@ -61,40 +63,73 @@ class InventoryController extends Controller
             'remarks'    => 'nullable|string'
         ]);
 
-        $product = Product::findOrFail($request->product_id);
-        
-        $qty = intval($request->quantity);
-        if ($request->type === 'subtract') {
-            $qty = -$qty;
-            if ($product->stock + $qty < 0) {
-                return back()->withErrors(['quantity' => 'Cannot remove more stock than available.']);
-            }
-        }
+        // Start ACID Transaction
+        DB::beginTransaction();
 
-        DB::transaction(function () use ($request, $product, $qty) {
-            // A. Log Adjustment
+        try {
+            $storeId = $this->getActiveStoreId(); // Ensure we adjust the correct branch
+            $qty = intval($request->quantity);
+
+            // 1. LOCK the specific Branch Inventory Record
+            // We use firstOrNew because the record might not exist yet for this branch
+            $inventory = Inventory::where('product_id', $request->product_id)
+                            ->where('store_id', $storeId)
+                            ->lockForUpdate() // <--- PREVENTS RACE CONDITIONS
+                            ->first();
+
+            // If no inventory record exists yet, we create a temporary instance to check logic
+            if (!$inventory) {
+                $inventory = new Inventory([
+                    'product_id' => $request->product_id,
+                    'store_id' => $storeId,
+                    'stock' => 0,
+                    'reorder_point' => 10
+                ]);
+            }
+
+            // 2. Validate Stock Logic (Consistency)
+            if ($request->type === 'subtract') {
+                if ($inventory->stock < $qty) {
+                    throw new \Exception("Cannot remove {$qty} items. Current branch stock is only {$inventory->stock}.");
+                }
+                $finalQty = -$qty; // Make negative for math
+            } else {
+                $finalQty = $qty;
+            }
+
+            // 3. Update Inventory (Atomicity)
+            // If the record was new, this creates it. If it existed, this updates it.
+            $inventory->stock += $finalQty;
+            $inventory->save();
+
+            // 4. Log the Adjustment
             StockAdjustment::create([
                 'user_id'    => Auth::id(),
-                'product_id' => $product->id,
-                'quantity'   => $qty,
+                'product_id' => $request->product_id,
+                'store_id'   => $storeId, // <--- Ideally, add store_id to this table too
+                'quantity'   => $finalQty,
                 'type'       => $request->reason,
                 'remarks'    => $request->remarks
             ]);
 
-            // B. Update Stock
-            $product->stock += $qty;
-            $product->save();
-
-            // C. Activity Log
-            $actionWord = $qty > 0 ? 'Added' : 'Removed';
+            // 5. Activity Log
+            $productName = Product::where('id', $request->product_id)->value('name');
+            $actionWord = $request->type === 'add' ? 'Added' : 'Removed';
+            
             ActivityLog::create([
                 'user_id' => Auth::id(),
+                'store_id' => $storeId,
                 'action' => 'Stock Adjustment',
-                'description' => "{$actionWord} " . abs($qty) . " stocks of '{$product->name}'. Reason: {$request->reason}"
+                'description' => "{$actionWord} {$qty} stocks of '{$productName}'. New Balance: {$inventory->stock}."
             ]);
-        });
 
-        return back()->with('success', 'Stock adjusted successfully.');
+            DB::commit(); // Save everything
+            return back()->with('success', 'Stock adjusted successfully.');
+
+        } catch (\Exception $e) {
+            DB::rollBack(); // Undo everything if error
+            return back()->with('error', 'Adjustment Failed: ' . $e->getMessage());
+        }
     }
 
     public function history()
