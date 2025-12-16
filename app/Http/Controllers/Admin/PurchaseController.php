@@ -35,6 +35,8 @@ class PurchaseController extends Controller
         return view('admin.purchases.create', compact('products', 'suppliers'));
     }
 
+    // REPLACE the 'store' method with this Financial-Grade version:
+
     public function store(Request $request)
     {
         $request->validate([
@@ -45,101 +47,114 @@ class PurchaseController extends Controller
             'items.*.unit_cost' => 'required|numeric|min:0',
         ]);
 
-        DB::transaction(function () use ($request) {
-            $storeId = $this->getActiveStoreId(); // Identify Active Branch
+        DB::beginTransaction(); // Start ACID
+
+        try {
+            $storeId = $this->getActiveStoreId();
 
             // 1. Handle Supplier
             $supplierId = $request->supplier_id;
             if ($request->filled('new_supplier_name')) {
-                $supplier = Supplier::create([
-                    'name' => $request->new_supplier_name,
-                    'contact_info' => $request->new_supplier_contact ?? null
-                ]);
+                $supplier = \App\Models\Supplier::firstOrCreate(
+                    ['name' => $request->new_supplier_name],
+                    ['contact_info' => $request->new_supplier_contact]
+                );
                 $supplierId = $supplier->id;
             }
 
-            // 2. Calculate Costs
-            $totalGross = 0;
-            foreach ($request->items as $item) {
-                $totalGross += ($item['quantity'] * $item['unit_cost']);
-            }
-
-
-
-            // 2. Create Purchase Record linked to Store
-            $purchase = Purchase::create([
-                'store_id' => $storeId, // <--- Link to Branch
-                'user_id' => Auth::id(),
-                'supplier_id' => $supplierId,
-                'purchase_date' => $request->purchase_date,
-                'total_cost' => 0
-            ]);
-
-            // 3. INPUT VAT CALCULATION
-            // Formula: Input VAT = Total / 1.12 * 0.12 (if inclusive)
-            // If the supplier is Non-VAT, Input VAT is 0.
-            $isVatSupplier = true; // Ideally, add a checkbox in the form for this
-            $inputVat = 0;
-            $netCost = $totalGross;
-
-            if ($isVatSupplier) {
-                $netCost = $totalGross / 1.12; 
-                $inputVat = $totalGross - $netCost;
-            }
-
-            // 4. Create Purchase Record with VAT Info
+            // 2. Create Purchase Record
+            // We calculate the totals after processing items to be precise
             $purchase = Purchase::create([
                 'store_id' => $storeId,
                 'user_id' => Auth::id(),
                 'supplier_id' => $supplierId,
                 'purchase_date' => $request->purchase_date,
-                'total_cost' => $totalGross, // The amount you actually paid
-                'input_vat' => $inputVat,    // The tax credit you claim
-                'is_vat_registered_supplier' => $isVatSupplier
+                'total_cost' => 0, // Will update later
+                'input_vat' => 0,
+                'is_vat_registered_supplier' => false 
             ]);
 
-            
-            $totalCost = 0;
+            $grandTotalCost = 0;
 
             foreach ($request->items as $itemData) {
-                // 3. Create Purchase Items
+                $pid = $itemData['product_id'];
+                $newQty = $itemData['quantity'];
+                $newCost = $itemData['unit_cost'];
+
+                // ---------------------------------------------------------
+                // START: WEIGHTED AVERAGE COST LOGIC (The Fix)
+                // ---------------------------------------------------------
+                
+                // A. LOCK the Product Global Record
+                $product = Product::where('id', $pid)->lockForUpdate()->firstOrFail();
+
+                // B. Get Current Global Stock (Sum of all branches)
+                // We need the TOTAL existing stock to weight the price correctly.
+                $currentTotalStock = Inventory::where('product_id', $pid)->sum('stock');
+                $currentCost = $product->cost ?? 0;
+
+                // C. Calculate New Moving Average Cost
+                // Formula: ((OldStock * OldCost) + (NewQty * NewCost)) / (OldStock + NewQty)
+                $oldValue = $currentTotalStock * $currentCost;
+                $newValue = $newQty * $newCost;
+                $totalQty = $currentTotalStock + $newQty;
+
+                $averageCost = $totalQty > 0 ? ($oldValue + $newValue) / $totalQty : $newCost;
+
+                // D. Update Product with New Cost
+                $product->cost = round($averageCost, 2); 
+                $product->save();
+
+                // ---------------------------------------------------------
+                // END: COST LOGIC
+                // ---------------------------------------------------------
+
+                // 3. Create Purchase Item
                 PurchaseItem::create([
                     'purchase_id' => $purchase->id,
-                    'product_id' => $itemData['product_id'],
-                    'quantity' => $itemData['quantity'],
-                    'unit_cost' => $itemData['unit_cost']
+                    'product_id' => $pid,
+                    'quantity' => $newQty,
+                    'unit_cost' => $newCost // Keep record of what we actually paid
                 ]);
 
-                // 4. UPDATE BRANCH INVENTORY (Critical Fix)
+                // 4. Update Branch Inventory (Atomic Increment)
+                // Use firstOrCreate to ensure the record exists, then lock and update
                 $inventory = Inventory::firstOrCreate(
-                    ['product_id' => $itemData['product_id'], 'store_id' => $storeId],
+                    ['product_id' => $pid, 'store_id' => $storeId],
                     ['stock' => 0, 'reorder_point' => 10]
                 );
-                $inventory->increment('stock', $itemData['quantity']);
+                
+                // Refresh and Lock for safety
+                $inventory = Inventory::where('id', $inventory->id)->lockForUpdate()->first();
+                $inventory->stock += $newQty;
+                $inventory->save();
 
-                // 5. Update Global Product Cost (Moving Average or Last Price)
-                $product = Product::find($itemData['product_id']);
-                if ($product) {
-                    $product->update(['cost' => $itemData['unit_cost']]);
-                    // Optional: Update global stock sum if you maintain it
-                    // $product->increment('stock', $itemData['quantity']); 
-                }
-
-                $totalCost += ($itemData['quantity'] * $itemData['unit_cost']);
+                $grandTotalCost += ($newQty * $newCost);
             }
 
-            $purchase->update(['total_cost' => $totalCost]);
+            // 5. Update Purchase Totals
+            $purchase->total_cost = $grandTotalCost;
+            
+            // Optional: Simple VAT Logic (Inclusive)
+            // If you need complex VAT, use the logic from your previous file
+            $purchase->input_vat = $grandTotalCost - ($grandTotalCost / 1.12);
+            $purchase->save();
 
-            // Log Activity
+            // 6. Log Activity
             ActivityLog::create([
                 'user_id' => Auth::id(),
                 'store_id' => $storeId,
                 'action' => 'Restocking',
-                'description' => "Restocked items (Purchase #{$purchase->id}). Total: ₱" . number_format($totalCost, 2)
+                'description' => "Restocked items (Purchase #{$purchase->id}). Total: ₱" . number_format($grandTotalCost, 2)
             ]);
-        });
 
-        return redirect()->route('purchases.index')->with('success', 'Stocks added to branch inventory successfully!');
+            DB::commit();
+            return redirect()->route('purchases.index')->with('success', 'Stocks added and Cost Averaged successfully!');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->with('error', 'Restock Failed: ' . $e->getMessage())->withInput();
+        }
     }
 
     public function show(Purchase $purchase)
