@@ -24,6 +24,7 @@
         </a>
     </div>
 
+    <form id="addProductForm" action="{{ route('products.store') }}" method="POST">
     <form action="{{ route('products.store') }}" method="POST">
         @csrf
 
@@ -137,7 +138,7 @@
 
                 {{-- Submit Button --}}
                 <div class="d-grid">
-                    <button type="submit" class="btn btn-primary btn-lg shadow-sm">
+                    <button type="button" onclick="validateAndSubmit()" class="btn btn-primary btn-lg shadow-sm">
                         <i class="fas fa-save me-2"></i> Save Product
                     </button>
                 </div>
@@ -168,11 +169,101 @@
     </div>
 </div>
 
+
+
+{{-- DUPLICATE WARNING MODAL --}}
+<div class="modal fade" id="duplicateModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-warning">
+                <h5 class="modal-title text-dark"><i class="fas fa-exclamation-triangle me-2"></i>Duplicate Found</h5>
+            </div>
+            <div class="modal-body">
+                <p class="fw-bold" id="modalMessage"></p>
+                <p>This product already exists in the system. Would you like to view/restock it instead?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="handleCancel()">Cancel & Clear</button>
+                <button type="button" class="btn btn-primary" onclick="redirectToRestock()">Go to Product</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
     let html5QrCode;
+
+    let existingProductId = null;
+
+    async function validateAndSubmit() {
+        const nameInput = document.querySelector('input[name="name"]');
+        const skuInput = document.querySelector('input[name="sku"]');
+        const form = document.getElementById('addProductForm');
+        
+        // Basic Client-Side Validation
+        if (!nameInput.value) {
+            alert("Product Name is required");
+            return;
+        }
+
+        // Prepare Data
+        const formData = {
+            name: nameInput.value,
+            sku: skuInput.value,
+            _token: document.querySelector('input[name="_token"]').value // Get CSRF from form
+        };
+
+        try {
+            // Check for duplicates
+            const response = await fetch("{{ route('products.check_duplicate') }}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Accept": "application/json",
+                },
+                body: JSON.stringify(formData)
+            });
+
+            const data = await response.json();
+
+            if (data.exists) {
+                // Show Warning Modal
+                existingProductId = data.product_id;
+                document.getElementById('modalMessage').innerText = data.message;
+                const modal = new bootstrap.Modal(document.getElementById('duplicateModal'));
+                modal.show();
+            } else {
+                // No duplicate, submit the form normally
+                form.submit();
+            }
+
+        } catch (error) {
+            console.error("Validation Error:", error);
+            // In case of error, you might want to force submit or show alert
+            // form.submit(); 
+            alert("Error validating product. Please try again.");
+        }
+    }
+
+    function handleCancel() {
+        // Clear fields and close modal
+        document.getElementById('addProductForm').reset();
+        existingProductId = null;
+        
+        const modalEl = document.getElementById('duplicateModal');
+        const modal = bootstrap.Modal.getInstance(modalEl);
+        modal.hide();
+    }
+
+    function redirectToRestock() {
+        if (existingProductId) {
+            // Redirect to the edit page of the existing product
+            window.location.href = `/admin/products/${existingProductId}/edit`;
+        }
+    }
     
     // --- ADD THIS: Classic Scanner Beep Generator ---
-function playScannerBeep() {
+    function playScannerBeep() {
     const context = new (window.AudioContext || window.webkitAudioContext)();
     const osc = context.createOscillator();
     const gain = context.createGain();

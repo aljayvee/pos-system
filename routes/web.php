@@ -32,6 +32,8 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->group(function () {
     // Core Management
     Route::resource('categories', CategoryController::class);
     Route::resource('products', ProductController::class);
+   
+    Route::post('/products/check-duplicate', [ProductController::class, 'checkDuplicate'])->name('products.check_duplicate');
     Route::resource('customers', \App\Http\Controllers\Admin\CustomerController::class);
     // Removed 'show' from except array
     // Removed 'create' from except array
@@ -53,6 +55,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->group(function () {
     Route::get('/products/{product}/barcode', [ProductController::class, 'printBarcode'])->name('products.barcode');
     Route::post('/products/{id}/restore', [ProductController::class, 'restore'])->name('products.restore');
     Route::delete('/products/{id}/force-delete', [ProductController::class, 'forceDelete'])->name('products.force_delete');
+    
 
     // Purchases (Stock In)
     Route::resource('purchases', \App\Http\Controllers\Admin\PurchaseController::class)->only(['index', 'create', 'store', 'show', 'destroy']);

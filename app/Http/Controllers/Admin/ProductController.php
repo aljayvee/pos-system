@@ -157,6 +157,43 @@ class ProductController extends Controller
         return view('admin.products.create', compact('categories'));
     }
 
+    // ... inside ProductController class ...
+
+    // --- ADD THIS METHOD ---
+    public function checkDuplicate(Request $request)
+    {
+        $sku = $request->input('sku');
+        $name = strtolower($request->input('name'));
+
+        // Query for duplicate SKU or Name (Case Insensitive)
+        $query = Product::query();
+
+        $query->where(function($q) use ($sku, $name) {
+            if ($sku) {
+                $q->where('sku', $sku);
+            }
+            if ($name) {
+                $q->orWhereRaw('LOWER(name) = ?', [$name]);
+            }
+        });
+
+        // Exclude deleted items if you want to allow reusing names of archived products, 
+        // otherwise remove ->withoutTrashed() to check everything.
+        $product = $query->first();
+
+        if ($product) {
+            return response()->json([
+                'exists' => true,
+                'message' => "Product '{$product->name}' (SKU: {$product->sku}) already exists.",
+                // Return ID so frontend can redirect to edit/restock
+                'product_id' => $product->id 
+            ]);
+        }
+
+        return response()->json(['exists' => false]);
+    }
+    // -----------------------
+
     // 3. Store New Product (FIXED for Multi-Store)
     public function store(Request $request)
     {
@@ -190,12 +227,15 @@ class ProductController extends Controller
                 'reorder_point' => $request->reorder_point ?? 10
             ]);
 
+            // Create Product
+            Product::create($validated);
+
             DB::commit();
             return redirect()->route('products.index')->with('success', 'Product created successfully in current branch.');
 
         } catch (\Exception $e) {
-            DB::rollBack();
-            return back()->with('error', 'Error: ' . $e->getMessage())->withInput();
+            DB::rollBack(); // (Atomicity: Undo everything if ANY error occurs)
+            return response()->json(['status' => 'error', 'message' => 'Failed to add product'], 500);
         }
     }
 
