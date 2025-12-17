@@ -478,7 +478,7 @@ function checkForUpdates() {
             } else {
                Swal.fire({
         title: 'System Up to Date',
-        text: 'Your current version (' + data.current + ') is the latest available. No new updates have been pushed to the server.',
+        text: 'Your current version (' + data.current + ') is the latest available.',
         icon: 'success',
         confirmButtonColor: '#4f46e5'
     });
