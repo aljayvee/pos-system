@@ -2,7 +2,7 @@
 
 @section('content')
 <div class="container-fluid px-14 py-14">
-    {{-- HEADER: Flex column on mobile, row on desktop --}}
+    {{-- HEADER --}}
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mt-4 mb-4 gap-3">
         <h1 class="h2 mb-0 text-gray-800">
             <i class="fas fa-warehouse text-primary me-2"></i>Inventory Management
@@ -19,18 +19,17 @@
                 <a href="{{ route('inventory.history') }}" class="btn btn-secondary">
                     <i class="fas fa-history me-1"></i> History
                 </a>
-                
             </div>
 
             <div class="btn-group shadow-sm flex-fill flex-md-grow-0">
              <a href="{{ route('inventory.export') }}" class="btn btn-success">
                     <i class="fas fa-file-export me-1"></i> Export Data
                 </a>
-</div>
+            </div>
         </div>
     </div>
 
-    {{-- STATS CARDS: 1 col mobile, 2 cols tablet, 4 cols desktop --}}
+    {{-- STATS CARDS --}}
     <div class="row g-3 mb-4">
         <div class="col-12 col-sm-6 col-xl-3">
             <div class="card border-0 shadow-sm border-start border-4 border-primary h-100">
@@ -86,7 +85,7 @@
         </div>
     </div>
 
-    {{-- SEARCH & FILTER: Collapses neatly on mobile --}}
+    {{-- SEARCH & FILTER --}}
     <div class="card mb-4 shadow-sm border-0">
         <div class="card-body p-3">
             <form action="{{ route('inventory.index') }}" method="GET" class="row g-3 align-items-center">
@@ -116,7 +115,7 @@
         </div>
     </div>
 
-    {{-- MAIN TABLE --}}
+    {{-- MAIN CONTENT AREA --}}
     <div class="card shadow-sm mb-4 border-0">
         <div class="card-header bg-white py-3">
             <div class="d-flex justify-content-between align-items-center">
@@ -124,7 +123,9 @@
             </div>
         </div>
         <div class="card-body p-0">
-            <div class="table-responsive">
+            
+            {{-- 1. DESKTOP VIEW TABLE (Visible on Medium screens and up) --}}
+            <div class="table-responsive d-none d-md-block">
                 <table class="table table-hover table-striped align-middle mb-0 text-nowrap">
                     <thead class="bg-light">
                         <tr>
@@ -169,9 +170,55 @@
                     </tbody>
                 </table>
             </div>
+
+            {{-- 2. MOBILE VIEW LIST (Visible on Small screens and down) --}}
+            <div class="d-md-none">
+                @forelse($products as $product)
+                <div class="p-3 border-bottom position-relative">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div>
+                            <h6 class="mb-1 fw-bold text-dark">{{ $product->name }}</h6>
+                            <span class="badge bg-light text-secondary border text-xs">{{ $product->category->name ?? 'Uncategorized' }}</span>
+                        </div>
+                        <div class="text-end">
+                             @if($product->stock == 0)
+                                <span class="badge bg-danger-subtle text-danger border border-danger">Out</span>
+                            @elseif($product->stock <= 10)
+                                <span class="badge bg-warning-subtle text-warning border border-warning">Low</span>
+                            @else
+                                <span class="badge bg-success-subtle text-success border border-success">In</span>
+                            @endif
+                        </div>
+                    </div>
+                    
+                    <div class="row g-0 mt-3 bg-light rounded p-2">
+                        <div class="col-4 border-end text-center">
+                            <small class="text-muted d-block text-uppercase" style="font-size: 0.65rem;">Stock</small>
+                            <span class="fw-bold {{ $product->stock <= 10 ? 'text-danger' : 'text-dark' }}">
+                                {{ $product->stock }}
+                            </span>
+                        </div>
+                        <div class="col-4 border-end text-center">
+                            <small class="text-muted d-block text-uppercase" style="font-size: 0.65rem;">Cost</small>
+                            <span class="text-muted small">₱{{ number_format($product->cost ?? 0, 2) }}</span>
+                        </div>
+                        <div class="col-4 text-center">
+                            <small class="text-muted d-block text-uppercase" style="font-size: 0.65rem;">Price</small>
+                            <span class="fw-bold text-primary">₱{{ number_format($product->price, 2) }}</span>
+                        </div>
+                    </div>
+                </div>
+                @empty
+                <div class="text-center py-5 text-muted">
+                    <i class="fas fa-box-open fa-3x mb-3 text-gray-300"></i><br>
+                    No products found.
+                </div>
+                @endforelse
+            </div>
+
         </div>
         @if($products->hasPages())
-        <div class="card-footer bg-white d-flex justify-content-end py-3">
+        <div class="card-footer bg-white d-flex justify-content-center justify-content-md-end py-3">
             {{ $products->links() }}
         </div>
         @endif
