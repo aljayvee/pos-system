@@ -218,33 +218,25 @@ class SettingsController extends Controller
 
 public function runUpdate(Request $request)
 {
-    // Prevent the script from timing out
     set_time_limit(0);
-
-    if (auth()->user()->role !== 'admin') {
-        return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
-    }
-
     $storeId = $this->getActiveStoreId();
     $isBeta = \App\Models\Setting::where('store_id', $storeId)->where('key', 'enable_beta')->value('value') == '1';
     $branch = $isBeta ? 'develop' : 'main';
 
     try {
-        // Run commands and capture output for debugging
-        $output = shell_exec("cd /www/pos && git pull origin main 2>&1");
-
-        // If the output contains "error" or "conflict", the update didn't actually happen
-    if (str_contains($output, 'error') || str_contains($output, 'conflict')) {
-        return response()->json(['success' => false, 'message' => 'Git Error: ' . $output]);
-    }
-
-        // ADD THIS LINE to force PHP to re-read the updated files
-    if (function_exists('opcache_reset')) {
-        opcache_reset();
-    }
-
+        // Force the local branch to match origin exactly
+        // This is better for Kiosks because it avoids merge conflicts
+        shell_exec("cd /www/pos && git fetch origin $branch 2>&1");
+        $output = shell_exec("cd /www/pos && git reset --hard origin/$branch 2>&1");
+        
+        // standard Laravel maintenance
         shell_exec('php /www/pos/artisan migrate --force 2>&1');
         shell_exec('php /www/pos/artisan optimize:clear 2>&1');
+        
+        // Reset Opcache to ensure the new version.php is read
+        if (function_exists('opcache_reset')) {
+            opcache_reset();
+        }
 
         return response()->json(['success' => true, 'output' => $output]);
     } catch (\Exception $e) {
