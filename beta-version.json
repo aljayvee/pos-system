@@ -1,0 +1,9 @@
+{
+    "major": 1,
+    "minor": 0,
+    "revision": 2,
+    "build": "20251220",
+    "full": "1.0.2-build.20251220",
+    "update_type": "Beta Feature Release",
+    "changelog": "• BETA: New Login Progress Indicator\n• BETA: Native Barcode Scanner integration\n• BETA: Advanced htop-style performance monitoring\n• System stability improvements for Newifi D2"
+}
