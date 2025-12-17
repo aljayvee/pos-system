@@ -15,7 +15,7 @@ class AdminSeeder extends Seeder
         User::create([
             'name' => 'Store Owner',
             'email' => 'admin@pos.com',
-            'password' => Hash::make('password'), // Password is 'password'
+            'password' => Hash::make('Admin123456'), // Password is 'Admin123456'
             'role' => 'admin',
         ]);
 
@@ -23,17 +23,13 @@ class AdminSeeder extends Seeder
         User::create([
             'name' => 'Cashier One',
             'email' => 'cashier@pos.com',
-            'password' => Hash::make('password'),
+            'password' => Hash::make('Cashier123456'), // Password is 'Cashier123456'
             'role' => 'cashier',
         ]);
 
         // 3. Create Dummy Products
-        $products = [
-            ['name' => 'Coffee', 'price' => 50.00, 'stock' => 100],
-            ['name' => 'Sandwich', 'price' => 120.00, 'stock' => 50],
-            ['name' => 'Water Bottle', 'price' => 20.00, 'stock' => 200],
-            ['name' => 'Chips', 'price' => 45.00, 'stock' => 80],
-        ];
+        $products = []
+        ;
 
         foreach ($products as $prod) {
             Product::create($prod);
