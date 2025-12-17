@@ -14,10 +14,10 @@ class SingleDeviceServiceProvider extends ServiceProvider
     public function boot(Router $router)
     {
         // 1. Register the Event Listener
-        Event::listen(
-            Login::class,
-            [UpdateActiveSession::class, 'handle']
-        );
+        //Event::listen(
+          //  Login::class,
+           // [UpdateActiveSession::class, 'handle']
+        //);
 
         // 2. Register the Middleware Globally (or mostly global)
         // This pushes the middleware to the 'web' group automatically
