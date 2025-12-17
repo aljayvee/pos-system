@@ -138,4 +138,13 @@ Route::middleware(['auth', 'role:cashier,admin'])->prefix('cashier')->group(func
 Route::middleware(['auth'])->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::post('/profile', [ProfileController::class, 'update'])->name('profile.update');
+
+
+    // Device 2 (Waiting Room)
+    Route::get('/auth/wait', [AuthController::class, 'showConsentWait'])->name('auth.consent.wait');
+    Route::get('/auth/check-status', [AuthController::class, 'checkConsentStatus'])->name('auth.consent.check');
+
+    // Device 1 (Active User Actions)
+    Route::get('/auth/check-requests', [AuthController::class, 'checkLoginRequests'])->name('auth.check_requests');
+    Route::post('/auth/resolve-request', [AuthController::class, 'resolveLoginRequest'])->name('auth.resolve_request');
 });

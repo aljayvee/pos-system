@@ -14,7 +14,63 @@
 
     <meta name="csrf-token" content="{{ csrf_token() }}">
 </head>
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
+<script>
+    // Poll for login requests every 4 seconds
+    setInterval(() => {
+        axios.get('{{ route("auth.check_requests") }}')
+            .then(response => {
+                if (response.data.has_request) {
+                    showConsentModal(response.data.details);
+                }
+            });
+    }, 4000);
+
+    let isModalOpen = false;
+
+    function showConsentModal(details) {
+        if (isModalOpen) return; // Prevent duplicates
+        isModalOpen = true;
+
+        Swal.fire({
+            title: 'New Login Detected',
+            html: `
+                <div class="text-left text-sm">
+                    <p>A new device is trying to log in:</p>
+                    <ul class="list-disc ml-5 mt-2">
+                        <li><strong>IP:</strong> ${details.ip}</li>
+                        <li><strong>Time:</strong> Just now</li>
+                    </ul>
+                    <p class="mt-4 font-bold text-red-600">Do you want to allow this?</p>
+                    <p class="text-xs text-gray-500">(If YES, you will be logged out)</p>
+                </div>
+            `,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Yes, Log them in',
+            cancelButtonText: 'No, Block them',
+            allowOutsideClick: false
+        }).then((result) => {
+            isModalOpen = false;
+            let decision = result.isConfirmed ? 'approve' : 'deny';
+
+            axios.post('{{ route("auth.resolve_request") }}', {
+                decision: decision,
+                _token: '{{ csrf_token() }}'
+            }).then(res => {
+                if (res.data.action === 'logout_self') {
+                    window.location.reload(); // This will trigger middleware logout
+                } else {
+                    Swal.fire('Blocked', 'The login request was denied.', 'success');
+                }
+            });
+        });
+    }
+</script>
 <body class="bg-light">
     <div id="app">
         <admin-layout
