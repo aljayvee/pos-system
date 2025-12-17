@@ -17,7 +17,7 @@
     <div class="card bg-danger text-white border-0 shadow-sm mb-4">
         <div class="card-body p-4 d-flex justify-content-between align-items-center">
             <div>
-                <small class="text-white-50 text-uppercase fw-bold">Total Outstanding (Collectibles)</small>
+                <small class="text-white-50 text-uppercase fw-bold">Total Outstanding</small>
                 <h2 class="fw-bold mb-0">₱{{ number_format($totalReceivables, 2) }}</h2>
             </div>
             <i class="fas fa-hand-holding-usd fa-3x opacity-25"></i>
@@ -67,26 +67,34 @@
             </div>
         </div>
 
-        {{-- Mobile Cards --}}
+        {{-- Mobile Native View --}}
         <div class="d-md-none">
-            <div class="list-group list-group-flush">
-                @foreach($credits as $credit)
-                <div class="list-group-item p-3">
+            @foreach($credits as $credit)
+            <div class="card shadow-sm border-0 mb-3 mx-3 mt-2" style="border-radius: 12px;">
+                <div class="card-body p-3">
                     <div class="d-flex justify-content-between align-items-start mb-2">
-                        <div class="fw-bold">{{ $credit->customer->name ?? 'Unknown' }}</div>
-                        <span class="badge bg-danger-subtle text-danger border border-danger">₱{{ number_format($credit->remaining_balance, 2) }}</span>
+                        <h5 class="fw-bold text-dark mb-0">{{ $credit->customer->name ?? 'Unknown' }}</h5>
+                        <span class="badge bg-light text-secondary border">#{{ $credit->sale_id }}</span>
                     </div>
-                    <div class="small text-muted d-flex justify-content-between">
-                        <span>Sale #{{ $credit->sale_id }}</span>
-                        @if($credit->due_date && \Carbon\Carbon::parse($credit->due_date)->isPast())
-                            <span class="text-danger fw-bold">Due: {{ $credit->due_date }}</span>
-                        @else
-                            <span>Due: {{ $credit->due_date ?? 'N/A' }}</span>
-                        @endif
+
+                    <div class="d-flex justify-content-between align-items-center mt-3 pt-3 border-top">
+                         <div>
+                            @if($credit->due_date && \Carbon\Carbon::parse($credit->due_date)->isPast())
+                                <small class="text-danger fw-bold text-uppercase" style="font-size: 0.65rem;">Overdue</small>
+                                <div class="text-danger small">{{ $credit->due_date }}</div>
+                            @else
+                                <small class="text-muted text-uppercase" style="font-size: 0.65rem;">Due Date</small>
+                                <div class="text-dark small">{{ $credit->due_date ?? 'N/A' }}</div>
+                            @endif
+                         </div>
+                         <div class="text-end">
+                             <small class="text-muted text-uppercase" style="font-size: 0.65rem;">Balance</small>
+                             <div class="fw-bold text-danger fs-5">₱{{ number_format($credit->remaining_balance, 2) }}</div>
+                         </div>
                     </div>
                 </div>
-                @endforeach
             </div>
+            @endforeach
         </div>
     </div>
 </div>

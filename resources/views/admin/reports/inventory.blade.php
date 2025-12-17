@@ -86,31 +86,36 @@
             </div>
         </div>
 
-        {{-- Mobile View --}}
+        {{-- Mobile Native View --}}
         <div class="d-lg-none">
-            <div class="list-group list-group-flush">
-                @foreach($inventory as $item)
-                <div class="list-group-item p-3">
+            @foreach($inventory as $item)
+            <div class="card border-0 shadow-sm mb-3 mx-3 mt-2" style="border-radius: 12px;">
+                <div class="card-body p-3">
                     <div class="d-flex justify-content-between align-items-start mb-2">
-                        <div class="fw-bold text-dark">{{ $item->name }}</div>
-                        @if($item->current_stock == 0) <span class="badge bg-danger">Empty</span>
-                        @elseif($item->current_stock <= $item->reorder_point) <span class="badge bg-warning text-dark">Low</span>
-                        @else <span class="badge bg-success">Good</span>
+                        <div class="fw-bold text-dark fs-5">{{ $item->name }}</div>
+                        @if($item->current_stock == 0) <span class="badge bg-danger rounded-pill">Out</span>
+                        @elseif($item->current_stock <= $item->reorder_point) <span class="badge bg-warning text-dark rounded-pill">Low</span>
+                        @else <span class="badge bg-success rounded-pill">Good</span>
                         @endif
                     </div>
-                    <div class="d-flex justify-content-between align-items-center bg-light rounded p-2">
-                        <div>
-                            <small class="text-uppercase text-muted" style="font-size:0.65rem">Stock</small>
-                            <div class="fw-bold">{{ $item->current_stock }}</div>
+                    
+                    <div class="d-flex justify-content-between align-items-center bg-light rounded-3 p-2">
+                        <div class="text-center px-2">
+                            <small class="text-uppercase text-muted" style="font-size:0.6rem">Stock</small>
+                            <div class="fw-bold text-dark">{{ $item->current_stock }}</div>
                         </div>
-                        <div class="text-end">
-                            <small class="text-uppercase text-muted" style="font-size:0.65rem">Price</small>
+                        <div class="text-center px-2 border-start border-end flex-grow-1">
+                             <small class="text-uppercase text-muted" style="font-size:0.6rem">Cost</small>
+                             <div class="text-muted small">₱{{ number_format($item->cost, 2) }}</div>
+                        </div>
+                        <div class="text-center px-2">
+                            <small class="text-uppercase text-muted" style="font-size:0.6rem">Price</small>
                             <div class="fw-bold text-primary">₱{{ number_format($item->price, 2) }}</div>
                         </div>
                     </div>
                 </div>
-                @endforeach
             </div>
+            @endforeach
         </div>
     </div>
 </div>

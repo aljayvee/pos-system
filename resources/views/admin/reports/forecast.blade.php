@@ -40,7 +40,6 @@
                                 <small class="text-muted">{{ $item['category'] }}</small>
                             </td>
                             <td class="text-center">{{ $item['stock'] }}</td>
-                            {{-- FIX: Format number here --}}
                             <td class="text-center text-muted">{{ number_format($item['ads'], 2) }}/day</td>
                             <td class="text-center fw-bold">
                                 {{ $item['days_left'] > 365 ? '> 1 Year' : number_format($item['days_left'], 1) . ' Days' }}
@@ -68,44 +67,43 @@
             </div>
         </div>
 
-        {{-- Mobile Cards --}}
+        {{-- Mobile Native View --}}
         <div class="d-lg-none">
-            <div class="list-group list-group-flush">
-                @forelse($forecastData as $item)
-                <div class="list-group-item p-3 {{ $item['reorder_qty'] > 0 ? 'bg-warning-subtle' : '' }}">
+            @forelse($forecastData as $item)
+            <div class="card border-0 shadow-sm mb-3 mx-3 mt-2 {{ $item['reorder_qty'] > 0 ? 'border-start border-4 border-warning' : '' }}" style="border-radius: 12px;">
+                <div class="card-body p-3">
                     <div class="d-flex justify-content-between align-items-start mb-2">
-                        <div class="fw-bold">{{ $item['name'] }}</div>
-                        <span class="badge bg-light text-dark border">{{ $item['stock'] }} in stock</span>
-                    </div>
-                    
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        {{-- FIX: Format number here --}}
-                        <small class="text-muted">Avg: {{ number_format($item['ads'], 2) }} sold/day</small>
+                        <div>
+                            <div class="fw-bold text-dark">{{ $item['name'] }}</div>
+                            <small class="text-muted">{{ $item['stock'] }} in stock</small>
+                        </div>
                         @if($item['reorder_qty'] > 0)
-                            <span class="badge bg-success">+{{ $item['reorder_qty'] }} Reorder</span>
+                            <span class="badge bg-success shadow-sm">+{{ $item['reorder_qty'] }} Reorder</span>
                         @endif
                     </div>
-
-                    <div class="d-flex align-items-center gap-2 mt-2">
-                        <small class="fw-bold">Days Left:</small>
-                        <div class="progress flex-grow-1" style="height: 10px;">
+                    
+                    <div class="mt-3">
+                        <div class="d-flex justify-content-between small mb-1">
+                            <span class="text-muted">Supply Remaining</span>
+                            <span class="fw-bold {{ $item['days_left'] < 7 ? 'text-danger' : 'text-dark' }}">
+                                {{ $item['days_left'] > 365 ? '>1 Year' : number_format($item['days_left'], 1) . ' Days' }}
+                            </span>
+                        </div>
+                        <div class="progress" style="height: 8px; border-radius: 4px;">
                             @php
-                                // FIX: $item['days_left'] is now a float, so math works safely
                                 $val = min($item['days_left'], 30);
                                 $pct = ($val / 30) * 100;
                                 $color = $item['days_left'] < 7 ? 'bg-danger' : ($item['days_left'] < 14 ? 'bg-warning' : 'bg-success');
                             @endphp
                             <div class="progress-bar {{ $color }}" style="width: {{ $pct }}%"></div>
                         </div>
-                        <small class="text-muted" style="width: 60px; text-align: right">
-                            {{ $item['days_left'] > 365 ? '>1yr' : number_format($item['days_left'], 1) . 'd' }}
-                        </small>
+                        <small class="text-muted mt-1 d-block text-end" style="font-size: 0.65rem;">Selling {{ number_format($item['ads'], 2) }}/day</small>
                     </div>
                 </div>
-                @empty
-                <div class="text-center py-5 text-muted">No data.</div>
-                @endforelse
             </div>
+            @empty
+            <div class="text-center py-5 text-muted">No data available.</div>
+            @endforelse
         </div>
     </div>
 </div>

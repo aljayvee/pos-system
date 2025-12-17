@@ -44,12 +44,12 @@
                     <label class="small fw-bold text-muted">Date</label>
                     <input type="date" name="start_date" class="form-control" value="{{ $startDate }}">
                 </div>
-                <div class="col-12 col-md-2">
+                <div class="col-6 col-md-2">
                     <button type="submit" class="btn btn-dark w-100"><i class="fas fa-filter me-1"></i> Filter</button>
                 </div>
-                <div class="col-12 col-md-2">
+                <div class="col-6 col-md-2">
                     <a href="{{ route('reports.export', ['report_type' => 'sales', 'start_date' => $startDate]) }}" class="btn btn-success w-100">
-                        <i class="fas fa-download me-1"></i> Export
+                        <i class="fas fa-download me-1"></i> CSV
                     </a>
                 </div>
             </form>
@@ -57,11 +57,11 @@
     </div>
 
     {{-- METRICS GRID --}}
-    <div class="row g-3 mb-4">
+    <div class="row g-2 g-xl-3 mb-4">
         <div class="col-6 col-xl-3">
             <div class="card bg-primary text-white h-100 shadow-sm border-0">
                 <div class="card-body p-3">
-                    <small class="text-white-50 text-uppercase fw-bold">Revenue</small>
+                    <small class="text-white-50 text-uppercase fw-bold" style="font-size: 0.65rem;">Revenue</small>
                     <h3 class="fw-bold mb-0">₱{{ number_format($total_sales, 2) }}</h3>
                 </div>
             </div>
@@ -69,7 +69,7 @@
         <div class="col-6 col-xl-3">
             <div class="card bg-success text-white h-100 shadow-sm border-0">
                 <div class="card-body p-3">
-                    <small class="text-white-50 text-uppercase fw-bold">Gross Profit</small>
+                    <small class="text-white-50 text-uppercase fw-bold" style="font-size: 0.65rem;">Gross Profit</small>
                     <h3 class="fw-bold mb-0">₱{{ number_format($gross_profit, 2) }}</h3>
                 </div>
             </div>
@@ -77,7 +77,7 @@
         <div class="col-6 col-xl-3">
             <div class="card bg-white h-100 shadow-sm border-0 border-start border-4 border-warning">
                 <div class="card-body p-3">
-                    <small class="text-muted text-uppercase fw-bold">Transactions</small>
+                    <small class="text-muted text-uppercase fw-bold" style="font-size: 0.65rem;">Transactions</small>
                     <h3 class="fw-bold mb-0 text-dark">{{ number_format($total_transactions) }}</h3>
                 </div>
             </div>
@@ -85,7 +85,7 @@
         <div class="col-6 col-xl-3">
             <div class="card bg-info text-white h-100 shadow-sm border-0">
                 <div class="card-body p-3">
-                    <small class="text-white-50 text-uppercase fw-bold">Tithes</small>
+                    <small class="text-white-50 text-uppercase fw-bold" style="font-size: 0.65rem;">Tithes</small>
                     <h3 class="fw-bold mb-0">₱{{ number_format($tithesAmount, 2) }}</h3>
                 </div>
             </div>
@@ -139,21 +139,26 @@
                     </div>
                 </div>
 
-                {{-- Mobile List --}}
+                {{-- Mobile List (Leaderboard Style) --}}
                 <div class="d-md-none">
-                    <ul class="list-group list-group-flush">
-                        @forelse($topItems as $item)
-                        <li class="list-group-item d-flex justify-content-between align-items-center p-3">
-                            <div>
-                                <div class="fw-bold">{{ $item->product->name ?? 'Unknown' }}</div>
-                                <small class="text-muted">{{ $item->total_qty }} units sold</small>
+                    <div class="list-group list-group-flush">
+                        @forelse($topItems as $index => $item)
+                        <div class="list-group-item p-3 border-0 border-bottom">
+                            <div class="d-flex align-items-center">
+                                <div class="fw-bold text-secondary me-3 h4 mb-0 opacity-50">#{{ $index + 1 }}</div>
+                                <div class="flex-grow-1">
+                                    <div class="fw-bold text-dark">{{ $item->product->name ?? 'Unknown' }}</div>
+                                    <small class="text-muted">{{ $item->total_qty }} sold</small>
+                                </div>
+                                <div class="text-end">
+                                    <div class="fw-bold text-success">₱{{ number_format($item->total_revenue, 2) }}</div>
+                                </div>
                             </div>
-                            <span class="text-success fw-bold">₱{{ number_format($item->total_revenue, 2) }}</span>
-                        </li>
+                        </div>
                         @empty
-                        <li class="list-group-item text-center text-muted py-3">No sales yet.</li>
+                        <div class="text-center text-muted py-4">No sales data.</div>
                         @endforelse
-                    </ul>
+                    </div>
                 </div>
             </div>
         </div>
@@ -204,26 +209,29 @@
         </div>
 
         {{-- Mobile Cards --}}
-        <div class="d-lg-none">
-            <div class="list-group list-group-flush">
-                @forelse($sales as $sale)
-                <div class="list-group-item p-3">
-                    <div class="d-flex justify-content-between align-items-start mb-2">
-                        <div>
-                            <span class="badge bg-light text-dark border">#{{ $sale->id }}</span>
-                            <span class="text-muted small ms-2">{{ $sale->created_at->format('M d, h:i A') }}</span>
-                        </div>
-                        <span class="fw-bold fs-5">₱{{ number_format($sale->total_amount, 2) }}</span>
+        <div class="d-lg-none bg-light pt-2 pb-2">
+            @forelse($sales as $sale)
+            <div class="card shadow-sm border-0 mx-3 mb-3" style="border-radius: 12px;">
+                <div class="card-body p-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="badge bg-light text-secondary border">#{{ $sale->id }}</span>
+                        <small class="text-muted">{{ $sale->created_at->format('M d, h:i A') }}</small>
                     </div>
                     <div class="d-flex justify-content-between align-items-center">
-                        <small class="text-muted">{{ $sale->customer->name ?? 'Walk-in' }}</small>
-                        <a href="{{ route('transactions.show', $sale->id) }}" class="btn btn-sm btn-light border">Details</a>
+                        <h5 class="fw-bold mb-0 text-primary">₱{{ number_format($sale->total_amount, 2) }}</h5>
+                        <span class="badge {{ $sale->payment_method == 'credit' ? 'bg-danger-subtle text-danger' : 'bg-success-subtle text-success' }} rounded-pill text-uppercase" style="font-size: 0.7rem;">
+                            {{ $sale->payment_method }}
+                        </span>
+                    </div>
+                    <div class="mt-2 pt-2 border-top d-flex justify-content-between align-items-center">
+                        <span class="small text-muted"><i class="fas fa-user me-1"></i> {{ $sale->customer->name ?? 'Walk-in' }}</span>
+                        <a href="{{ route('transactions.show', $sale->id) }}" class="text-decoration-none small fw-bold text-primary">Details <i class="fas fa-arrow-right"></i></a>
                     </div>
                 </div>
-                @empty
-                <div class="text-center py-5 text-muted">No transactions found.</div>
-                @endforelse
             </div>
+            @empty
+            <div class="text-center py-5 text-muted">No transactions found.</div>
+            @endforelse
         </div>
     </div>
 </div>
