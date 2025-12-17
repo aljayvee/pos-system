@@ -1,9 +1,9 @@
 {
     "major": 1,
     "minor": 0,
-    "revision": 1,
-    "build": "20251219",
-    "full": "1.0.1-build.20251220   ",
+    "revision": 2,
+    "build": "20251220",
+    "full": "1.0.2-build.20251220",
     "update_type": "Minor Update",
-    "changelog": "• Verified SSH update connection"
+    "changelog": "• Enhance the System Up-to-Date Notification Message\n• Minor bug fixes and performance improvements"
 }

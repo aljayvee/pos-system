@@ -476,7 +476,12 @@ function checkForUpdates() {
             } else if (data.error) {
                 Swal.fire('Error', data.error, 'error');
             } else {
-                Swal.fire('Up to Date', 'You are running the latest build.', 'success');
+               Swal.fire({
+        title: 'System Up to Date',
+        text: 'Your current version (' + data.current + ') is the latest available. No new updates have been pushed to the server.',
+        icon: 'success',
+        confirmButtonColor: '#4f46e5'
+    });
             }
         });
 }
