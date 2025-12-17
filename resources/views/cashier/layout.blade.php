@@ -41,11 +41,12 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <script>
-    // Poll for login requests every 4 seconds
+    // Poll for login requests
     setInterval(() => {
         axios.get('{{ route("auth.check_requests") }}')
             .then(response => {
                 if (response.data.has_request) {
+                    // We pass the whole object including request_id
                     showConsentModal(response.data.details);
                 }
             });
@@ -54,7 +55,7 @@
     let isModalOpen = false;
 
     function showConsentModal(details) {
-        if (isModalOpen) return; // Prevent duplicates
+        if (isModalOpen) return;
         isModalOpen = true;
 
         Swal.fire({
@@ -64,16 +65,13 @@
                     <p>A new device is trying to log in:</p>
                     <ul class="list-disc ml-5 mt-2">
                         <li><strong>IP:</strong> ${details.ip}</li>
-                        <li><strong>Time:</strong> Just now</li>
+                        <li><strong>Device:</strong> ${details.device}</li>
                     </ul>
                     <p class="mt-4 font-bold text-red-600">Do you want to allow this?</p>
-                    <p class="text-xs text-gray-500">(If YES, you will be logged out)</p>
                 </div>
             `,
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonColor: '#3085d6',
-            cancelButtonColor: '#d33',
             confirmButtonText: 'Yes, Log them in',
             cancelButtonText: 'No, Block them',
             allowOutsideClick: false
@@ -83,10 +81,11 @@
 
             axios.post('{{ route("auth.resolve_request") }}', {
                 decision: decision,
+                request_id: details.request_id, // <--- CRITICAL: Pass the ID back
                 _token: '{{ csrf_token() }}'
             }).then(res => {
                 if (res.data.action === 'logout_self') {
-                    window.location.reload(); // This will trigger middleware logout
+                    window.location.reload(); 
                 } else {
                     Swal.fire('Blocked', 'The login request was denied.', 'success');
                 }

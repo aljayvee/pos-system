@@ -140,11 +140,24 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/profile', [ProfileController::class, 'update'])->name('profile.update');
 
 
-    // Device 2 (Waiting Room)
+    // Device 2
     Route::get('/auth/wait', [AuthController::class, 'showConsentWait'])->name('auth.consent.wait');
     Route::get('/auth/check-status', [AuthController::class, 'checkConsentStatus'])->name('auth.consent.check');
+    
+    // NEW: Force Login Routes
+    Route::post('/auth/force-email', [AuthController::class, 'sendForceLoginEmail'])->name('auth.force.email');
+    // Note: The verify route does NOT need auth middleware strictly if clicking from email on a fresh phone, 
+    // but usually better to have signed middleware.
+});
 
-    // Device 1 (Active User Actions)
+// MOVE THIS OUTSIDE THE AUTH GROUP (Publicly accessible with signature)
+Route::get('/auth/force-verify/{id}', [AuthController::class, 'verifyForceLogin'])
+    ->name('auth.force_login_verify')
+    ->middleware('signed');
+
+// Device 1
+Route::middleware(['auth'])->group(function () {
     Route::get('/auth/check-requests', [AuthController::class, 'checkLoginRequests'])->name('auth.check_requests');
     Route::post('/auth/resolve-request', [AuthController::class, 'resolveLoginRequest'])->name('auth.resolve_request');
 });
+// ...
