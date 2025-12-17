@@ -447,7 +447,7 @@
 function checkForUpdates() {
     Swal.fire({
         title: 'Checking for updates...',
-        text: 'Connecting to GitHub server...',
+        text: 'Connecting to the server...',
         allowOutsideClick: false,
         didOpen: () => { Swal.showLoading(); }
     });
