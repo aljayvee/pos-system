@@ -119,20 +119,18 @@
 </style>
 
 <div id="connection-status" class="status-online" style="height:3px; position:fixed; top:0; width:100%; z-index:9999;"></div>
-
 <div class="container-fluid">
     <div class="row g-3">
         
         {{-- LEFT: PRODUCT AREA --}}
         <div class="col-lg-8 col-12 pt-3">
-            
             {{-- 1. Sticky Tools Header --}}
             <div class="sticky-tools">
                 <div class="d-flex gap-2 mb-3 align-items-center">
                     {{-- Search --}}
                     <div class="search-wrapper flex-grow-1">
                         <i class="fas fa-search text-muted ms-2"></i>
-                        <input type="text" id="product-search" class="search-input" placeholder="Search...">
+                        <input type="text" id="product-search" class="search-input" placeholder="Search">
                         <button class="btn btn-sm text-primary" onclick="openCameraModal()"><i class="fas fa-barcode fa-lg"></i></button>
                     </div>
                     
