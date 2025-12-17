@@ -670,7 +670,73 @@
         Swal.fire('Saved Offline', 'Transaction stored locally.', 'info');
     }
     function updateConnectionStatus() { isOffline = !navigator.onLine; document.getElementById('connection-status').className = isOffline ? 'status-offline' : 'status-online'; }
-    function syncOfflineData() { if(!isOffline && localStorage.getItem('offline_queue_sales')) Swal.fire({toast:true, title:'Syncing...', position:'top-end', timer:2000, showConfirmButton:false}); }
+    async function syncOfflineData() {
+        if (isOffline) return;
+
+        // 1. Get the queue
+        let queue = JSON.parse(localStorage.getItem('offline_queue_sales')) || [];
+        if (queue.length === 0) return;
+
+        // 2. Notify User
+        const Toast = Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 3000 });
+        Toast.fire({ icon: 'info', title: `Syncing ${queue.length} offline records...` });
+
+        let successCount = 0;
+        let failCount = 0;
+        let newQueue = [];
+
+        // 3. Loop through transactions sequentially (Order matters!)
+        for (const saleData of queue) {
+            try {
+                const response = await fetch("{{ route('cashier.store') }}", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Accept": "application/json",
+                        "X-CSRF-TOKEN": CONFIG.csrfToken
+                    },
+                    body: JSON.stringify(saleData)
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    successCount++;
+                    // Optional: Print the receipt for the synced sale if needed
+                    // console.log("Synced Sale ID:", data.sale_id);
+                } else {
+                    console.error("Server Rejected:", data);
+                    // If server rejects (e.g., validation error), we keep it to prevent data loss
+                    // BUT you might want to flag it so it doesn't loop forever.
+                    newQueue.push(saleData); 
+                    failCount++;
+                }
+            } catch (error) {
+                console.error("Sync Network Error:", error);
+                // Keep in queue if connection drops again
+                newQueue.push(saleData); 
+                failCount++;
+            }
+        }
+
+        // 4. Update Queue with only the failed items
+        localStorage.setItem('offline_queue_sales', JSON.stringify(newQueue));
+
+        // 5. Final Report
+        if (successCount > 0) {
+            Toast.fire({ icon: 'success', title: `Synced ${successCount} sales successfully!` });
+            // Refresh stock display since we just uploaded sales
+            startLiveStockSync(); 
+        }
+        
+        if (failCount > 0) {
+            Swal.fire({
+                toast: true, position: 'top-end', icon: 'warning', 
+                title: `${failCount} sales failed to sync. Check console.`,
+                showConfirmButton: false, timer: 4000
+            });
+        }
+    }
     function startLiveStockSync() {
         setInterval(() => {
             if (!navigator.onLine) return;
