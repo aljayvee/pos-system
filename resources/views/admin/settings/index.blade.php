@@ -298,7 +298,7 @@
                         </div>
 
                         {{-- MULTI-STORE --}}
-                        <div class="bg-light p-3 rounded-3">
+                        <!--<div class="bg-light p-3 rounded-3">
                             <div class="d-flex align-items-center justify-content-between">
                                 <label class="form-check-label fw-bold text-primary d-flex align-items-center" for="multiStoreSwitch">
                                     <i class="fas fa-network-wired me-2"></i> Multi-Store System
@@ -316,13 +316,13 @@
                                     Manage Stores & Branches
                                 </a>
                             </div>
-                        </div>
+                        </div>-->
 
                         <div class="mt-4 pt-2 border-top">
                             <button type="submit" class="btn btn-success w-100 btn-save">
                                 Save Feature Settings
                             </button>
-                        </div>
+                        </div>-
                     </div>
                 </div>
             </form>
