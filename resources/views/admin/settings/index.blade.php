@@ -366,6 +366,22 @@
                 </div>
             </div>
         </div>
+
+
+        {{-- resources/views/admin/settings/index.blade.php --}}
+            {{-- Add this below the 'Restore Database' form inside the Right Column --}}
+
+            <hr class="text-muted opacity-25">
+
+            <div class="mt-3">
+                <label class="form-label fw-bold text-dark"><i class="fas fa-sync-alt me-1"></i> Software Update</label>
+                <p class="small text-muted mb-2">Current Version: <span class="badge bg-secondary">{{ config('version.full') }}</span></p>
+                
+                <button type="button" class="btn btn-outline-primary w-100 py-2 fw-bold" onclick="checkForUpdates()">
+                    Check for Updates
+                </button>
+            </div>
+
     </div>
 </div>
 
@@ -543,4 +559,69 @@
         </div>
     </div>
 </div>
+
+<script>
+
+/function checkForUpdates() {
+    Swal.fire({
+        title: 'Checking for updates...',
+        text: 'Connecting to GitHub server...',
+        allowOutsideClick: false,
+        didOpen: () => { Swal.showLoading(); }
+    });
+
+    fetch("{{ route('settings.check_update') }}")
+        .then(response => response.json())
+        .then(data => {
+            if (data.has_update) {
+                Swal.fire({
+                    title: `Update Found: ${data.latest}`,
+                    html: `
+                        <div class="alert alert-info text-start small">
+                            <strong>${data.type}</strong><br>
+                            ${data.changelog.replace(/\n/g, '<br>')}
+                        </div>
+                        <p class="text-danger small fw-bold">Note: The system will be unavailable for a few seconds.</p>
+                    `,
+                    icon: 'info',
+                    showCancelButton: true,
+                    confirmButtonText: 'Update Now',
+                    cancelButtonText: 'Later',
+                    confirmButtonColor: '#4f46e5',
+                }).then((result) => {
+                    if (result.isConfirmed) { performUpdate(); }
+                });
+            } else if (data.error) {
+                Swal.fire('Error', data.error, 'error');
+            } else {
+                Swal.fire('Up to Date', 'You are running the latest build.', 'success');
+            }
+        });
+}
+
+function performUpdate() {
+    Swal.fire({ 
+        title: 'Installing Update...', 
+        text: 'Downloading files and clearing cache...',
+        allowOutsideClick: false, 
+        didOpen: () => { Swal.showLoading(); } 
+    });
+
+    fetch("{{ route('settings.run_update') }}", {
+        method: 'POST',
+        headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Content-Type': 'application/json' }
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            Swal.fire('Success!', 'System updated successfully. Reloading...', 'success');
+            setTimeout(() => location.reload(), 2500);
+        } else {
+            Swal.fire('Update Failed', data.message, 'error');
+        }
+    })
+    .catch(() => Swal.fire('Error', 'Server lost connection during update. Wait 10 seconds and refresh manually.', 'warning'));
+}
+
+</script>
 @endsection

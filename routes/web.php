@@ -84,6 +84,9 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->group(function () {
     // Backup & Restore
     Route::get('/settings/backup', [BackupController::class, 'download'])->name('settings.backup');
     Route::post('/settings/restore', [BackupController::class, 'restore'])->name('settings.restore');
+    // routes/web.php (Inside Admin Group)
+    Route::get('/settings/update-check', [SettingsController::class, 'checkUpdate'])->name('settings.check_update');
+    Route::post('/settings/update-process', [SettingsController::class, 'runUpdate'])->name('settings.run_update');
 
     // Logs
     Route::get('/logs', [ActivityLogController::class, 'index'])->name('logs.index');

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Setting;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Crypt; // Import Crypt
 use Illuminate\Support\Facades\Hash; // Import Hash
 use Illuminate\Contracts\Encryption\DecryptException; // Import Exception
@@ -181,4 +182,50 @@ class SettingsController extends Controller
 
         return response()->json(['success' => true]);
     }
+
+
+    public function checkUpdate()
+{
+    $current = config('version');
+    
+    try {
+        // Fetch the latest version info from your GitHub repo
+        $response = Http::get('https://raw.githubusercontent.com/aljayvee/pos-system/main/version.json');
+        
+        if ($response->successful()) {
+            $latest = $response->json();
+            $hasUpdate = (int)$latest['build'] > (int)$current['build'];
+
+            return response()->json([
+                'has_update' => $hasUpdate,
+                'current' => $current['full'],
+                'latest' => $latest['full'],
+                'type' => $latest['update_type'],
+                'changelog' => $latest['changelog']
+            ]);
+        }
+        return response()->json(['error' => 'Update server returned an error.'], 500);
+    } catch (\Exception $e) {
+        return response()->json(['error' => 'Could not connect to GitHub.'], 500);
+    }
+}
+
+public function runUpdate(Request $request)
+{
+    // Ensure only Admin can trigger this
+    if (auth()->user()->role !== 'admin') {
+        return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+    }
+
+    try {
+        // These commands run directly on the OpenWrt router
+        shell_exec('cd /www/pos && git pull origin main 2>&1');
+        shell_exec('php /www/pos/artisan migrate --force 2>&1');
+        shell_exec('php /www/pos/artisan optimize:clear 2>&1');
+
+        return response()->json(['success' => true]);
+    } catch (\Exception $e) {
+        return response()->json(['success' => false, 'message' => 'Update failed: ' . $e->getMessage()]);
+    }
+}
 }

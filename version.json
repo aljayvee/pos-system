@@ -1,0 +1,9 @@
+{
+    "major": 1,
+    "minor": 0,
+    "revision": 1,
+    "build": "20251219",
+    "full": "1.0.1-build.20251219",
+    "update_type": "Minor Update",
+    "changelog": "• Added progress bar to login button\n• Fixed barcode button unresponsive issue\n• Improved dashboard loading speed"
+}
