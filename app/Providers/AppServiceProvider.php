@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\View; // <--- THIS WAS MISSING
 use App\Models\Product;
 use App\Models\CustomerCredit;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\URL;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -66,6 +67,11 @@ class AppServiceProvider extends ServiceProvider
             $view->with(compact('lowStockCount', 'outOfStockCount', 'overdueCount', 'totalAlerts'));
         }
     });
+
+    // FORCE HTTPS IN PRODUCTION
+        if($this->app->environment('production')) {
+            URL::forceScheme('https');
+        }
 
     }
 }
