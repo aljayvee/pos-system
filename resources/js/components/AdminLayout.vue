@@ -26,7 +26,7 @@
                  <div class="rounded d-flex align-items-center justify-content-center text-white" style="width: 36px; height: 36px;">
                     <i class="fas fa-store fa-lg text-primary"></i>
                  </div>
-                 <span class="ms-2 fw-bold fs-5 tracking-wide text-white fade-text" v-show="isOpen || isMobile">SariPOS</span>
+                 <span class="ms-2 fw-bold fs-5 tracking-wide text-white fade-text" v-show="isOpen || isMobile">POS System</span>
              </div>
          </div>
 
@@ -38,9 +38,9 @@
       <div class="flex-fill overflow-auto py-3 custom-scrollbar">
          
          <div class="px-3 mb-4">
-             <a href="/cashier" class="btn btn-primary w-100 d-flex align-items-center justify-content-center py-2 shadow-sm text-uppercase fw-bold" style="letter-spacing: 0.5px;">
+             <a href="/cashier/pos" class="btn btn-primary w-100 d-flex align-items-center justify-content-center py-2 shadow-sm text-uppercase fw-bold" style="letter-spacing: 0.5px;">
                  <i class="fas fa-cash-register"></i>
-                 <span class="ms-2" v-show="isOpen || isMobile">Cashier POS</span>
+                 <span class="ms-2" v-show="isOpen || isMobile">Go to Cashier</span>
              </a>
          </div>
 
@@ -59,13 +59,13 @@
                 <li class="nav-item">
                     <a href="/admin/inventory" class="nav-link d-flex align-items-center" :class="{ 'active': currentPath.includes('/inventory') }">
                        <div class="icon-wrapper"><i class="fas fa-boxes"></i></div>
-                       <span class="text-nowrap fade-text ms-2" v-show="isOpen || isMobile">Stock Levels</span>
+                       <span class="text-nowrap fade-text ms-2" v-show="isOpen || isMobile">Inventory Management</span>
                     </a>
                 </li>
                 <li class="nav-item">
                     <a href="/admin/products" class="nav-link d-flex align-items-center" :class="{ 'active': currentPath.includes('/products') }">
                        <div class="icon-wrapper"><i class="fas fa-box-open"></i></div>
-                       <span class="text-nowrap fade-text ms-2" v-show="isOpen || isMobile">Products</span>
+                       <span class="text-nowrap fade-text ms-2" v-show="isOpen || isMobile">Product Management</span>
                     </a>
                 </li>
                 <li class="nav-item">
@@ -77,7 +77,7 @@
                 <li class="nav-item">
                     <a href="/admin/purchases" class="nav-link d-flex align-items-center" :class="{ 'active': currentPath.includes('/purchases') }">
                        <div class="icon-wrapper"><i class="fas fa-truck-loading"></i></div>
-                       <span class="text-nowrap fade-text ms-2" v-show="isOpen || isMobile">Restocking</span>
+                       <span class="text-nowrap fade-text ms-2" v-show="isOpen || isMobile">Stock In History</span>
                     </a>
                 </li>
 
@@ -91,13 +91,13 @@
                 <li class="nav-item">
                     <a href="/admin/customers" class="nav-link d-flex align-items-center" :class="{ 'active': currentPath.includes('/customers') }">
                        <div class="icon-wrapper"><i class="fas fa-users"></i></div>
-                       <span class="text-nowrap fade-text ms-2" v-show="isOpen || isMobile">Customers</span>
+                       <span class="text-nowrap fade-text ms-2" v-show="isOpen || isMobile">Customer Management</span>
                     </a>
                 </li>
                 <li class="nav-item">
                     <a href="/admin/suppliers" class="nav-link d-flex align-items-center" :class="{ 'active': currentPath.includes('/suppliers') }">
                        <div class="icon-wrapper"><i class="fas fa-people-carry"></i></div>
-                       <span class="text-nowrap fade-text ms-2" v-show="isOpen || isMobile">Suppliers</span>
+                       <span class="text-nowrap fade-text ms-2" v-show="isOpen || isMobile">Supplier Management</span>
                     </a>
                 </li>
 
@@ -105,7 +105,7 @@
                 <li class="nav-item">
                     <a href="/admin/reports" class="nav-link d-flex align-items-center" :class="{ 'active': currentPath.includes('/reports') }">
                        <div class="icon-wrapper"><i class="fas fa-chart-pie"></i></div>
-                       <span class="text-nowrap fade-text ms-2" v-show="isOpen || isMobile">Sales Reports</span>
+                       <span class="text-nowrap fade-text ms-2" v-show="isOpen || isMobile">Reports</span>
                     </a>
                 </li>
 
@@ -131,7 +131,7 @@
                 <li class="nav-item">
                     <a href="/admin/settings" class="nav-link d-flex align-items-center" :class="{ 'active': currentPath.includes('/settings') }">
                        <div class="icon-wrapper"><i class="fas fa-cog"></i></div>
-                       <span class="text-nowrap fade-text ms-2" v-show="isOpen || isMobile">Settings</span>
+                       <span class="text-nowrap fade-text ms-2" v-show="isOpen || isMobile">More Features</span>
                     </a>
                 </li>
 
@@ -167,7 +167,7 @@
         <button v-if="!isOpen && !isMobile" @click="toggleSidebar" class="btn btn-light border me-3 text-secondary"><i class="fas fa-bars"></i></button>
         <button v-if="isMobile" @click="toggleSidebar" class="btn btn-light border me-3 text-secondary"><i class="fas fa-bars"></i></button>
 
-        <h1 class="h5 mb-0 fw-bold text-dark">{{ pageTitle }}</h1>
+        <h5 class="h9 mb-0 text-dark">POS System</h5>
 
         <div class="ms-auto position-relative" v-click-outside="closeNotif">
              <button @click="toggleNotif" class="btn btn-light rounded-circle position-relative p-2 text-secondary hover-bg-light" style="width: 42px; height: 42px;">

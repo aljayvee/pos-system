@@ -5,7 +5,7 @@
     <div class="d-flex align-items-center justify-content-between mb-4 mt-4">
         <div>
             <h4 class="fw-bold text-dark mb-1">Store Overview</h4>
-            <small class="text-muted">Welcome back, here's what's happening today.</small>
+            <small class="text-muted">Welcome back <b>{{ Auth::user()->name }}</b>, here's what's happening today.</small>
         </div>
         </div>
 
