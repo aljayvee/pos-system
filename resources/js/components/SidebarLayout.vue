@@ -11,7 +11,7 @@
 
         <div class="logo-container" :class="{ 'justify-center': !isOpen && !isMobile }">
             <i class="fas fa-store text-primary fa-lg me-2"></i>
-            <span class="logo-text" v-show="isOpen || isMobile">SariPOS</span>
+            <span class="logo-text" v-show="isOpen || isMobile">POS System</span>
         </div>
       </div>
 
@@ -30,24 +30,24 @@
 
              <div class="menu-label" v-show="isOpen || isMobile">Inventory</div>
              <a href="/admin/products" class="menu-item" :class="{ 'active': currentPath.includes('/products') }">
-               <i class="fas fa-box"></i><span class="label" v-show="isOpen || isMobile">Products</span>
+               <i class="fas fa-box"></i><span class="label" v-show="isOpen || isMobile">Product Management</span>
              </a>
              <a href="/admin/inventory" class="menu-item" :class="{ 'active': currentPath.includes('/inventory') }">
-               <i class="fas fa-warehouse"></i><span class="label" v-show="isOpen || isMobile">Stock Level</span>
+               <i class="fas fa-warehouse"></i><span class="label" v-show="isOpen || isMobile">Inventory</span>
              </a>
              <a href="/admin/purchases" class="menu-item" :class="{ 'active': currentPath.includes('/purchases') }">
-               <i class="fas fa-truck-loading"></i> <span class="label" v-show="isOpen || isMobile">Restocking</span>
+               <i class="fas fa-truck-loading"></i> <span class="label" v-show="isOpen || isMobile">Stock In</span>
              </a>
 
              <div class="menu-label" v-show="isOpen || isMobile">Finance</div>
              <a href="/admin/customers" class="menu-item" :class="{ 'active': currentPath.includes('/customers') }">
-               <i class="fas fa-users"></i><span class="label" v-show="isOpen || isMobile">Customers</span>
+               <i class="fas fa-users"></i><span class="label" v-show="isOpen || isMobile">Customer</span>
              </a>
              <a href="/admin/credits" class="menu-item" :class="{ 'active': currentPath.includes('/credits') }">
-               <i class="fas fa-wallet"></i><span class="label" v-show="isOpen || isMobile">Credits</span>
+               <i class="fas fa-wallet"></i><span class="label" v-show="isOpen || isMobile">Utang List</span>
              </a>
              <a href="/admin/suppliers" class="menu-item" :class="{ 'active': currentPath.includes('/suppliers') }">
-               <i class="fas fa-dolly"></i> <span class="label" v-show="isOpen || isMobile">Suppliers</span>
+               <i class="fas fa-dolly"></i> <span class="label" v-show="isOpen || isMobile">Supplier</span>
              </a>
 
              <div class="menu-label" v-show="isOpen || isMobile">System</div>
@@ -58,13 +58,13 @@
                <i class="fas fa-chart-pie"></i><span class="label" v-show="isOpen || isMobile">Reports</span>
              </a>
              <a href="/admin/users" class="menu-item" :class="{ 'active': currentPath.includes('/users') }">
-               <i class="fas fa-user-shield"></i><span class="label" v-show="isOpen || isMobile">Users</span>
+               <i class="fas fa-user-shield"></i><span class="label" v-show="isOpen || isMobile">User Management</span>
              </a>
              <a href="/admin/logs" class="menu-item" :class="{ 'active': currentPath.includes('/logs') }">
-               <i class="fas fa-file-signature"></i><span class="label" v-show="isOpen || isMobile">Logs</span>
+               <i class="fas fa-file-signature"></i><span class="label" v-show="isOpen || isMobile">Audit Logs</span>
              </a>
              <a href="/admin/settings" class="menu-item" :class="{ 'active': currentPath.includes('/settings') }">
-               <i class="fas fa-cog"></i><span class="label" v-show="isOpen || isMobile">Settings</span>
+               <i class="fas fa-cog"></i><span class="label" v-show="isOpen || isMobile">More</span>
              </a>
           </div>
         </nav>
