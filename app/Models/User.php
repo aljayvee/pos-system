@@ -23,7 +23,8 @@ class User extends Authenticatable
         'password',
         'role',      // Added
         'is_active',
-        'store_id'   // Added
+        'store_id',
+        'active_session_id'
     ];
 
     /**

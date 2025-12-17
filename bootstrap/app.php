@@ -12,6 +12,9 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
 
+        // --- 1. Register the Single Device Check Globally ---
+        $middleware->append(\App\Http\Middleware\ForceSingleDevice::class);
+
         // --- ADD THIS BLOCK ---
         $middleware->validateCsrfTokens(except: [
             'logout', // Exclude the logout route from CSRF checks
