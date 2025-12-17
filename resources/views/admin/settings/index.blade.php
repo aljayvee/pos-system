@@ -127,7 +127,7 @@
                 <div class="card-settings">
                     <div class="card-header-clean">
                         
-                        <h6 class="fw-bold m-0 text-dark"><i class="fas fa-file-invoice"> </i>BIR & Tax Compliance</h6>
+                        <h6 class="fw-bold m-0 text-dark"><i class="fas fa-file-invoice"> </i> BIR & Tax Compliance</h6>
                     </div>
                     <div class="card-body p-4">
                         {{-- Toggle --}}
@@ -297,7 +297,14 @@
                             </div>
                         </div>
 
-                        {{-- MULTI-STORE --}}
+                        {{-- MULTI-STORE --}} 
+                            <!--
+                            This feature is temporarily disabled.
+                            Feature settings retained for future use.
+                            Don't uncomment this section unless proceed with caution!
+                            WARNING: Removing this comment may re-enable multi-store settings.
+                            Refer to version control for previous implementations.                        
+                            -->
                         <!--<div class="bg-light p-3 rounded-3">
                             <div class="d-flex align-items-center justify-content-between">
                                 <label class="form-check-label fw-bold text-primary d-flex align-items-center" for="multiStoreSwitch">
