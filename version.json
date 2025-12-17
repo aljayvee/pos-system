@@ -1,9 +1,9 @@
 {
     "major": 1,
     "minor": 0,
-    "revision": 2,
+    "revision": 3,
     "build": "20251220",
-    "full": "1.0.2-build.20251220",
+    "full": "1.0.3-build.20251220",
     "update_type": "Minor Update",
-    "changelog": "• Enhance the System Up-to-Date Notification Message\n• Minor bug fixes and performance improvements"
+    "changelog": "• Fixed bugs in updating the system from previous versions\n• Improved system stability and performance\n• Minor UI enhancements in the login screen"
 }

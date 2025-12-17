@@ -231,7 +231,18 @@ public function runUpdate(Request $request)
 
     try {
         // Run commands and capture output for debugging
-        $output = shell_exec("cd /www/pos && git pull origin $branch 2>&1");
+        $output = shell_exec("cd /www/pos && git pull origin main 2>&1");
+
+        // If the output contains "error" or "conflict", the update didn't actually happen
+    if (str_contains($output, 'error') || str_contains($output, 'conflict')) {
+        return response()->json(['success' => false, 'message' => 'Git Error: ' . $output]);
+    }
+
+        // ADD THIS LINE to force PHP to re-read the updated files
+    if (function_exists('opcache_reset')) {
+        opcache_reset();
+    }
+
         shell_exec('php /www/pos/artisan migrate --force 2>&1');
         shell_exec('php /www/pos/artisan optimize:clear 2>&1');
 
