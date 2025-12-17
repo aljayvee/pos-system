@@ -232,6 +232,9 @@ public function runUpdate(Request $request)
         // standard Laravel maintenance
         shell_exec('php /www/pos/artisan migrate --force 2>&1');
         shell_exec('php /www/pos/artisan optimize:clear 2>&1');
+
+        // 3. Update the database if you added new tables
+        shell_exec('php /www/pos/artisan migrate --force 2>&1');
         
         // Reset Opcache to ensure the new version.php is read
         if (function_exists('opcache_reset')) {
