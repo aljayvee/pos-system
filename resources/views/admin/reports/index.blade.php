@@ -24,10 +24,10 @@
                 <div class="col-12 col-md-3">
                     <label class="small fw-bold text-muted">Branch</label>
                     <select name="store_filter" class="form-select" onchange="this.form.submit()">
-                        <option value="all" {{ $targetStore == 'all' ? 'selected' : '' }}>-- All Branches --</option>
+                        <!--<option value="all" {{ $targetStore == 'all' ? 'selected' : '' }}>-- All Branches --</option>
                         @foreach($stores as $store)
                             <option value="{{ $store->id }}" {{ $targetStore == $store->id ? 'selected' : '' }}>{{ $store->name }}</option>
-                        @endforeach
+                        @endforeach-->
                     </select>
                 </div>
                 @endif
