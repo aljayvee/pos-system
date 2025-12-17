@@ -550,4 +550,23 @@ class POSController extends Controller
 
         return view('cashier.reading', compact('data'));
     }
+
+
+    // Add this method at the very bottom of your POSController class
+public function verifyAdmin(Request $request)
+{
+    $request->validate(['password' => 'required']);
+
+    // Get all admins
+    $admins = \App\Models\User::where('role', 'admin')->get();
+
+    foreach ($admins as $admin) {
+        // Check if the password matches ANY admin account
+        if (\Illuminate\Support\Facades\Hash::check($request->password, $admin->password)) {
+            return response()->json(['success' => true]);
+        }
+    }
+
+    return response()->json(['success' => false, 'message' => 'Invalid Admin Password'], 403);
+}
 }

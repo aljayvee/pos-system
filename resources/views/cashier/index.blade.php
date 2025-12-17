@@ -137,10 +137,11 @@
                     </div>
                     
                     {{-- Compact Action Buttons --}}
-                    <button class="btn btn-white border shadow-sm rounded-3 px-3 text-secondary" onclick="openDebtorList()">
+                    {{-- Changed onclick to use requestAdminAuth() --}}
+                    <button class="btn btn-white border shadow-sm rounded-3 px-3 text-secondary" onclick="requestAdminAuth(openDebtorList)">
                         <i class="fas fa-book text-danger"></i>
                     </button>
-                    <button class="btn btn-white border shadow-sm rounded-3 px-3 text-secondary" onclick="openReturnModal()">
+                    <button class="btn btn-white border shadow-sm rounded-3 px-3 text-secondary" onclick="requestAdminAuth(openReturnModal)">
                         <i class="fas fa-undo-alt text-warning"></i>
                     </button>
                 </div>
@@ -879,5 +880,59 @@
         resetPayMongoUI();
         isProcessing = false;
     });
+
+
+    // === SECURITY: ADMIN AUTH WRAPPER ===
+async function requestAdminAuth(callback) {
+    const { value: password } = await Swal.fire({
+        title: 'Admin Authorization',
+        text: 'This action requires Admin approval.',
+        input: 'password',
+        inputLabel: 'Enter Admin Password',
+        inputPlaceholder: 'Password',
+        showCancelButton: true,
+        confirmButtonText: 'Verify',
+        confirmButtonColor: '#dc3545', // Red for "Security"
+        cancelButtonColor: '#6c757d',
+        allowOutsideClick: false,
+        inputAttributes: {
+            autocapitalize: 'off',
+            autocorrect: 'off'
+        }
+    });
+
+    if (password) {
+        Swal.showLoading();
+        
+        fetch("{{ route('cashier.verify_admin') }}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': CONFIG.csrfToken
+            },
+            body: JSON.stringify({ password: password })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                // Success! Run the restricted function
+                Swal.close();
+                callback(); 
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Access Denied',
+                    text: 'Incorrect Admin Password',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            Swal.fire('Error', 'Verification failed. Check connection.', 'error');
+        });
+    }
+}
 </script>
 @endsection

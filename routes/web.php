@@ -130,6 +130,7 @@ Route::middleware(['auth', 'role:cashier,admin'])->prefix('cashier')->group(func
 
     // In routes/web.php (inside cashier group)
     Route::get('/inventory/sync', [POSController::class, 'getStockUpdates'])->name('cashier.inventory.sync');
+    Route::post('/verify-admin', [POSController::class, 'verifyAdmin'])->name('cashier.verify_admin');
 
 
 });
@@ -143,6 +144,9 @@ Route::middleware(['auth'])->group(function () {
     // Device 2
     Route::get('/auth/wait', [AuthController::class, 'showConsentWait'])->name('auth.consent.wait');
     Route::get('/auth/check-status', [AuthController::class, 'checkConsentStatus'])->name('auth.consent.check');
+
+     Route::get('/auth/check-requests', [AuthController::class, 'checkLoginRequests'])->name('auth.check_requests');
+    Route::post('/auth/resolve-request', [AuthController::class, 'resolveLoginRequest'])->name('auth.resolve_request');
     
     // NEW: Force Login Routes
     Route::post('/auth/force-email', [AuthController::class, 'sendForceLoginEmail'])->name('auth.force.email');
@@ -155,9 +159,5 @@ Route::get('/auth/force-verify/{id}', [AuthController::class, 'verifyForceLogin'
     ->name('auth.force_login_verify')
     ->middleware('signed');
 
-// Device 1
-Route::middleware(['auth'])->group(function () {
-    Route::get('/auth/check-requests', [AuthController::class, 'checkLoginRequests'])->name('auth.check_requests');
-    Route::post('/auth/resolve-request', [AuthController::class, 'resolveLoginRequest'])->name('auth.resolve_request');
-});
+
 // ...
