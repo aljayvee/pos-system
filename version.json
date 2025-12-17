@@ -1,9 +1,9 @@
 {
     "major": 1,
     "minor": 0,
-    "revision": 7,
+    "revision": 8,
     "build": "20251222",
-    "full": "1.0.7-build.20251222",
+    "full": "1.0.8-build.20251223",
     "update_type": "Minor Update",
-    "changelog": "• Fixed the logic bug in the update checker that misreported the current version."
+    "changelog": "• Fix an issue where the current version was incorrectly reported as outdated.\n• Improved update check logic to prevent false positives."
 }

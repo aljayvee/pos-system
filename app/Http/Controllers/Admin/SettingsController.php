@@ -230,6 +230,10 @@ public function runUpdate(Request $request)
         $output = shell_exec("cd /www/pos && git reset --hard origin/$branch 2>&1");
         
         // standard Laravel maintenance
+        shell_exec('php /www/pos/artisan config:cache 2>&1');
+        shell_exec('php /www/pos/artisan view:cache 2>&1');
+        shell_exec('php /www/pos/artisan view:clear 2>&1');
+        shell_exec('php /www/pos/artisan config:clear 2>&1');
         shell_exec('php /www/pos/artisan migrate --force 2>&1');
         shell_exec('php /www/pos/artisan optimize:clear 2>&1');
 
