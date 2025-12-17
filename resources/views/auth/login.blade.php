@@ -123,7 +123,7 @@
                 <i class="fas fa-cash-register"></i>
             </div>
             <h4 class="fw-bold mb-1">Welcome Back!</h4>
-            <p class="mb-0 opacity-75 small">Sign in to your POS Terminal</p>
+            <p class="mb-0 opacity-75 small">Sign in to your Store POS Terminal</p>
         </div>
 
         {{-- Form Section --}}
@@ -147,15 +147,15 @@
                     SIGN IN
                 </button>
 
-                <div class="text-center">
+                <!--<div class="text-center">
                     <a href="#" class="text-decoration-none small text-secondary fw-medium">Forgot Password?</a>
-                </div>
+                </div>-->
             </form>
         </div>
 
         {{-- Footer Section --}}
         <div class="bg-light p-3 text-center border-top">
-            <small class="text-muted fw-bold" style="font-size: 0.7rem;">POWERED BY SARIPOS</small>
+            <small class="text-muted fw-bold" style="font-size: 0.7rem;">POWERED BY VERAPOS</small>
         </div>
     </div>
 
