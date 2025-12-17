@@ -187,11 +187,18 @@ class SettingsController extends Controller
     public function checkUpdate()
 {
     $current = config('version');
+    $storeId = $this->getActiveStoreId();
     
+    // Check if user is a Beta Tester
+    $isBeta = \App\Models\Setting::where('store_id', $storeId)->where('key', 'enable_beta')->value('value') == '1';
+    
+    // Beta testers look at 'beta-version.json', others look at 'version.json'
+    $url = $isBeta 
+        ? 'https://raw.githubusercontent.com/aljayvee/pos-system/main/beta-version.json' 
+        : 'https://raw.githubusercontent.com/aljayvee/pos-system/main/version.json';
+
     try {
-        // Fetch the latest version info from your GitHub repo
-        $response = Http::get('https://raw.githubusercontent.com/aljayvee/pos-system/main/version.json');
-        
+        $response = Http::get($url);
         if ($response->successful()) {
             $latest = $response->json();
             $hasUpdate = (int)$latest['build'] > (int)$current['build'];
@@ -199,19 +206,20 @@ class SettingsController extends Controller
             return response()->json([
                 'has_update' => $hasUpdate,
                 'current' => $current['full'],
-                'latest' => $latest['full'],
+                'latest' => $latest['full'] . ($isBeta ? ' (BETA)' : ''),
                 'type' => $latest['update_type'],
                 'changelog' => $latest['changelog']
             ]);
         }
-        return response()->json(['error' => 'Update server returned an error.'], 500);
     } catch (\Exception $e) {
-        return response()->json(['error' => 'Could not connect to GitHub.'], 500);
+        return response()->json(['error' => 'Offline'], 500);
     }
 }
 
 public function runUpdate(Request $request)
 {
+
+    $branch = $isBeta ? 'develop' : 'main';
     // Ensure only Admin can trigger this
     if (auth()->user()->role !== 'admin') {
         return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
@@ -219,6 +227,7 @@ public function runUpdate(Request $request)
 
     try {
         // These commands run directly on the OpenWrt router
+        shell_exec("cd /www/pos && git pull origin $branch");
         shell_exec('cd /www/pos && git pull origin main 2>&1');
         shell_exec('php /www/pos/artisan migrate --force 2>&1');
         shell_exec('php /www/pos/artisan optimize:clear 2>&1');

@@ -376,6 +376,17 @@
             <div class="mt-3">
                 <label class="form-label fw-bold text-dark"><i class="fas fa-sync-alt me-1"></i> Software Update</label>
                 <p class="small text-muted mb-2">Current Version: <span class="badge bg-secondary">{{ config('version.full') }}</span></p>
+
+                {{-- NEW: Beta Toggle --}}
+                <div class="form-check form-switch mb-3 bg-light p-2 rounded border">
+                    <input class="form-check-input ms-0 me-2" type="checkbox" id="betaToggle" 
+                        {{ ($settings['enable_beta'] ?? '0') == '1' ? 'checked' : '' }}
+                        onchange="toggleBetaProgram(this)">
+                    <label class="form-check-label small fw-bold" for="betaToggle text-primary">
+                        <i class="fas fa-flask me-1"></i> Enroll in Beta Program
+                    </label>
+                    <div class="ps-4 small text-muted" style="font-size: 0.75rem;">Get early access to experimental features.</div>
+                </div>
                 
                 <button type="button" class="btn btn-outline-primary w-100 py-2 fw-bold" onclick="checkForUpdates()">
                     Check for Updates
@@ -411,6 +422,89 @@
             else { input.type = 'password'; icon.className = 'fas fa-eye'; }
         }
     }
+
+    function toggleBetaProgram(el) {
+    const isEnabled = el.checked ? '1' : '0';
+    
+    fetch("{{ route('settings.update') }}", {
+        method: 'POST',
+        headers: { 
+            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+            'Content-Type': 'application/x-www-form-urlencoded' 
+        },
+        body: `enable_beta=${isEnabled}`
+    }).then(() => {
+        Swal.fire({
+            icon: 'success',
+            title: isEnabled === '1' ? 'Beta Enabled' : 'Beta Disabled',
+            text: 'Update source changed.',
+            timer: 1500,
+            showConfirmButton: false
+        });
+    });
+}
+
+function checkForUpdates() {
+    Swal.fire({
+        title: 'Checking for updates...',
+        text: 'Connecting to GitHub server...',
+        allowOutsideClick: false,
+        didOpen: () => { Swal.showLoading(); }
+    });
+
+    fetch("{{ route('settings.check_update') }}")
+        .then(response => response.json())
+        .then(data => {
+            if (data.has_update) {
+                Swal.fire({
+                    title: `Update Found: ${data.latest}`,
+                    html: `
+                        <div class="alert alert-info text-start small">
+                            <strong>${data.type}</strong><br>
+                            ${data.changelog.replace(/\n/g, '<br>')}
+                        </div>
+                        <p class="text-danger small fw-bold">Note: The system will be unavailable for a few seconds.</p>
+                    `,
+                    icon: 'info',
+                    showCancelButton: true,
+                    confirmButtonText: 'Update Now',
+                    cancelButtonText: 'Later',
+                    confirmButtonColor: '#4f46e5',
+                }).then((result) => {
+                    if (result.isConfirmed) { performUpdate(); }
+                });
+            } else if (data.error) {
+                Swal.fire('Error', data.error, 'error');
+            } else {
+                Swal.fire('Up to Date', 'You are running the latest build.', 'success');
+            }
+        });
+}
+
+function performUpdate() {
+    Swal.fire({ 
+        title: 'Installing Update...', 
+        text: 'Downloading files and clearing cache...',
+        allowOutsideClick: false, 
+        didOpen: () => { Swal.showLoading(); } 
+    });
+
+    fetch("{{ route('settings.run_update') }}", {
+        method: 'POST',
+        headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Content-Type': 'application/json' }
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            Swal.fire('Success!', 'System updated successfully. Reloading...', 'success');
+            setTimeout(() => location.reload(), 2500);
+        } else {
+            Swal.fire('Update Failed', data.message, 'error');
+        }
+    })
+    .catch(() => Swal.fire('Error', 'Server lost connection during update. Wait 10 seconds and refresh manually.', 'warning'));
+}
+
 
     function requestReveal(fieldId) {
         document.getElementById('target-field-id').value = fieldId;
@@ -560,68 +654,4 @@
     </div>
 </div>
 
-<script>
-
-/function checkForUpdates() {
-    Swal.fire({
-        title: 'Checking for updates...',
-        text: 'Connecting to GitHub server...',
-        allowOutsideClick: false,
-        didOpen: () => { Swal.showLoading(); }
-    });
-
-    fetch("{{ route('settings.check_update') }}")
-        .then(response => response.json())
-        .then(data => {
-            if (data.has_update) {
-                Swal.fire({
-                    title: `Update Found: ${data.latest}`,
-                    html: `
-                        <div class="alert alert-info text-start small">
-                            <strong>${data.type}</strong><br>
-                            ${data.changelog.replace(/\n/g, '<br>')}
-                        </div>
-                        <p class="text-danger small fw-bold">Note: The system will be unavailable for a few seconds.</p>
-                    `,
-                    icon: 'info',
-                    showCancelButton: true,
-                    confirmButtonText: 'Update Now',
-                    cancelButtonText: 'Later',
-                    confirmButtonColor: '#4f46e5',
-                }).then((result) => {
-                    if (result.isConfirmed) { performUpdate(); }
-                });
-            } else if (data.error) {
-                Swal.fire('Error', data.error, 'error');
-            } else {
-                Swal.fire('Up to Date', 'You are running the latest build.', 'success');
-            }
-        });
-}
-
-function performUpdate() {
-    Swal.fire({ 
-        title: 'Installing Update...', 
-        text: 'Downloading files and clearing cache...',
-        allowOutsideClick: false, 
-        didOpen: () => { Swal.showLoading(); } 
-    });
-
-    fetch("{{ route('settings.run_update') }}", {
-        method: 'POST',
-        headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Content-Type': 'application/json' }
-    })
-    .then(res => res.json())
-    .then(data => {
-        if (data.success) {
-            Swal.fire('Success!', 'System updated successfully. Reloading...', 'success');
-            setTimeout(() => location.reload(), 2500);
-        } else {
-            Swal.fire('Update Failed', data.message, 'error');
-        }
-    })
-    .catch(() => Swal.fire('Error', 'Server lost connection during update. Wait 10 seconds and refresh manually.', 'warning'));
-}
-
-</script>
 @endsection
