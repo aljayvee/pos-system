@@ -218,38 +218,24 @@ class SettingsController extends Controller
 
 public function runUpdate(Request $request)
 {
-    // 1. Authorization Check
+    // Prevent the script from timing out
+    set_time_limit(0);
+
     if (auth()->user()->role !== 'admin') {
         return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
     }
 
     $storeId = $this->getActiveStoreId();
-    // 2. Determine Branch (Beta vs Main)
     $isBeta = \App\Models\Setting::where('store_id', $storeId)->where('key', 'enable_beta')->value('value') == '1';
     $branch = $isBeta ? 'develop' : 'main';
 
     try {
-        // 3. Execute the Update
-        // Capturing output with 2>&1 is critical for debugging
-        $gitOutput = shell_exec("cd /www/pos && git pull origin $branch 2>&1");
-        $migrateOutput = shell_exec('php /www/pos/artisan migrate --force 2>&1');
-        $cacheOutput = shell_exec('php /www/pos/artisan optimize:clear 2>&1');
+        // Run commands and capture output for debugging
+        $output = shell_exec("cd /www/pos && git pull origin $branch 2>&1");
+        shell_exec('php /www/pos/artisan migrate --force 2>&1');
+        shell_exec('php /www/pos/artisan optimize:clear 2>&1');
 
-        // Log the update in activity logs
-        \App\Models\ActivityLog::create([
-            'store_id' => $storeId,
-            'user_id' => auth()->id(),
-            'action' => 'System Update',
-            'description' => "Updated to latest $branch build."
-        ]);
-
-        return response()->json([
-            'success' => true,
-            'details' => [
-                'git' => $gitOutput,
-                'migration' => $migrateOutput
-            ]
-        ]);
+        return response()->json(['success' => true, 'output' => $output]);
     } catch (\Exception $e) {
         return response()->json(['success' => false, 'message' => 'Update failed: ' . $e->getMessage()]);
     }
