@@ -54,40 +54,38 @@
                        <span class="text-nowrap fade-text ms-2" v-show="isOpen || isMobile">Dashboard</span>
                     </a>
                 </li>
+                
 
                 <li class="nav-header px-3 mt-3 mb-1 text-muted small fw-bold text-uppercase overflow-hidden" v-show="isOpen || isMobile">Inventory</li>
-                <li class="nav-item">
-                    <a href="/admin/inventory" class="nav-link d-flex align-items-center" :class="{ 'active': currentPath.includes('/inventory') }">
-                       <div class="icon-wrapper"><i class="fas fa-boxes"></i></div>
-                       <span class="text-nowrap fade-text ms-2" v-show="isOpen || isMobile">Inventory Management</span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="/admin/products" class="nav-link d-flex align-items-center" :class="{ 'active': currentPath.includes('/products') }">
-                       <div class="icon-wrapper"><i class="fas fa-box-open"></i></div>
-                       <span class="text-nowrap fade-text ms-2" v-show="isOpen || isMobile">Product Management</span>
-                    </a>
-                </li>
+
                 <li class="nav-item">
                     <a href="/admin/categories" class="nav-link d-flex align-items-center" :class="{ 'active': currentPath.includes('/categories') }">
                        <div class="icon-wrapper"><i class="fas fa-tags"></i></div>
                        <span class="text-nowrap fade-text ms-2" v-show="isOpen || isMobile">Categories</span>
                     </a>
                 </li>
+
+                <li class="nav-item">
+                    <a href="/admin/products" class="nav-link d-flex align-items-center" :class="{ 'active': currentPath.includes('/products') }">
+                       <div class="icon-wrapper"><i class="fas fa-box-open"></i></div>
+                       <span class="text-nowrap fade-text ms-2" v-show="isOpen || isMobile">Product Management</span>
+                    </a>
+                </li>
+
                 <li class="nav-item">
                     <a href="/admin/purchases" class="nav-link d-flex align-items-center" :class="{ 'active': currentPath.includes('/purchases') }">
                        <div class="icon-wrapper"><i class="fas fa-truck-loading"></i></div>
                        <span class="text-nowrap fade-text ms-2" v-show="isOpen || isMobile">Stock In History</span>
                     </a>
                 </li>
-
-                <li class="nav-header px-3 mt-3 mb-1 text-muted small fw-bold text-uppercase overflow-hidden" v-show="isOpen || isMobile">Finance</li>
                 <li class="nav-item">
-                    <a href="/admin/credits" class="nav-link d-flex align-items-center" :class="{ 'active': currentPath.includes('/credits') }">
-                       <div class="icon-wrapper"><i class="fas fa-file-invoice-dollar"></i></div>
-                       <span class="text-nowrap fade-text ms-2" v-show="isOpen || isMobile">Credits (Utang)</span>
+                    <a href="/admin/inventory" class="nav-link d-flex align-items-center" :class="{ 'active': currentPath.includes('/inventory') }">
+                       <div class="icon-wrapper"><i class="fas fa-boxes"></i></div>
+                       <span class="text-nowrap fade-text ms-2" v-show="isOpen || isMobile">Inventory Management</span>
                     </a>
                 </li>
+
+                <li class="nav-header px-3 mt-3 mb-1 text-muted small fw-bold text-uppercase overflow-hidden" v-show="isOpen || isMobile">Finance</li>
                 <li class="nav-item">
                     <a href="/admin/customers" class="nav-link d-flex align-items-center" :class="{ 'active': currentPath.includes('/customers') }">
                        <div class="icon-wrapper"><i class="fas fa-users"></i></div>
@@ -100,16 +98,29 @@
                        <span class="text-nowrap fade-text ms-2" v-show="isOpen || isMobile">Supplier Management</span>
                     </a>
                 </li>
+                <li class="nav-item">
+                    <a href="/admin/credits" class="nav-link d-flex align-items-center" :class="{ 'active': currentPath.includes('/credits') }">
+                       <div class="icon-wrapper"><i class="fas fa-file-invoice-dollar"></i></div>
+                       <span class="text-nowrap fade-text ms-2" v-show="isOpen || isMobile">Credits (Utang)</span>
+                    </a>
+                </li>
 
                 <li class="nav-header px-3 mt-3 mb-1 text-muted small fw-bold text-uppercase overflow-hidden" v-show="isOpen || isMobile">Analytics</li>
                 <li class="nav-item">
                     <a href="/admin/reports" class="nav-link d-flex align-items-center" :class="{ 'active': currentPath.includes('/reports') }">
                        <div class="icon-wrapper"><i class="fas fa-chart-pie"></i></div>
-                       <span class="text-nowrap fade-text ms-2" v-show="isOpen || isMobile">Reports</span>
+                       <span class="text-nowrap fade-text ms-2" v-show="isOpen || isMobile">Reports & Analytics</span>
                     </a>
                 </li>
 
-                <li class="nav-header px-3 mt-3 mb-1 text-muted small fw-bold text-uppercase overflow-hidden" v-show="isOpen || isMobile">System</li>
+                <li class="nav-header px-3 mt-3 mb-1 text-muted small fw-bold text-uppercase overflow-hidden" v-show="isOpen || isMobile">Accounts Management</li>
+                <li class="nav-item">
+                    <a href="/admin/users" class="nav-link d-flex align-items-center" :class="{ 'active': currentPath.includes('/users') }">
+                       <div class="icon-wrapper"><i class="fas fa-user-shield"></i></div>
+                       <span class="text-nowrap fade-text ms-2" v-show="isOpen || isMobile">User Management</span>
+                    </a>
+                </li>
+                <li class="nav-header px-3 mt-3 mb-1 text-muted small fw-bold text-uppercase overflow-hidden" v-show="isOpen || isMobile">Logs and Transactions</li>
                 <li class="nav-item">
                     <a href="/admin/transactions" class="nav-link d-flex align-items-center" :class="{ 'active': currentPath.includes('/transactions') }">
                        <div class="icon-wrapper"><i class="fas fa-history"></i></div>
@@ -122,16 +133,11 @@
                        <span class="text-nowrap fade-text ms-2" v-show="isOpen || isMobile">Audit Logs</span>
                     </a>
                 </li>
-                <li class="nav-item">
-                    <a href="/admin/users" class="nav-link d-flex align-items-center" :class="{ 'active': currentPath.includes('/users') }">
-                       <div class="icon-wrapper"><i class="fas fa-user-shield"></i></div>
-                       <span class="text-nowrap fade-text ms-2" v-show="isOpen || isMobile">User Management</span>
-                    </a>
-                </li>
+                <li class="nav-header px-3 mt-3 mb-1 text-muted small fw-bold text-uppercase overflow-hidden" v-show="isOpen || isMobile">More Features</li>
                 <li class="nav-item">
                     <a href="/admin/settings" class="nav-link d-flex align-items-center" :class="{ 'active': currentPath.includes('/settings') }">
                        <div class="icon-wrapper"><i class="fas fa-cog"></i></div>
-                       <span class="text-nowrap fade-text ms-2" v-show="isOpen || isMobile">More Features</span>
+                       <span class="text-nowrap fade-text ms-2" v-show="isOpen || isMobile">Settings</span>
                     </a>
                 </li>
 
