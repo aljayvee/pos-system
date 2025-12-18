@@ -146,6 +146,8 @@
                       <small class="fw-bold text-white lh-1">{{ userName }}</small>
                       <small class="text-muted" style="font-size: 0.7rem;">{{ userRole.toUpperCase() }}</small>
                   </div>
+
+                  
               
               
               <form action="/logout" method="POST" :class="{ 'w-100': !isOpen && !isMobile }">

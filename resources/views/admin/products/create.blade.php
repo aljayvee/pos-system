@@ -28,6 +28,24 @@
     <form action="{{ route('products.store') }}" method="POST">
         @csrf
 
+        {{-- Barcode Card --}}
+                <div class="card shadow-sm border-0 mb-4">
+                    <div class="card-header bg-white py-3">
+                        <h5 class="mb-0 text-dark"><i class="fas fa-barcode me-2"></i>Barcode</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label small text-muted">Scan or manually input code <b>(optional)</b></label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light"><i class="fas fa-barcode"></i></span>
+                                <input type="text" id="sku" name="sku" class="form-control fw-bold" placeholder="e.g. 01234567890">
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-dark w-100 py-2" onclick="openScanner()">
+                            <i class="fas fa-camera me-2"></i> Open Camera Scanner
+                        </button>
+                    </div>
+                </div>
         <div class="row g-4">
             
             {{-- Left Column: Basic Info & Pricing --}}
@@ -36,17 +54,18 @@
                     <div class="card-header bg-white py-3">
                         <h5 class="mb-0 text-primary"><i class="fas fa-info-circle me-2"></i>Product Details</h5>
                     </div>
+                    
                     <div class="card-body">
                         {{-- Name --}}
                         <div class="mb-3">
-                            <label class="form-label fw-bold">Product Name <span class="text-danger">*</span></label>
+                            <label class="form-label fw-bold">Product Name <span class="text-danger">(Recommended)</span></label>
                             <input type="text" name="name" class="form-control form-control-lg" placeholder="e.g. Bear Brand Swak" required>
                         </div>
 
                         {{-- Category & Unit --}}
                         <div class="row g-3 mb-3">
                             <div class="col-12 col-md-6">
-                                <label class="form-label">Category <span class="text-danger">*</span></label>
+                                <label class="form-label">Category <span class="text-danger">(Recommended)</span></label>
                                 <select name="category_id" class="form-select select2">
                                     @foreach($categories as $category)
                                         <option value="{{ $category->id }}">{{ $category->name }}</option>
@@ -65,16 +84,18 @@
                                         <i id="placeholderIcon" class="fas fa-image text-muted fa-2x"></i>
                                     </div>
                                     
-                                    {{-- File Input --}}
+                                    
+                                </div>
+                                <hr>
+                                {{-- File Input --}}
                                     <div class="flex-grow-1">
                                         <input type="file" name="image" class="form-control" accept="image/*" onchange="previewImage(this)">
                                         <div class="form-text text-muted">Supported: JPG, PNG, GIF (Max 2MB)</div>
                                     </div>
-                                </div>
                             </div>
 
                             <div class="col-12 col-md-6">
-                                <label class="form-label">Unit <span class="text-danger">*</span></label>
+                                <label class="form-label">Unit <span class="text-danger">(Recommended)</span></label>
                                 <select name="unit" class="form-select" required>
                                     <option value="pc">Piece (pc)</option>
                                     <option value="pack">Pack</option>
@@ -94,14 +115,14 @@
                             <h6 class="fw-bold mb-3 text-secondary">Pricing</h6>
                             <div class="row g-3">
                                 <div class="col-12 col-md-6">
-                                    <label class="form-label fw-bold">Selling Price (SRP) <span class="text-danger">*</span></label>
+                                    <label class="form-label fw-bold">Selling Price (SRP) <span class="text-danger">(Recommended)</span></label>
                                     <div class="input-group">
                                         <span class="input-group-text bg-white">₱</span>
                                         <input type="number" step="0.01" name="price" class="form-control fw-bold text-success" placeholder="0.00" required>
                                     </div>
                                 </div>
                                 <div class="col-12 col-md-6">
-                                    <label class="form-label text-muted">Cost Price (Capital)</label>
+                                    <label class="form-label text-muted">Cost Price (Puhanan)</label>
                                     <div class="input-group">
                                         <span class="input-group-text bg-white">₱</span>
                                         <input type="number" step="0.01" name="cost" class="form-control" placeholder="0.00">
@@ -128,31 +149,12 @@
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Reorder Point (Low Stock Alert)</label>
-                            <input type="number" name="reorder_point" class="form-control" value="10">
+                            <input type="number" name="reorder_point" class="form-control" value="0">
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Expiration Date</label>
                             <input type="date" name="expiration_date" class="form-control">
                         </div>
-                    </div>
-                </div>
-
-                {{-- Barcode Card --}}
-                <div class="card shadow-sm border-0 mb-4">
-                    <div class="card-header bg-white py-3">
-                        <h5 class="mb-0 text-dark"><i class="fas fa-barcode me-2"></i>Barcode / SKU</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="mb-3">
-                            <label class="form-label small text-muted">Scan or manually enter code</label>
-                            <div class="input-group">
-                                <span class="input-group-text bg-light"><i class="fas fa-barcode"></i></span>
-                                <input type="text" id="sku" name="sku" class="form-control fw-bold" placeholder="Code...">
-                            </div>
-                        </div>
-                        <button type="button" class="btn btn-dark w-100 py-2" onclick="openScanner()">
-                            <i class="fas fa-camera me-2"></i> Open Camera Scanner
-                        </button>
                     </div>
                 </div>
 
