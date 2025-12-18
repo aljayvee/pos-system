@@ -1,9 +1,9 @@
 {
     "major": 1,
     "minor": 0,
-    "revision": 12,
-    "build": "20251226",
-    "full": "1.0.12-build.20251226",
+    "revision": 13,
+    "build": "20251227",
+    "full": "1.0.13-build.20251227",
     "update_type": "Minor Update",
     "changelog": "• Fixed an issue in the updae.\n• Improved error handling during the update process."
 }
