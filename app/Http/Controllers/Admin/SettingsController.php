@@ -218,35 +218,27 @@ class SettingsController extends Controller
 
 public function runUpdate(Request $request)
 {
-    set_time_limit(600); // 10 minutes for slow router hardware
+    set_time_limit(0);
     $storeId = $this->getActiveStoreId();
     $isBeta = \App\Models\Setting::where('store_id', $storeId)->where('key', 'enable_beta')->value('value') == '1';
     $branch = $isBeta ? 'develop' : 'main';
 
-    // Use absolute paths for the router environment
-    $git = '/usr/bin/git';
-    $php = '/usr/bin/php';
-    $artisan = '/www/pos/artisan';
-
     try {
-        // 1. Prepare Environment
-        // Fix: Use '&&' to chain commands correctly
-        shell_exec("cd /www/pos && $git config --global --add safe.directory /www/pos 2>&1");
-        shell_exec("cd /www/pos && $git stash 2>&1");
+        // Fix: Use && to chain commands and correct the directory paths
+        shell_exec("cd /www/pos && git config --global --add safe.directory /www/pos 2>&1");
+        shell_exec("cd /www/pos && git stash 2>&1");
+        shell_exec("cd /www/pos && git fetch origin $branch 2>&1");
+        $output = shell_exec("cd /www/pos && git reset --hard origin/$branch 2>&1");
+        shell_exec("cd /www/pos && git stash pop 2>&1");
         
-        // 2. Pull New Code
-        shell_exec("cd /www/pos && $git fetch origin $branch 2>&1");
-        $output = shell_exec("cd /www/pos && $git reset --hard origin/$branch 2>&1");
-        
-        // 3. Maintenance and Permission Safety
-        // This line ensures the update process DOES NOT break your permissions again
-        shell_exec("chown -R network:www-data /www/pos");
+        // Use optimize:clear to handle all caches at once safely
+        shell_exec('php /www/pos/artisan optimize:clear 2>&1');
+        shell_exec('php /www/pos/artisan migrate --force 2>&1');
+
+        // Reset permissions so 'network' user can still write to storage
+        shell_exec("chown -R network:www-data /www/pos/storage /www/pos/bootstrap/cache");
         shell_exec("chmod -R 775 /www/pos/storage /www/pos/bootstrap/cache");
 
-        // 4. Laravel Maintenance
-        shell_exec("$php $artisan optimize:clear 2>&1");
-        shell_exec("$php $artisan migrate --force 2>&1");
-        
         if (function_exists('opcache_reset')) {
             opcache_reset();
         }
