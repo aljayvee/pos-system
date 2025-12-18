@@ -1,9 +1,9 @@
 {
     "major": 1,
     "minor": 0,
-    "revision": 18,
-    "build": "20251232",
-    "full": "1.0.18-build.20251232",
+    "revision": 19,
+    "build": "20251233",
+    "full": "1.0.19-build.20251233",
     "update_type": "Minor Update",
-    "changelog": "• Fixed the logic in the software update checker to ensure it accurately identifies and notifies users of available updates.\n• Improved the user interface for better accessibility and user experience.\n• Enhanced performance and stability across various modules."
+    "changelog": "• Fixed issue in the version distributing."
 }
