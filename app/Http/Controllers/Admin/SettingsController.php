@@ -229,6 +229,10 @@ public function runUpdate(Request $request)
         shell_exec("cd /www/pos && git stash 2>&1");
         shell_exec("cd /www/pos && git fetch origin $branch 2>&1");
         $output = shell_exec("cd /www/pos && git reset --hard origin/$branch 2>&1");
+        // ... after $git reset --hard ...
+            // Add this line INSIDE your runUpdate method:
+            shell_exec("chown -R network:www-data /www/pos/storage /www/pos/bootstrap/cache 2>&1");
+            shell_exec("chmod -R 775 /www/pos/storage /www/pos/bootstrap/cache 2>&1");
         shell_exec("cd /www/pos && git stash pop 2>&1");
         
         // Use optimize:clear to handle all caches at once safely
