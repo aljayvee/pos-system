@@ -242,7 +242,7 @@ public function runUpdate(Request $request)
         shell_exec('php /www/pos/artisan optimize:clear 2>&1');
         shell_exec('php /www/pos/artisan migrate --force 2>&1');
 
-        // 5. Force Reload PHP Files
+        
         if (function_exists('opcache_reset')) {
             opcache_reset();
         }
