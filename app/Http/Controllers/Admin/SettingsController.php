@@ -218,36 +218,35 @@ class SettingsController extends Controller
 
 public function runUpdate(Request $request)
 {
-    set_time_limit(300); // Give it more time for slow USBs
+    set_time_limit(600); // 10 minutes for slow router hardware
     $storeId = $this->getActiveStoreId();
     $isBeta = \App\Models\Setting::where('store_id', $storeId)->where('key', 'enable_beta')->value('value') == '1';
     $branch = $isBeta ? 'develop' : 'main';
 
-    // Use absolute paths for the router environment
-    $php = '/usr/bin/php'; 
-    $artisan = '/www/pos/artisan';
-
-    shell_exec("cd /www/pos && git stash 2>&1");
-
     try {
-        // 1. Pull the new code
+        // 1. Prepare Environment
+        // We must stash local changes just like you did manually
+        shell_exec("cd /www/pos && git stash 2>&1");
         
-        shell_exec("cd /www/pos && git fetch origin main 2>&1");
-        shell_exec("cd /www/pos && git pull origin main 2>&1");
-        $output = shell_exec("cd /www/pos && git reset --hard origin/main 2>&1");
+        // 2. Pull New Code
+        shell_exec("cd /www/pos && git fetch origin $branch 2>&1");
+        $output = shell_exec("cd /www/pos && git reset --hard origin/$branch 2>&1");
         
-        // 2. Clear all caches (Prevents old version info from staying in RAM)
-        shell_exec("$php $artisan optimize:clear 2>&1");
-        
-        // 3. Run migrations for database updates
-        shell_exec("$php $artisan migrate --force 2>&1");
-        
-        // 4. Reset PHP Opcache to force reload config/version.php
+        // 3. Permissions Maintenance
+        // This ensures the web user ('network') can read the new files Git just pulled
+        shell_exec("chown -R network:www-data /www/pos");
+        shell_exec("chmod -R 775 /www/pos/storage /www/pos/bootstrap/cache");
+
+        // 4. Laravel Maintenance (The order matters!)
+        // We use optimize:clear because it deletes ALL cached files at once
+        shell_exec('php /www/pos/artisan optimize:clear 2>&1');
+        shell_exec('php /www/pos/artisan migrate --force 2>&1');
+
+        // 5. Force Reload PHP Files
         if (function_exists('opcache_reset')) {
             opcache_reset();
         }
 
-        shell_exec("chown -R network:www-data /www/pos/storage /www/pos/bootstrap/cache");
         return response()->json(['success' => true, 'output' => $output]);
     } catch (\Exception $e) {
         return response()->json(['success' => false, 'message' => 'Update failed: ' . $e->getMessage()]);
