@@ -218,38 +218,47 @@ class SettingsController extends Controller
 
 public function runUpdate(Request $request)
 {
-    set_time_limit(600); // 10 minutes for slow router hardware
+    // Increase time limit for slow router hardware
+    set_time_limit(600); 
+
     $storeId = $this->getActiveStoreId();
     $isBeta = \App\Models\Setting::where('store_id', $storeId)->where('key', 'enable_beta')->value('value') == '1';
     $branch = $isBeta ? 'develop' : 'main';
 
+    // Use full paths for OpenWrt
+    $git = '/usr/bin/git';
+    $php = '/usr/bin/php';
+    $artisan = '/www/pos/artisan';
+
     try {
-        // 1. Prepare Environment
-        // We must stash local changes just like you did manually
-        shell_exec("cd /www/pos && git stash 2>&1");
-        
-        // 2. Pull New Code
-        shell_exec("cd /www/pos && git fetch origin $branch 2>&1");
-        $output = shell_exec("cd /www/pos && git reset --hard origin/$branch 2>&1");
-        
-        // 3. Permissions Maintenance
-        // This ensures the web user ('network') can read the new files Git just pulled
-        shell_exec("chown -R network:www-data /www/pos");
-        shell_exec("chmod -R 775 /www/pos/storage /www/pos/bootstrap/cache");
+        // 1. Move to directory and STASH local changes (the fix you found)
+        shell_exec("cd /www/pos && $git stash 2>&1");
 
-        // 4. Laravel Maintenance (The order matters!)
-        // We use optimize:clear because it deletes ALL cached files at once
-        shell_exec('php /www/pos/artisan optimize:clear 2>&1');
-        shell_exec('php /www/pos/artisan migrate --force 2>&1');
+        // 2. Fetch and Reset to the latest code
+        shell_exec("cd /www/pos && $git fetch origin $branch 2>&1");
+        $output = shell_exec("cd /www/pos && $git reset --hard origin/$branch 2>&1");
 
-        
+        // 3. CRITICAL: Clear cache so the NEW version number is visible
+        // Without this, Laravel keeps the OLD version in the router's RAM
+        shell_exec("$php $artisan optimize:clear 2>&1");
+        shell_exec("$php $artisan migrate --force 2>&1");
+
+        // 4. Reset PHP Opcache
         if (function_exists('opcache_reset')) {
             opcache_reset();
         }
 
-        return response()->json(['success' => true, 'output' => $output]);
+        return response()->json([
+            'success' => true, 
+            'message' => 'System updated to the latest version.',
+            'output' => $output
+        ]);
+
     } catch (\Exception $e) {
-        return response()->json(['success' => false, 'message' => 'Update failed: ' . $e->getMessage()]);
+        return response()->json([
+            'success' => false, 
+            'message' => 'Update failed: ' . $e->getMessage()
+        ]);
     }
 }
 
