@@ -202,80 +202,62 @@ class ProductController extends Controller
     }
     // -----------------------
 
-    // 3. Store New Product (FIXED for Multi-Store)
     public function store(Request $request)
-    {
-        $request->validate([
-            'name' => 'required',
-            'price' => 'required|numeric',
-            'unit' => 'required|string|max:20',
-            'category_id' => 'required|exists:categories,id',
-            'cost' => 'nullable|numeric|min:0',
-            'sku' => 'nullable|string|unique:products,sku',
-            'stock' => 'integer|min:0',
-            'reorder_point' => 'nullable|integer|min:0',
-            'expiration_date' => 'nullable|date',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:10240',
+{
+    $validated = $request->validate([
+        'name' => 'required',
+        'price' => 'required|numeric',
+        'unit' => 'required|string|max:20',
+        'category_id' => 'required|exists:categories,id',
+        'cost' => 'nullable|numeric|min:0',
+        'sku' => 'nullable|string|unique:products,sku',
+        'stock' => 'integer|min:0',
+        'reorder_point' => 'nullable|integer|min:0',
+        'expiration_date' => 'nullable|date',
+        'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:10240',
+    ]);
+
+    DB::beginTransaction();
+    try {
+        // 1. Handle Image Upload FIRST so we have the path
+        $imagePath = null;
+        if ($request->hasFile('image')) {
+            $imagePath = $request->file('image')->store('products', 'public');
+        }
+
+        // 2. Create Global Product Record (ONLY ONCE)
+        $product = Product::create([
+            'name' => \Illuminate\Support\Str::title($request->name),
+            'price' => $request->price,
+            'unit' => $request->unit,
+            'category_id' => $request->category_id,
+            'cost' => $request->cost,
+            'sku' => $request->sku,
+            'expiration_date' => $request->expiration_date,
+            'image' => $imagePath,
+            'stock' => 0, // dummy global stock
         ]);
 
-        DB::beginTransaction();
-        try {
-            // 1. Create Product Global Record
-            // We set 'stock' to 0 here because the real stock is in Inventory table
-            $productData = $request->except(['stock', 'reorder_point']);
-            // 1. Create Product Global Record
-            $product = Product::create([
-                'name' => Str::title($request->name),
-                'price' => $request->price,
-                'unit' => $request->unit,
-                'category_id' => $request->category_id,
-                'cost' => $request->cost,
-                'sku' => $request->sku,
-                'expiration_date' => $request->expiration_date,
-                'image' => $imagePath, // Save Path
-                'stock' => 0, // Global stock dummy
-            ]);
+        // 3. Create Inventory Record for current branch
+        $storeId = $this->getActiveStoreId();
+        Inventory::create([
+            'product_id' => $product->id,
+            'store_id' => $storeId,
+            'stock' => $request->stock ?? 0,
+            'reorder_point' => $request->reorder_point ?? 10
+        ]);
 
-            // 2. Identify Current Active Store
-            $storeId = $this->getActiveStoreId();
+        DB::commit();
+        return redirect()->route('products.index')->with('success', 'Product created successfully.');
 
-            $imagePath = null;
-            if ($request->hasFile('image')) {
-                // Save to 'storage/app/public/products'
-                $imagePath = $request->file('image')->store('products', 'public');
-            }
-
-            $request->merge([
-                'name' => Str::title($request->name) 
-            ]);
-
-            
-
-            // 3. Create Inventory Record for THIS Store
-            Inventory::create([
-                'product_id' => $product->id,
-                'store_id' => $storeId,
-                'stock' => $request->stock ?? 0,
-                'reorder_point' => $request->reorder_point ?? 10
-            ]);
-
-            // Create Product
-            Product::create($validated);
-
-            // Create Product Global Record
-            $productData = $request->except(['stock', 'reorder_point']);
-            $product = Product::create($productData);
-
-            DB::commit();
-            return redirect()->route('products.index')->with('success', 'Product created successfully in current branch.');
-
-        } catch (\Exception $e) {
-            DB::rollBack(); // (Atomicity: Undo everything if ANY error occurs)
-            // Delete image if DB fail
-            if(isset($imagePath)) Storage::disk('public')->delete($imagePath);
-            return response()->json(['status' => 'error', 'message' => 'Failed to add product'], 500);
-        }
+    } catch (\Exception $e) {
+        DB::rollBack();
+        if($imagePath) Storage::disk('public')->delete($imagePath);
+        
+        // Use back() to stay on the page and show the specific error message
+        return back()->withInput()->with('error', 'Failed to add product: ' . $e->getMessage());
     }
+}
 
     // 4. Show Edit Form
     public function edit(Product $product)
