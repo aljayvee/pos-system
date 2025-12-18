@@ -218,36 +218,32 @@ class SettingsController extends Controller
 
 public function runUpdate(Request $request)
 {
-    set_time_limit(0);
+    set_time_limit(300); // Give it more time for slow USBs
     $storeId = $this->getActiveStoreId();
     $isBeta = \App\Models\Setting::where('store_id', $storeId)->where('key', 'enable_beta')->value('value') == '1';
     $branch = $isBeta ? 'develop' : 'main';
 
+    // Use absolute paths for the router environment
+    $php = '/usr/bin/php'; 
+    $artisan = '/www/pos/artisan';
+
     try {
-        // Force the local branch to match origin exactly
-        // This is better for Kiosks because it avoids merge conflicts
-        shell_exec('cd /www/pos/git config --global --add safe.directory /www/pos 2>&1');
-        shell_exec('cd /www/pos git stash 2>&1');
+        // 1. Pull the new code
         shell_exec("cd /www/pos && git fetch origin $branch 2>&1");
         $output = shell_exec("cd /www/pos && git reset --hard origin/$branch 2>&1");
-        shell_exec('cd /www/pos git stash pop 2>&1');
         
-        // standard Laravel maintenance
-        shell_exec('php /www/pos/artisan config:cache 2>&1');
-        shell_exec('php /www/pos/artisan view:cache 2>&1');
-        shell_exec('php /www/pos/artisan view:clear 2>&1');
-        shell_exec('php /www/pos/artisan config:clear 2>&1');
-        shell_exec('php /www/pos/artisan migrate --force 2>&1');
-        shell_exec('php /www/pos/artisan optimize:clear 2>&1');
-
-        // 3. Update the database if you added new tables
-        shell_exec('php /www/pos/artisan migrate --force 2>&1');
+        // 2. Clear all caches (Prevents old version info from staying in RAM)
+        shell_exec("$php $artisan optimize:clear 2>&1");
         
-        // Reset Opcache to ensure the new version.php is read
+        // 3. Run migrations for database updates
+        shell_exec("$php $artisan migrate --force 2>&1");
+        
+        // 4. Reset PHP Opcache to force reload config/version.php
         if (function_exists('opcache_reset')) {
             opcache_reset();
         }
 
+        shell_exec("chown -R network:www-data /www/pos/storage /www/pos/bootstrap/cache");
         return response()->json(['success' => true, 'output' => $output]);
     } catch (\Exception $e) {
         return response()->json(['success' => false, 'message' => 'Update failed: ' . $e->getMessage()]);
