@@ -232,8 +232,9 @@ public function runUpdate(Request $request)
     try {
         // 1. Pull the new code
         
-        shell_exec("cd /www/pos && git fetch origin $branch 2>&1");
-        $output = shell_exec("cd /www/pos && git reset --hard origin/$branch 2>&1");
+        shell_exec("cd /www/pos && git fetch origin main 2>&1");
+        shell_exec("cd /www/pos && git pull origin main 2>&1");
+        $output = shell_exec("cd /www/pos && git reset --hard origin/main 2>&1");
         
         // 2. Clear all caches (Prevents old version info from staying in RAM)
         shell_exec("$php $artisan optimize:clear 2>&1");
