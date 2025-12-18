@@ -141,7 +141,7 @@
 
       <div class="p-3 border-top border-secondary border-opacity-10" style="background-color: #151521;">
           <div class="d-flex align-items-center justify-content-between">
-              <div class="d-flex align-items-center overflow-hidden" v-show="isOpen || isMobile">
+              <!---<div class="d-flex align-items-center overflow-hidden" v-show="isOpen || isMobile">-->
                   <!----<div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center text-white fw-bold me-2" style="width: 38px; height: 38px;">
                       {{ userName.charAt(0).toUpperCase() }}
                   </div>-->
@@ -149,7 +149,7 @@
                       <small class="fw-bold text-white lh-1">{{ userName }}</small>
                       <small class="text-muted" style="font-size: 0.7rem;">{{ userRole.toUpperCase() }}</small>
                   </div>
-              </div>
+              
               
               <form action="/logout" method="POST" :class="{ 'w-100': !isOpen && !isMobile }">
                  <input type="hidden" name="_token" :value="csrfToken">
