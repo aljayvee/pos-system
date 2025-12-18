@@ -229,6 +229,7 @@ public function runUpdate(Request $request)
 
     try {
         // 1. Pull the new code
+        shell_exec("cd /www/pos && git stash 2>&1");
         shell_exec("cd /www/pos && git fetch origin $branch 2>&1");
         $output = shell_exec("cd /www/pos && git reset --hard origin/$branch 2>&1");
         
