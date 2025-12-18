@@ -226,9 +226,11 @@ public function runUpdate(Request $request)
     try {
         // Force the local branch to match origin exactly
         // This is better for Kiosks because it avoids merge conflicts
+        shell_exec('cd /www/pos/git config --global --add safe.directory /www/pos 2>&1');
         shell_exec('cd /www/pos git stash 2>&1');
         shell_exec("cd /www/pos && git fetch origin $branch 2>&1");
         $output = shell_exec("cd /www/pos && git reset --hard origin/$branch 2>&1");
+        shell_exec('cd /www/pos git stash pop 2>&1');
         
         // standard Laravel maintenance
         shell_exec('php /www/pos/artisan config:cache 2>&1');
