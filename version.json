@@ -1,9 +1,9 @@
 {
     "major": 1,
     "minor": 0,
-    "revision": 14,
-    "build": "20251228",
-    "full": "1.0.14-build.20251228",
+    "revision": 15,
+    "build": "20251229",
+    "full": "1.0.15-build.20251229",
     "update_type": "Minor Update",
-    "changelog": "• Fixed an issue where the add product functionality was not working as expected.\n• Improved performance of the search feature.\n• Updated dependencies to the latest versions for better security and stability."
+    "changelog": "• Improved Security Measures\n• Fixed minor bugs in inventory management\n• Enhanced user interface for better navigation\n• Updated third-party libraries to latest versions\n• Performance optimizations for faster load times"
 }
