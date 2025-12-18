@@ -1,9 +1,9 @@
 {
     "major": 1,
     "minor": 0,
-    "revision": 19,
-    "build": "20251233",
-    "full": "1.0.19-build.20251233",
+    "revision": 20,
+    "build": "20251234",
+    "full": "1.0.20-build.20251234",
     "update_type": "Minor Update",
-    "changelog": "• Fixed issue in the version distributing."
+    "changelog": "• Fixed issue in the version distributing is mismatched."
 }
