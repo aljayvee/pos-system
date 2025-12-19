@@ -123,6 +123,14 @@
                     </div>
                 </div>
 
+<!--
+                BIR compliance is marked as safety flag feature. 
+                Temporarily disabled in the production due to lack of compliance and licensing in the BIR.
+
+
+
+-->
+
                 {{-- 2. BIR / COMPLIANCE --}}
                 <div class="card-settings">
                     <div class="card-header-clean">
@@ -268,6 +276,14 @@
 
                         <hr class="my-4 text-muted opacity-25">
 
+<!--
+                        This feature is disabled temporarily and mark it as a safety flags.
+                        Killing swtich must be implemented in this toggle button.
+                        Paymongo must be flag as temporary feature and soon to be release.
+
+
+-->
+
                         {{-- PAYMONGO --}}
                         <div class="bg-light p-3 rounded-3 mb-3">
                             <div class="d-flex align-items-center justify-content-between mb-3">
@@ -303,9 +319,10 @@
                             Feature settings retained for future use.
                             Don't uncomment this section unless proceed with caution!
                             WARNING: Removing this comment may re-enable multi-store settings.
-                            Refer to version control for previous implementations.                        
+                            Refer to version control for previous implementations.    
+                            Killing switch must be held in this feature.                    
                             -->
-                        <!--<div class="bg-light p-3 rounded-3">
+                        <div class="bg-light p-3 rounded-3">
                             <div class="d-flex align-items-center justify-content-between">
                                 <label class="form-check-label fw-bold text-primary d-flex align-items-center" for="multiStoreSwitch">
                                     <i class="fas fa-network-wired me-2"></i> Multi-Store System
@@ -323,7 +340,7 @@
                                     Manage Stores & Branches
                                 </a>
                             </div>
-                        </div>-->
+                        </div>
 
                         <div class="mt-4 pt-2 border-top">
                             <button type="submit" class="btn btn-success w-100 btn-save">
