@@ -274,7 +274,7 @@ class POSController extends Controller
     {
         $request->validate([
             'cart' => 'required|array',
-            'total_amount' => 'required|numeric',
+            // 'total_amount' => 'required|numeric', // We no longer trust this for calculations
             'payment_method' => 'required|in:cash,digital,credit',
             'amount_paid' => 'nullable|numeric',
             'reference_number' => 'required_if:payment_method,digital',
@@ -297,12 +297,11 @@ class POSController extends Controller
         try {
             $storeId = $this->getActiveStoreId();
 
-            // 1. IDENTIFY & LOCK CUSTOMER (The Critical Fix)
+            // 1. IDENTIFY & LOCK CUSTOMER
             $customer = null;
             $customerId = $request->customer_id;
 
             if ($customerId === 'new') {
-                // Create new customer (No lock needed, they are new)
                 $customer = Customer::create([
                     'store_id' => $storeId, 
                     'name' => $request->input('credit_details.name'),
@@ -312,12 +311,8 @@ class POSController extends Controller
                 ]);
             } 
             elseif ($customerId && $customerId !== 'walk-in') {
-                // LOCK EXISTING CUSTOMER to prevent "Double Spending" points
                 $customer = Customer::where('id', $customerId)->lockForUpdate()->first();
-                
-                if (!$customer) {
-                    throw new \Exception("Customer not found.");
-                }
+                if (!$customer) throw new \Exception("Customer not found.");
             }
 
             // 2. FETCH SETTINGS
@@ -327,12 +322,47 @@ class POSController extends Controller
             $loyaltyRatio = \App\Models\Setting::where('key', 'loyalty_ratio')->value('value') ?? 100;
             $pointsValue = \App\Models\Setting::where('key', 'points_conversion')->value('value') ?? 1;
 
-            // 3. HANDLE POINTS REDEMPTION (Now Safe)
+            // 3. SERVER-SIDE CALCULATION & INVENTORY LOCKING (SECURITY FIX)
+            $calculatedTotal = 0;
+            $validatedItems = [];
+
+            foreach ($request->cart as $item) {
+                // Lock Inventory & Eager Load Product for Price
+                $inventory = Inventory::with('product')
+                                ->where('product_id', $item['id'])
+                                ->where('store_id', $storeId)
+                                ->lockForUpdate()
+                                ->first();
+
+                if (!$inventory) {
+                    $prod = Product::find($item['id']);
+                    throw new \Exception("Stock record not found for '" . ($prod->name ?? 'Unknown') . "' in this branch.");
+                }
+
+                if ($inventory->stock < $item['qty']) {
+                    throw new \Exception("Insufficient stock for '{$inventory->product->name}'. Available: {$inventory->stock}");
+                }
+
+                // Use SERVER Price
+                $price = $inventory->product->price;
+                $lineTotal = $price * $item['qty'];
+                $calculatedTotal += $lineTotal;
+
+                // Store for Step 6 to avoid re-querying
+                $validatedItems[] = [
+                    'inventory' => $inventory,
+                    'product_id' => $item['id'],
+                    'qty' => $item['qty'],
+                    'price' => $price,
+                    'cost' => $inventory->product->cost ?? 0
+                ];
+            }
+
+            // 4. HANDLE POINTS REDEMPTION
             $pointsUsed = 0;
             $pointsDiscount = 0;
 
             if ($loyaltyEnabled == '1' && $customer && $request->points_used > 0) {
-                // Re-verify balance AFTER locking
                 if ($customer->points < $request->points_used) {
                     throw new \Exception("Insufficient points! You have {$customer->points}, but tried to use {$request->points_used}.");
                 }
@@ -340,29 +370,30 @@ class POSController extends Controller
                 $pointsUsed = $request->points_used;
                 $pointsDiscount = $pointsUsed * $pointsValue;
                 
-                // Atomic Deduction
                 $customer->decrement('points', $pointsUsed);
             }
 
-            // 4. CALCULATE FINANCIALS
-            $rawTotal = $request->total_amount;
+            // Apply Discount to Total
+            // Ensure total doesn't go negative
+            $discountedTotal = max(0, $calculatedTotal - $pointsDiscount);
+
+            // 5. CALCULATE FINANCIALS (Tax)
             $vatableSales = 0;
             $outputVat = 0;
-            $finalTotal = $rawTotal;
+            $finalTotal = $discountedTotal;
 
-            // ... (Tax Calculation Logic remains the same) ...
             if ($taxType === 'inclusive') {
-                $vatableSales = $rawTotal / (1 + $taxRate);
-                $outputVat = $rawTotal - $vatableSales;
+                $vatableSales = $discountedTotal / (1 + $taxRate);
+                $outputVat = $discountedTotal - $vatableSales;
             } elseif ($taxType === 'exclusive') {
-                $vatableSales = $rawTotal;
-                $outputVat = $rawTotal * $taxRate;
-                $finalTotal = $rawTotal + $outputVat;
+                $vatableSales = $discountedTotal;
+                $outputVat = $discountedTotal * $taxRate;
+                $finalTotal = $discountedTotal + $outputVat;
             } else {
-                $vatableSales = $rawTotal;
+                $vatableSales = $discountedTotal;
             }
 
-            // 5. CREATE SALE RECORD
+            // 6. CREATE SALE RECORD
             $sale = Sale::create([
                 'store_id' => $storeId,
                 'user_id' => Auth::id(),
@@ -377,61 +408,48 @@ class POSController extends Controller
                 'points_discount' => $pointsDiscount,
             ]);
 
-            // 6. PROCESS CART ITEMS (Inventory Locking)
-            foreach ($request->cart as $item) {
-                // LOCK INVENTORY ROW
-                // This prevents selling stock that someone else just bought
-                $inventory = Inventory::where('product_id', $item['id'])
-                                ->where('store_id', $storeId)
-                                ->lockForUpdate() // <--- CRITICAL LOCK
-                                ->first();
+            // 7. PROCESS VALIDATED CART ITEMS
+            foreach ($validatedItems as $item) {
+                // Decrement Stock
+                $item['inventory']->decrement('stock', $item['qty']);
 
-                if (!$inventory) {
-                    $prod = Product::find($item['id']);
-                    throw new \Exception("Stock record not found for '{$prod->name}' in this branch.");
-                }
-
-                if ($inventory->stock < $item['qty']) {
-                    throw new \Exception("Insufficient stock for '{$inventory->product->name}'. Available: {$inventory->stock}");
-                }
-
-                $inventory->decrement('stock', $item['qty']);
-
+                // Create Item Record
                 SaleItem::create([
                     'sale_id' => $sale->id,
-                    'product_id' => $item['id'],
+                    'product_id' => $item['product_id'],
                     'quantity' => $item['qty'],
-                    'price' => $item['price'],  
-                    'cost' => $inventory->product->cost ?? 0 
+                    'price' => $item['price'], // Use Server Price
+                    'cost' => $item['cost'],
+                    'subtotal' => $item['price'] * $item['qty']
                 ]);
             }
 
-            // 7. AWARD NEW POINTS
+            // 8. AWARD NEW POINTS (Based on Final Total)
             if ($loyaltyEnabled == '1' && $customer) {
-                $pointsEarned = floor($request->total_amount / $loyaltyRatio);
+                $pointsEarned = floor($finalTotal / $loyaltyRatio);
                 if ($pointsEarned > 0) {
                     $customer->increment('points', $pointsEarned);
                 }
             }
 
-            // 8. RECORD CREDIT (Utang)
+            // 9. RECORD CREDIT (Utang)
             if ($request->payment_method === 'credit' && $customer) {
                 CustomerCredit::create([
                     'customer_id' => $customer->id,
                     'sale_id' => $sale->id,
-                    'total_amount' => $request->total_amount,
-                    'remaining_balance' => $request->total_amount,
+                    'total_amount' => $finalTotal,
+                    'remaining_balance' => $finalTotal,
                     'amount_paid' => 0,
                     'is_paid' => false,
                     'due_date' => $request->input('credit_details.due_date'),
                 ]);
             }
 
-            DB::commit(); // Save Everything
+            DB::commit(); 
             return response()->json(['success' => true, 'sale_id' => $sale->id]);
 
         } catch (\Exception $e) {
-            DB::rollBack(); // Undo Everything
+            DB::rollBack(); 
             return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }
     }

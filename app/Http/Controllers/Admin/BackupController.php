@@ -13,7 +13,8 @@ class BackupController extends Controller
     // 1. Download Backup (.sql file)
     public function download()
     {
-        $dbName = env('DB_DATABASE', 'sari_sari_store');
+        // Fix: Use config() instead of env() for production compatibility
+        $dbName = config('database.connections.mysql.database');
         $filename = 'backup_' . $dbName . '_' . Carbon::now()->format('Y-m-d_H-i-s') . '.sql';
 
         $headers = [
@@ -25,7 +26,7 @@ class BackupController extends Controller
         ];
 
         // Stream the response to avoid memory issues with large databases
-        $callback = function() {
+        $callback = function() use ($dbName) {
             $handle = fopen('php://output', 'w');
 
             // Disable Foreign Key Checks temporarily
@@ -33,7 +34,7 @@ class BackupController extends Controller
 
             // Get All Tables
             $tables = DB::select('SHOW TABLES');
-            $tableKey = "Tables_in_" . env('DB_DATABASE');
+            $tableKey = "Tables_in_" . $dbName;
 
             foreach ($tables as $table) {
                 $tableName = $table->$tableKey ?? current((array)$table);
@@ -71,48 +72,11 @@ class BackupController extends Controller
         return response()->stream($callback, 200, $headers);
     }
 
-    // 2. Restore Database
+    // 2. Restore Database (DISABLED FOR SECURITY)
     public function restore(Request $request)
     {
-        $request->validate([
-            'backup_file' => 'required|file' 
-        ]);
-
-        $file = $request->file('backup_file');
-        
-        // Basic extension check
-        if ($file->getClientOriginalExtension() !== 'sql') {
-            return back()->with('error', 'Invalid file. Please upload a .sql file.');
-        }
-
-        try {
-            $sql = file_get_contents($file->getRealPath());
-
-            // Disable foreign key checks to allow dropping tables
-            DB::statement('SET FOREIGN_KEY_CHECKS=0;');
-
-            // Execute the SQL commands
-            DB::unprepared($sql);
-
-            // Re-enable foreign key checks
-            DB::statement('SET FOREIGN_KEY_CHECKS=1;');
-
-            // LOG ACTION
-            // Note: Since we just wiped the database, this log entry will be the *first* entry
-            // in the newly restored 'activity_logs' table (or appended if you preserved logs).
-            // Usually, restore wipes everything, so this marks the "Start" of the new timeline.
-            ActivityLog::create([
-                'user_id' => auth()->id() ?? 1, // Fallback to ID 1 if session is weird after restore
-                'action' => 'System Restore',
-                'description' => 'Restored database from backup file: ' . $file->getClientOriginalName()
-            ]);
-            
-
-            return back()->with('success', 'Database restored successfully! Please log in again.');
-
-        } catch (\Exception $e) {
-            DB::statement('SET FOREIGN_KEY_CHECKS=1;');
-            return back()->with('error', 'Restore failed: ' . $e->getMessage());
-        }
+        // SECURITY FIX: This feature allows arbitrary SQL execution. 
+        // We are disabling it to prevent RCE/Data Loss.
+        return back()->with('error', 'Security Alert: Database restoration via Web UI is disabled. Please contact your system administrator to perform a manual restore.');
     }
 }

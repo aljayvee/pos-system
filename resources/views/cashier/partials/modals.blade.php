@@ -20,12 +20,14 @@
                             <i class="fas fa-money-bill-wave d-block mb-1 fs-4"></i> Cash
                         </label>
                     </div>
+                    @if(config('safety_flag_features.online_payment'))
                     <div class="col-4">
                         <input type="radio" class="btn-check" name="paymethod" id="pm-digital" value="digital" onchange="toggleFlow()">
                         <label class="btn btn-outline-secondary w-100 py-3 rounded-3 fw-bold" for="pm-digital">
                             <i class="fas fa-qrcode d-block mb-1 fs-4"></i> E-Wallet
                         </label>
                     </div>
+                    @endif
                     <div class="col-4">
                         <input type="radio" class="btn-check" name="paymethod" id="pm-credit" value="credit" disabled onchange="toggleFlow()">
                         <label class="btn btn-outline-secondary w-100 py-3 rounded-3 fw-bold" for="pm-credit">

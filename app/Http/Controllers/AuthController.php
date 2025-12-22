@@ -178,6 +178,26 @@ class AuthController extends Controller
         }
     }
 
+    // --- FORCE LOGIN (EMAIL LINK) ---
+    public function verifyForceLogin(Request $request, $id)
+    {
+        // 1. Find User (Middleware 'signed' already verified the signature)
+        $user = \App\Models\User::findOrFail($id);
+        
+        // 2. Login User
+        Auth::login($user);
+        $request->session()->regenerate();
+        
+        // 3. Trust this device (Update Session & Cache)
+        $this->updateUserSession($user, $request);
+
+        // 4. Clear any pending login requests for this user (cleanup)
+        Cache::forget('login_requests_' . $user->id);
+
+        // 5. Redirect
+        return $this->redirectBasedOnRole($user);
+    }
+
     public function logout(Request $request)
     {
         if(Auth::check()){
