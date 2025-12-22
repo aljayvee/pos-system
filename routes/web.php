@@ -11,6 +11,7 @@ use App\Http\Controllers\Admin\CreditController;
 use App\Http\Controllers\Admin\InventoryController;
 use App\Http\Controllers\Admin\SupplierController;
 use App\Http\Controllers\Admin\TransactionController;
+use App\Http\Controllers\Admin\ReturnController;
 use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\SettingsController;
 use App\Http\Controllers\Admin\BackupController;

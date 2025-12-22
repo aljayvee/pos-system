@@ -78,8 +78,10 @@ class ReturnController extends Controller
 
                 // 4. Restore Stock (Only if condition is GOOD)
                 if ($itemData['condition'] === 'good') {
-                    // Atomic Increment (Prevents lost updates on stock)
-                    Product::where('id', $productId)->increment('stock', $returnQty);
+                    // Fix: Update INVENTORY (Store-specific), not Product (Global)
+                    \App\Models\Inventory::where('product_id', $productId)
+                        ->where('store_id', $sale->store_id)
+                        ->increment('stock', $returnQty);
                 }
 
                 // 5. Adjust Financials (The Critical Fix)

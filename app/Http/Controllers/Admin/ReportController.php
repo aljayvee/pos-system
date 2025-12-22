@@ -84,22 +84,62 @@ class ReportController extends Controller
         $gross_profit = $total_sales - $total_cost; 
 
         // 5. Analytics Data
-        $topItems = SaleItem::select('product_id', DB::raw('sum(quantity) as total_qty'), DB::raw('sum(price * quantity) as total_revenue'))
+        // 5. Analytics Data (NET Basis)
+
+        // Top Items (Net Quantity & Net Revenue)
+        $topItems = SaleItem::select(
+                'product_id', 
+                DB::raw('SUM(quantity) as gross_qty'),
+                DB::raw('SUM(price * quantity) as gross_rev')
+            )
             ->whereIn('sale_id', $salesIds)
             ->groupBy('product_id')
-            ->orderByDesc('total_qty')
             ->with('product')
-            ->take(10)
-            ->get();
+            ->get()
+            ->map(function ($item) use ($salesIds) {
+                // Calculate Returns for this product within the filtered sales
+                $returned = SalesReturn::whereIn('sale_id', $salesIds)
+                    ->where('product_id', $item->product_id)
+                    ->selectRaw('SUM(quantity) as qty, SUM(refund_amount) as amt')
+                    ->first();
 
-        $topCustomers = Sale::select('customer_id', DB::raw('sum(total_amount) as total_spent'), DB::raw('count(*) as trans_count'))
+                $netQty = $item->gross_qty - ($returned->qty ?? 0);
+                $netRev = $item->gross_rev - ($returned->amt ?? 0);
+
+                return (object) [
+                    'product_id' => $item->product_id,
+                    'product' => $item->product,
+                    'total_qty' => max(0, $netQty),
+                    'total_revenue' => max(0, $netRev)
+                ];
+            })
+            ->sortByDesc('total_qty') // Re-sort by NET quantity
+            ->take(10);
+
+
+        // Top Customers (Net Spent)
+        $topCustomers = Sale::select('customer_id', DB::raw('SUM(total_amount) as gross_spent'), DB::raw('count(*) as trans_count'))
             ->whereNotNull('customer_id')
             ->whereIn('id', $salesIds)
             ->groupBy('customer_id')
-            ->orderByDesc('total_spent')
             ->with('customer')
-            ->take(5)
-            ->get();
+            ->get()
+            ->map(function ($c) use ($salesIds) {
+                // Calculate Returns for this customer
+                $returns = SalesReturn::whereHas('sale', function($q) use ($c, $salesIds) {
+                    $q->whereIn('id', $salesIds)->where('customer_id', $c->customer_id);
+                })->sum('refund_amount');
+
+                return (object) [
+                    'customer_id' => $c->customer_id,
+                    'customer' => $c->customer,
+                    'trans_count' => $c->trans_count,
+                    'total_spent' => max(0, $c->gross_spent - $returns) // Net Spent
+                ];
+            })
+            ->sortByDesc('total_spent')
+            ->take(5);
+
 
         $soldProductIds = \App\Models\SaleItem::whereIn('sale_id', $salesIds)->pluck('product_id')->unique();
         $slowMovingItems = \App\Models\Product::whereNotIn('id', $soldProductIds)
@@ -107,13 +147,27 @@ class ReportController extends Controller
             ->take(10)
             ->get();
 
-        $salesByCategory = SaleItem::select('categories.name', DB::raw('sum(sale_items.price * sale_items.quantity) as total_revenue'))
+        // Sales By Category (Net Revenue)
+        $categorySalesRaw = SaleItem::select('categories.name', DB::raw('SUM(sale_items.price * sale_items.quantity) as gross_revenue'))
             ->join('products', 'sale_items.product_id', '=', 'products.id')
             ->join('categories', 'products.category_id', '=', 'categories.id')
             ->whereIn('sale_items.sale_id', $salesIds)
             ->groupBy('categories.name')
-            ->orderByDesc('total_revenue')
             ->get();
+
+        $salesByCategory = $categorySalesRaw->map(function ($cat) use ($salesIds) {
+             // Calculate Returns for this category
+             $returns = SalesReturn::join('products', 'sales_returns.product_id', '=', 'products.id')
+                ->join('categories', 'products.category_id', '=', 'categories.id')
+                ->whereIn('sales_returns.sale_id', $salesIds)
+                ->where('categories.name', $cat->name)
+                ->sum('sales_returns.refund_amount');
+
+             return (object) [
+                 'name' => $cat->name,
+                 'total_revenue' => max(0, $cat->gross_revenue - $returns)
+             ];
+        })->sortByDesc('total_revenue');
 
         $stores = \App\Models\Store::all();
 

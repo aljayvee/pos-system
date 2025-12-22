@@ -58,12 +58,35 @@
                             </thead>
                             <tbody>
                                 @foreach($sale->saleItems as $item)
+                                    @php
+                                        // Calculate total returned for this specific item in this sale
+                                        $returnedRecords = \App\Models\SalesReturn::where('sale_id', $sale->id)
+                                                            ->where('product_id', $item->product_id)
+                                                            ->get();
+                                        $totalReturned = $returnedRecords->sum('quantity');
+                                    @endphp
                                 <tr>
                                     <td class="ps-4">
                                         <div class="fw-bold text-dark">{{ $item->product->name ?? 'Unknown Item' }}</div>
                                         <small class="text-muted">@ ₱{{ number_format($item->price, 2) }}</small>
+                                        
+                                        {{-- RETURN BADGES --}}
+                                        @if($totalReturned > 0)
+                                            <div class="mt-1">
+                                                @foreach($returnedRecords as $ret)
+                                                    <span class="badge {{ $ret->condition == 'good' ? 'bg-success' : 'bg-danger' }}">
+                                                        Returned: {{ $ret->quantity }} ({{ ucfirst($ret->condition) }})
+                                                    </span>
+                                                @endforeach
+                                            </div>
+                                        @endif
                                     </td>
-                                    <td class="text-center fw-bold text-dark">x{{ $item->quantity }}</td>
+                                    <td class="text-center fw-bold text-dark">
+                                        x{{ $item->quantity }}
+                                        @if($totalReturned > 0)
+                                            <div class="text-danger small">(-{{ $totalReturned }} Returned)</div>
+                                        @endif
+                                    </td>
                                     <td class="text-end pe-4 fw-bold">₱{{ number_format($item->price * $item->quantity, 2) }}</td>
                                 </tr>
                                 @endforeach

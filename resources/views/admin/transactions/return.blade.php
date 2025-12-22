@@ -26,19 +26,37 @@
                                 </thead>
                                 <tbody>
                                     @foreach($sale->saleItems as $index => $item)
+                                        @php
+                                            $returnedQty = \App\Models\SalesReturn::where('sale_id', $sale->id)
+                                                            ->where('product_id', $item->product_id)
+                                                            ->sum('quantity');
+                                            $remainingQty = $item->quantity - $returnedQty;
+                                        @endphp
+                                        
+                                        {{-- SKIP if fully returned --}}
+                                        @if($remainingQty <= 0)
+                                            @continue
+                                        @endif
+
                                     <tr>
                                         <td>
                                             {{ $item->product->name }}
                                             <input type="hidden" name="items[{{ $index }}][product_id]" value="{{ $item->product_id }}">
                                         </td>
-                                        <td class="text-center">{{ $item->quantity }}</td>
+                                        <td class="text-center">
+                                            {{ $item->quantity }}
+                                            @if($returnedQty > 0)
+                                                <small class="text-danger d-block">(-{{ $returnedQty }} Returned)</small>
+                                            @endif
+                                        </td>
                                         <td>₱{{ number_format($item->price, 2) }}</td>
                                         
                                         {{-- Return Quantity Input --}}
                                         <td>
                                             <input type="number" name="items[{{ $index }}][quantity]" 
                                                    class="form-control form-control-sm" 
-                                                   min="0" max="{{ $item->quantity }}" value="0">
+                                                   min="0" max="{{ $remainingQty }}" value="0">
+                                            <small class="text-muted">Max: {{ $remainingQty }}</small>
                                         </td>
 
                                         {{-- Condition Select --}}
