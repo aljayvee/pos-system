@@ -206,46 +206,66 @@
                  </div>
             </div>
 
-            <!-- MY ACCOUNT DROPDOWN -->
+            <!-- MY ACCOUNT DROPDOWN (PREMIUM) -->
             <div class="position-relative" v-click-outside="closeAccountDropdown">
-                <button @click="toggleAccountDropdown" class="btn btn-light d-flex align-items-center gap-2 rounded-pill px-3 py-2 border shadow-sm hover-bg-light transition-all">
-                    <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center fw-bold" 
-                         style="width: 28px; height: 28px; font-size: 0.8rem;">
+                <button @click="toggleAccountDropdown" class="btn btn-light d-flex align-items-center gap-2 rounded-pill px-1 pe-3 py-1 border shadow-sm hover-bg-light transition-all">
+                    <div class="rounded-circle bg-gradient-primary text-white d-flex align-items-center justify-content-center fw-bold shadow-sm" 
+                         style="width: 32px; height: 32px; font-size: 0.9rem; background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%);">
                         {{ userName.charAt(0).toUpperCase() }}
                     </div>
-                    <span class="d-none d-sm-block fw-bold text-dark small">My Account</span>
-                    <i class="fas fa-chevron-down text-muted small ms-1" :class="{ 'rotate-180': accountDropdownOpen }"></i>
+                    <span class="d-none d-sm-block fw-bold text-dark small">{{ userName }}</span>
+                    <i class="fas fa-chevron-down text-muted small ms-1 transition-transform" :class="{ 'rotate-180': accountDropdownOpen }"></i>
                 </button>
 
-                <div v-if="accountDropdownOpen" class="dropdown-menu dropdown-menu-end show shadow-lg border-0 mt-3 p-0 overflow-hidden rounded-4 account-dropdown" style="z-index: 1060;">
-                    
-                    <!-- Dropdown Header: User Info -->
-                    <div class="px-4 py-4 bg-white border-bottom text-center">
-                        <div class="rounded-circle bg-primary bg-gradient text-white d-flex align-items-center justify-content-center shadow mx-auto mb-3" 
-                             style="width: 64px; height: 64px; font-size: 1.75rem; font-family: monospace;">
-                            {{ userName.charAt(0).toUpperCase() }}
-                        </div>
-                        <h6 class="fw-bold text-dark mb-1">{{ userName }}</h6>
-                        <span class="badge bg-secondary bg-opacity-10 text-secondary rounded-pill px-3">{{ userRole.toUpperCase() }}</span>
+                <transition name="dropdown-slide">
+                    <div v-if="accountDropdownOpen" class="dropdown-menu dropdown-menu-end show shadow-xl border-0 mt-3 p-0 overflow-hidden rounded-4 account-dropdown" style="z-index: 1060;">
                         
-                        <div class="mt-3">
-                            <a href="/profile" class="btn btn-sm btn-outline-primary rounded-pill px-4 fw-bold shadow-sm d-inline-flex align-items-center gap-2 transition-all hover-scale">
-                                <i class="fas fa-user-cog"></i> Profile Settings
+                        <!-- Premium Header with Pattern -->
+                        <div class="position-relative bg-primary text-white p-4 text-center overflow-hidden" 
+                             style="background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%);">
+                            <!-- Decoding Pattern Overlay -->
+                            <div class="position-absolute top-0 start-0 w-100 h-100 opacity-10" 
+                                 style="background-image: radial-gradient(#fff 1px, transparent 1px); background-size: 10px 10px;"></div>
+                            
+                            <div class="position-relative z-10">
+                                <div class="rounded-circle bg-white text-primary d-flex align-items-center justify-content-center shadow-lg mx-auto mb-3" 
+                                     style="width: 70px; height: 70px; font-size: 2rem; font-family: monospace;">
+                                    {{ userName.charAt(0).toUpperCase() }}
+                                </div>
+                                <h6 class="fw-bold mb-1">{{ userName }}</h6>
+                                <span class="badge bg-white bg-opacity-25 rounded-pill px-3 py-1 small fw-normal">{{ userRole.toUpperCase() }}</span>
+                            </div>
+                        </div>
+
+                        <!-- Menu Items -->
+                        <div class="p-2">
+                            <a href="/profile" class="dropdown-item p-3 rounded-3 d-flex align-items-center gap-3 fw-bold text-secondary hover-bg-light transition-all mb-1">
+                                <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
+                                    <i class="fas fa-user-cog"></i>
+                                </div>
+                                <div>
+                                    <div class="text-dark">Profile Settings</div>
+                                    <small class="text-muted d-block fw-normal" style="font-size: 0.75rem">Manage your personal info</small>
+                                </div>
                             </a>
+
+                            <div class="dropdown-divider my-1 opacity-50"></div>
+
+                            <form action="/logout" method="POST">
+                                <input type="hidden" name="_token" :value="csrfToken">
+                                <button class="dropdown-item p-3 rounded-3 d-flex align-items-center gap-3 fw-bold text-danger hover-bg-danger-soft transition-all w-100 text-start">
+                                    <div class="bg-danger bg-opacity-10 text-danger rounded-circle d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
+                                        <i class="fas fa-sign-out-alt ps-1"></i>
+                                    </div>
+                                    <div>
+                                        <div>Sign Out</div>
+                                        <small class="text-secondary d-block fw-normal" style="font-size: 0.75rem">End your session safely</small>
+                                    </div>
+                                </button>
+                            </form>
                         </div>
                     </div>
-
-                    <!-- Dropdown Body: Actions -->
-                    <div class="p-2">
-                        <form action="/logout" method="POST">
-                            <input type="hidden" name="_token" :value="csrfToken">
-                            <button class="dropdown-item p-3 rounded-3 text-danger d-flex align-items-center justify-content-center fw-bold hover-bg-danger-soft transition-all">
-                                <i class="fas fa-sign-out-alt me-2"></i>
-                                Log Out
-                            </button>
-                        </form>
-                    </div>
-                </div>
+                </transition>
             </div>
 
         </div>
@@ -264,13 +284,25 @@
 export default {
   props: ['userName', 'userRole', 'pageTitle', 'csrfToken', 'outOfStock', 'lowStock'],
   data() {
+    const isMobile = window.innerWidth < 992;
+    // Default open on desktop, closed on mobile. 
+    // If desktop, check localStorage for user preference.
+    let initialOpen = !isMobile;
+    
+    if (!isMobile) {
+        const savedState = localStorage.getItem('sidebar_state');
+        if (savedState !== null) {
+            initialOpen = savedState === 'true';
+        }
+    }
+
     return {
-      isMobile: window.innerWidth < 992, 
-      isOpen: window.innerWidth >= 992,
+      isMobile: isMobile, 
+      isOpen: initialOpen,
       notifOpen: false,
       accountDropdownOpen: false,
       currentPath: window.location.pathname,
-      isNavigating: false // NEW: Track if we are currently navigating
+      isNavigating: false 
     };
   },
   computed: {
@@ -291,7 +323,13 @@ export default {
     window.removeEventListener('resize', this.handleResize);
   },
   methods: {
-    toggleSidebar() { this.isOpen = !this.isOpen; },
+    toggleSidebar() { 
+        this.isOpen = !this.isOpen; 
+        // Save preference only on desktop
+        if (!this.isMobile) {
+            localStorage.setItem('sidebar_state', this.isOpen);
+        }
+    },
     toggleNotif() { 
         this.notifOpen = !this.notifOpen; 
         if(this.notifOpen) this.accountDropdownOpen = false;
@@ -308,7 +346,14 @@ export default {
       const mobile = window.innerWidth < 992;
       if (this.isMobile !== mobile) {
         this.isMobile = mobile;
-        this.isOpen = !this.isMobile; 
+        
+        if (this.isMobile) {
+            this.isOpen = false; // Always close when entering mobile view
+        } else {
+            // Restore saved state when returning to desktop
+            const savedState = localStorage.getItem('sidebar_state');
+            this.isOpen = savedState !== null ? savedState === 'true' : true;
+        }
       }
     },
     
@@ -446,6 +491,24 @@ header.navbar {
         margin-top: 0.5rem;
         border-radius: 1rem;
     }
+}
+
+/* DROPDOWN ANIMATION */
+.dropdown-slide-enter-active,
+.dropdown-slide-leave-active {
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.dropdown-slide-enter-from,
+.dropdown-slide-leave-to {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.95);
+}
+
+.dropdown-slide-enter-to,
+.dropdown-slide-leave-from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
 }
 
 /* UTILS */
