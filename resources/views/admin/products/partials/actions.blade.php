@@ -1,37 +1,37 @@
 @php
-    $isMobile = $mobile ?? false;
-    $btnClass = $isMobile ? 'btn btn-outline-secondary flex-fill' : 'btn btn-sm btn-outline-primary';
     $barcodeEnabled = \App\Models\Setting::where('key', 'enable_barcode')->value('value') ?? '0';
 @endphp
 
-@if(request('archived'))
-    <form action="{{ route('products.restore', $product->id) }}" method="POST" class="d-inline">
-        @csrf
-        <button class="btn btn-sm btn-success flex-fill" title="Restore">
-            <i class="fas fa-trash-restore"></i> <span class="{{ $isMobile ? '' : 'd-none' }}">Restore</span>
-        </button>
-    </form>
-    <form action="{{ route('products.force_delete', $product->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Permanently delete?');">
-        @csrf @method('DELETE')
-        <button class="btn btn-sm btn-danger flex-fill" title="Delete Forever">
-            <i class="fas fa-times"></i>
-        </button>
-    </form>
-@else
-    @if($barcodeEnabled == '1' && $product->sku)
-        <a href="{{ route('products.barcode', $product->id) }}" target="_blank" class="{{ $isMobile ? 'btn btn-dark flex-fill' : 'btn btn-sm btn-dark' }}" title="Barcode">
-            <i class="fas fa-barcode"></i>
+<div class="btn-group shadow-sm" role="group">
+    @if(request('archived'))
+        <form action="{{ route('products.restore', $product->id) }}" method="POST" class="d-inline">
+            @csrf
+            <button class="btn btn-sm btn-success text-white" title="Restore Product" data-bs-toggle="tooltip">
+                <i class="fas fa-trash-restore"></i>
+            </button>
+        </form>
+        <form action="{{ route('products.force_delete', $product->id) }}" method="POST" class="d-inline" onsubmit="return confirm('This will permanently delete the product. Cannot be undone.');">
+            @csrf @method('DELETE')
+            <button class="btn btn-sm btn-danger text-white rounded-end" title="Delete Permanently" data-bs-toggle="tooltip">
+                <i class="fas fa-times"></i>
+            </button>
+        </form>
+    @else
+        @if($barcodeEnabled == '1' && $product->sku)
+            <a href="{{ route('products.barcode', $product->id) }}" target="_blank" class="btn btn-sm btn-light border text-dark hover-bg-light" title="Print Barcode">
+                <i class="fas fa-barcode"></i>
+            </a>
+        @endif
+
+        <a href="{{ route('products.edit', $product->id) }}" class="btn btn-sm btn-light border text-primary hover-bg-light" title="Edit Product">
+            <i class="fas fa-edit"></i>
         </a>
+
+        <form action="{{ route('products.destroy', $product->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Archive this product? It will be hidden from the main list.');">
+            @csrf @method('DELETE')
+            <button class="btn btn-sm btn-light border text-danger hover-bg-light rounded-end" title="Archive Product">
+                <i class="fas fa-archive"></i>
+            </button>
+        </form>
     @endif
-
-    <a href="{{ route('products.edit', $product->id) }}" class="{{ $isMobile ? 'btn btn-primary flex-fill' : 'btn btn-sm btn-primary' }}" title="Edit">
-        <i class="fas fa-edit"></i> <span class="{{ $isMobile ? '' : 'd-none' }}">Edit</span>
-    </a>
-
-    <form action="{{ route('products.destroy', $product->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Archive product?');">
-        @csrf @method('DELETE')
-        <button class="{{ $isMobile ? 'btn btn-outline-danger flex-fill' : 'btn btn-sm btn-outline-danger' }}" title="Archive">
-            <i class="fas fa-archive"></i>
-        </button>
-    </form>
-@endif
+</div>
