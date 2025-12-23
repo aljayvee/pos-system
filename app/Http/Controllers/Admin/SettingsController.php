@@ -216,41 +216,83 @@ class SettingsController extends Controller
     }
 }
 
-public function runUpdate(Request $request)
-{
-    set_time_limit(0);
-    $storeId = $this->getActiveStoreId();
-    $isBeta = \App\Models\Setting::where('store_id', $storeId)->where('key', 'enable_beta')->value('value') == '1';
-    $branch = $isBeta ? 'develop' : 'main';
-
-    try {
-        // Fix: Use && to chain commands and correct the directory paths
-        shell_exec("cd /www/pos && git config --global --add safe.directory /www/pos 2>&1");
-        shell_exec("cd /www/pos && git stash 2>&1");
-        shell_exec("cd /www/pos && git fetch origin $branch 2>&1");
-        $output = shell_exec("cd /www/pos && git reset --hard origin/$branch 2>&1");
-        // ... after $git reset --hard ...
-            // Add this line INSIDE your runUpdate method:
-            shell_exec("chown -R network:www-data /www/pos/storage /www/pos/bootstrap/cache 2>&1");
-            shell_exec("chmod -R 775 /www/pos/storage /www/pos/bootstrap/cache 2>&1");
-        shell_exec("cd /www/pos && git stash pop 2>&1");
+    public function runUpdate(Request $request)
+    {
+        set_time_limit(300); // 5 minutes max
+        $storeId = $this->getActiveStoreId();
         
-        // Use optimize:clear to handle all caches at once safely
-        shell_exec('php /www/pos/artisan optimize:clear 2>&1');
-        shell_exec('php /www/pos/artisan migrate --force 2>&1');
+        // 1. Determine Branch
+        $isBeta = \App\Models\Setting::where('store_id', $storeId)->where('key', 'enable_beta')->value('value') == '1';
+        $branch = $isBeta ? 'develop' : 'main';
+        
+        // 2. Determine Path dynamically (Fixes hardcoded /www/pos)
+        $path = base_path(); 
+        
+        // 3. Prepare Log Collection
+        $log = [];
+        $log[] = "Environment: " . php_uname();
+        $log[] = "Root Path: $path";
+        $log[] = "Target Branch: $branch";
 
-        // Reset permissions so 'network' user can still write to storage
-        shell_exec("chown -R network:www-data /www/pos/storage /www/pos/bootstrap/cache");
-        shell_exec("chmod -R 775 /www/pos/storage /www/pos/bootstrap/cache");
+        try {
+            // Helper to run commands and trap output
+            $run = function($cmd) use (&$log, $path) {
+                // Determine OS to silence stderr if needed, but we want to see it.
+                // Redirect stderr to stdout to capture errors
+                $command = "cd \"$path\" && $cmd 2>&1";
+                $output = shell_exec($command);
+                $log[] = "> $cmd";
+                $log[] = trim($output);
+                return $output;
+            };
 
-        if (function_exists('opcache_reset')) {
-            opcache_reset();
+            // --- GIT OPERATIONS ---
+            
+            // Mark directory as safe (Fixes dubious ownership on Linux/OpenWrt)
+            $run("git config --global --add safe.directory \"$path\"");
+            
+            // Reset/Stash local changes (User's workflow)
+            $run("git stash");
+            
+            // PULL changes (User's preferred workflow)
+            $run("git pull origin $branch");
+
+            // --- POST-UPDATE TASKS ---
+            
+            // Permissions (Only run on Linux to avoid access denied on Windows)
+            if (PHP_OS_FAMILY !== 'Windows') {
+                $log[] = "Applying Linux Permissions...";
+                // Use standard permissions for web server (usually www-data)
+                $run("chown -R network:www-data storage bootstrap/cache");
+                $run("chmod -R 775 storage bootstrap/cache");
+            } else {
+                $log[] = "Skipping permissions (Windows detected).";
+            }
+
+            // Optimization
+            $run("php artisan optimize:clear");
+            $run("php artisan migrate --force");
+
+            // Reload Opcache if available
+            if (function_exists('opcache_reset')) {
+                opcache_reset();
+                $log[] = "Opcache reset.";
+            }
+
+            return response()->json([
+                'success' => true, 
+                'message' => 'Update sequence completed.',
+                'output' => implode("\n", $log)
+            ]);
+
+        } catch (\Exception $e) {
+            $log[] = "CRITICAL ERROR: " . $e->getMessage();
+            return response()->json([
+                'success' => false, 
+                'message' => 'Update failed: ' . $e->getMessage(),
+                'output' => implode("\n", $log)
+            ]);
         }
-
-        return response()->json(['success' => true, 'output' => $output]);
-    } catch (\Exception $e) {
-        return response()->json(['success' => false, 'message' => 'Update failed: ' . $e->getMessage()]);
     }
-}
 
 }
