@@ -22,7 +22,7 @@
                         
                         <div class="mb-4">
                             <label class="form-label fw-bold text-secondary text-uppercase small">Supplier Name <span class="text-danger">*</span></label>
-                            <input type="text" name="name" class="form-control form-control-lg bg-light border-0" value="{{ $supplier->name }}" required>
+                            <input type="text" name="name" class="form-control bg-light border-0" value="{{ $supplier->name }}" required>
                         </div>
 
                         <div class="mb-4">

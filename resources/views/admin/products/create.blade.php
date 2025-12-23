@@ -40,14 +40,14 @@
                         {{-- Name --}}
                         <div class="mb-4">
                             <label class="form-label fw-bold small text-uppercase text-secondary">Product Name <span class="text-danger">*</span></label>
-                            <input type="text" name="name" class="form-control form-control-lg bg-light border-0" placeholder="e.g. Bear Brand Swak" required>
+                            <input type="text" name="name" class="form-control bg-light border-0" placeholder="e.g. Bear Brand Swak" required>
                         </div>
 
                         {{-- Category & Unit --}}
                         <div class="row g-4 mb-4">
                             <div class="col-12 col-md-6">
                                 <label class="form-label fw-bold small text-uppercase text-secondary">Category <span class="text-danger">*</span></label>
-                                <select name="category_id" class="form-select form-select-lg bg-light border-0 select2">
+                                <select name="category_id" class="form-select bg-light border-0 select2">
                                     @foreach($categories as $category)
                                         <option value="{{ $category->id }}">{{ $category->name }}</option>
                                     @endforeach
@@ -56,7 +56,7 @@
 
                             <div class="col-12 col-md-6">
                                 <label class="form-label fw-bold small text-uppercase text-secondary">Unit <span class="text-danger">*</span></label>
-                                <select name="unit" class="form-select form-select-lg bg-light border-0" required>
+                                <select name="unit" class="form-select bg-light border-0" required>
                                     <option value="pc">Piece (pc)</option>
                                     <option value="pack">Pack</option>
                                     <option value="kg">Kilogram (kg)</option>
@@ -78,14 +78,14 @@
                                     <label class="form-label fw-bold text-dark">Selling Price (SRP) <span class="text-danger">*</span></label>
                                     <div class="input-group shadow-sm">
                                         <span class="input-group-text bg-white border-0 text-success fw-bold">₱</span>
-                                        <input type="number" step="0.01" name="price" class="form-control form-control-lg border-0 fw-bold text-success" placeholder="0.00" required>
+                                        <input type="number" step="0.01" name="price" class="form-control border-0 fw-bold text-success" placeholder="0.00" required>
                                     </div>
                                 </div>
                                 <div class="col-12 col-md-6">
                                     <label class="form-label text-muted">Cost Price (Puhanan)</label>
                                     <div class="input-group shadow-sm">
                                         <span class="input-group-text bg-white border-0 text-muted">₱</span>
-                                        <input type="number" step="0.01" name="cost" class="form-control form-control-lg border-0 text-muted" placeholder="0.00">
+                                        <input type="number" step="0.01" name="cost" class="form-control border-0 text-muted" placeholder="0.00">
                                     </div>
                                 </div>
                             </div>
@@ -101,7 +101,7 @@
                                     <i id="placeholderIcon" class="fas fa-image text-secondary fa-2x opacity-50"></i>
                                 </div>
                                 <div class="flex-grow-1">
-                                    <input type="file" name="image" class="form-control form-control-lg bg-white border-0 shadow-sm" accept="image/*" onchange="previewImage(this)">
+                                    <input type="file" name="image" class="form-control bg-white border-0 shadow-sm" accept="image/*" onchange="previewImage(this)">
                                 </div>
                             </div>
                         </div>

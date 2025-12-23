@@ -34,16 +34,16 @@
                         <div class="row g-4">
                             <div class="col-12 col-md-6">
                                 <label class="form-label fw-bold small text-uppercase text-secondary">Full Name <span class="text-danger">*</span></label>
-                                <input type="text" name="name" class="form-control form-control-lg bg-light border-0" placeholder="e.g. Juan Cashier" required>
+                                <input type="text" name="name" class="form-control bg-light border-0" placeholder="e.g. Juan Cashier" required>
                             </div>
                             <div class="col-12 col-md-6">
                                 <label class="form-label fw-bold small text-uppercase text-secondary">Email Address <span class="text-danger">*</span></label>
-                                <input type="email" name="email" class="form-control form-control-lg bg-light border-0" placeholder="user@pos.com" required>
+                                <input type="email" name="email" class="form-control bg-light border-0" placeholder="user@pos.com" required>
                             </div>
                             
                             <div class="col-12">
                                 <label class="form-label fw-bold small text-uppercase text-secondary">Role <span class="text-danger">*</span></label>
-                                <select name="role" class="form-select form-select-lg bg-light border-0">
+                                <select name="role" class="form-select bg-light border-0">
                                     <option value="cashier">Cashier (POS & Sales Only)</option>
                                     <option value="admin">Admin (Full System Access)</option>
                                 </select>
@@ -54,11 +54,11 @@
 
                             <div class="col-12 col-md-6">
                                 <label class="form-label fw-bold small text-uppercase text-secondary">Password <span class="text-danger">*</span></label>
-                                <input type="password" name="password" class="form-control form-control-lg bg-light border-0" required minlength="6">
+                                <input type="password" name="password" class="form-control bg-light border-0" required minlength="6">
                             </div>
                             <div class="col-12 col-md-6">
                                 <label class="form-label fw-bold small text-uppercase text-secondary">Confirm Password <span class="text-danger">*</span></label>
-                                <input type="password" name="password_confirmation" class="form-control form-control-lg bg-light border-0" required>
+                                <input type="password" name="password_confirmation" class="form-control bg-light border-0" required>
                             </div>
                         </div>
 

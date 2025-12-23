@@ -13,7 +13,7 @@
                         <code class="text-dark">Name, Category, Price, Stock, SKU</code>
                     </div>
                     <label class="form-label fw-bold">Select CSV File</label>
-                    <input type="file" name="csv_file" class="form-control form-control-lg" required accept=".csv">
+                    <input type="file" name="csv_file" class="form-control" required accept=".csv">
                 </div>
                 <div class="modal-footer bg-light">
                     <button type="button" class="btn btn-link text-secondary text-decoration-none" data-bs-dismiss="modal">Cancel</button>

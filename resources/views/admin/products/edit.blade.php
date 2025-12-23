@@ -28,14 +28,14 @@
                         {{-- Name --}}
                         <div class="mb-4">
                             <label class="form-label fw-bold small text-uppercase text-secondary">Product Name <span class="text-danger">*</span></label>
-                            <input type="text" name="name" class="form-control form-control-lg bg-light border-0" value="{{ $product->name }}" required>
+                            <input type="text" name="name" class="form-control bg-light border-0" value="{{ $product->name }}" required>
                         </div>
 
                         {{-- Category & Unit --}}
                         <div class="row g-4 mb-4">
                             <div class="col-12 col-md-6">
                                 <label class="form-label fw-bold small text-uppercase text-secondary">Category <span class="text-danger">*</span></label>
-                                <select name="category_id" class="form-select form-select-lg bg-light border-0">
+                                <select name="category_id" class="form-select bg-light border-0">
                                     @foreach($categories as $cat)
                                         <option value="{{ $cat->id }}" {{ $product->category_id == $cat->id ? 'selected' : '' }}>
                                             {{ $cat->name }}
@@ -45,7 +45,7 @@
                             </div>
                             <div class="col-12 col-md-6">
                                 <label class="form-label fw-bold small text-uppercase text-secondary">Unit <span class="text-danger">*</span></label>
-                                <select name="unit" class="form-select form-select-lg bg-light border-0" required>
+                                <select name="unit" class="form-select bg-light border-0" required>
                                     @foreach(['pc','pack','kg','g','l','ml','box','bottle','can'] as $u)
                                         <option value="{{ $u }}" {{ $product->unit == $u ? 'selected' : '' }}>{{ ucfirst($u) }}</option>
                                     @endforeach
@@ -61,14 +61,14 @@
                                     <label class="form-label fw-bold text-dark">Selling Price (SRP) <span class="text-danger">*</span></label>
                                     <div class="input-group shadow-sm">
                                         <span class="input-group-text bg-white border-0 text-success fw-bold">₱</span>
-                                        <input type="number" step="0.01" name="price" class="form-control form-control-lg border-0 fw-bold text-success" value="{{ $product->price }}" required>
+                                        <input type="number" step="0.01" name="price" class="form-control border-0 fw-bold text-success" value="{{ $product->price }}" required>
                                     </div>
                                 </div>
                                 <div class="col-12 col-md-6">
                                     <label class="form-label text-muted">Cost Price (Puhanan)</label>
                                     <div class="input-group shadow-sm">
                                         <span class="input-group-text bg-white border-0 text-muted">₱</span>
-                                        <input type="number" step="0.01" name="cost" class="form-control form-control-lg border-0 text-muted" value="{{ $product->cost }}">
+                                        <input type="number" step="0.01" name="cost" class="form-control border-0 text-muted" value="{{ $product->cost }}">
                                     </div>
                                 </div>
                             </div>
@@ -89,7 +89,7 @@
                                     @endif
                                 </div>
                                 <div class="flex-grow-1">
-                                    <input type="file" name="image" class="form-control form-control-lg bg-white border-0 shadow-sm" accept="image/*" onchange="previewImage(this)">
+                                    <input type="file" name="image" class="form-control bg-white border-0 shadow-sm" accept="image/*" onchange="previewImage(this)">
                                 </div>
                             </div>
                         </div>

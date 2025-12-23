@@ -11,7 +11,8 @@
             <p class="text-muted small mb-0">Monitor stock levels, value, and adjustments.</p>
         </div>
         
-        <div class="d-flex flex-wrap gap-2">
+        {{-- DESKTOP TOOLBAR --}}
+        <div class="d-none d-md-flex flex-wrap gap-2">
             <a href="{{ route('purchases.create') }}" class="btn btn-primary shadow-sm rounded-pill fw-bold px-3">
                 <i class="fas fa-plus-circle me-1"></i> Restock
             </a>
@@ -26,6 +27,22 @@
                     <i class="fas fa-file-export me-1"></i> Export
                 </a>
             </div>
+        </div>
+
+        {{-- MOBILE TOOLBAR (Organized Grid) --}}
+        <div class="d-grid d-md-none w-100 gap-2 mt-2" style="grid-template-columns: 1fr 1fr;">
+            <a href="{{ route('purchases.create') }}" class="btn btn-primary shadow-sm rounded-3 fw-bold">
+                <i class="fas fa-plus-circle me-1"></i> Restock
+            </a>
+            <a href="{{ route('inventory.adjust') }}" class="btn btn-warning shadow-sm rounded-3 fw-bold text-dark">
+                <i class="fas fa-sliders-h me-1"></i> Adjust
+            </a>
+            <a href="{{ route('inventory.history') }}" class="btn btn-white border shadow-sm rounded-3 fw-bold text-dark">
+                <i class="fas fa-history me-1"></i> History
+            </a>
+            <a href="{{ route('inventory.export') }}" class="btn btn-success shadow-sm rounded-3 fw-bold text-white">
+                <i class="fas fa-file-export me-1"></i> Export
+            </a>
         </div>
     </div>
 

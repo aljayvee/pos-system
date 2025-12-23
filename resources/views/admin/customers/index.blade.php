@@ -210,7 +210,7 @@
                 <div class="modal-body p-4">
                     <div class="mb-3">
                         <label class="form-label fw-bold text-secondary small text-uppercase">Full Name</label>
-                        <input type="text" name="name" class="form-control form-control-lg bg-light border-0" placeholder="e.g. John Doe" required>
+                        <input type="text" name="name" class="form-control bg-light border-0" placeholder="e.g. John Doe" required>
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-bold text-secondary small text-uppercase">Contact Number</label>

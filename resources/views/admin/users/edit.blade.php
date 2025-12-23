@@ -27,15 +27,15 @@
                         <div class="row g-4">
                             <div class="col-12 col-md-6">
                                 <label class="form-label fw-bold small text-uppercase text-secondary">Full Name</label>
-                                <input type="text" name="name" class="form-control form-control-lg bg-light border-0" value="{{ old('name', $user->name) }}" required>
+                                <input type="text" name="name" class="form-control bg-light border-0" value="{{ old('name', $user->name) }}" required>
                             </div>
                             <div class="col-12 col-md-6">
                                 <label class="form-label fw-bold small text-uppercase text-secondary">Email Address</label>
-                                <input type="email" name="email" class="form-control form-control-lg bg-light border-0" value="{{ old('email', $user->email) }}" required>
+                                <input type="email" name="email" class="form-control bg-light border-0" value="{{ old('email', $user->email) }}" required>
                             </div>
                             <div class="col-12">
                                 <label class="form-label fw-bold small text-uppercase text-secondary">Role</label>
-                                <select name="role" class="form-select form-select-lg bg-light border-0">
+                                <select name="role" class="form-select bg-light border-0">
                                     <option value="admin" {{ $user->role == 'admin' ? 'selected' : '' }}>Admin (Full Access)</option>
                                     <option value="cashier" {{ $user->role == 'cashier' ? 'selected' : '' }}>Cashier (POS Only)</option>
                                 </select>
@@ -52,7 +52,7 @@
                             <p class="small text-muted mb-3">Leave the field below blank if you do NOT want to change the password.</p>
                             
                             <label class="form-label fw-bold small text-uppercase text-secondary">New Password</label>
-                            <input type="password" name="password" class="form-control form-control-lg bg-white border shadow-sm" placeholder="Enter new password to reset...">
+                            <input type="password" name="password" class="form-control bg-white border shadow-sm" placeholder="Enter new password to reset...">
                         </div>
 
                         <div class="d-flex justify-content-end gap-2 mt-5">

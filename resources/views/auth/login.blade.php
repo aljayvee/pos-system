@@ -166,54 +166,70 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     {{-- Update your existing error handling script --}}
-     @if($errors->any())
     <script>
-        document.addEventListener("DOMContentLoaded", function() {
-        let title = 'Login Failed';
-        let message = `
-            <ul class="mb-0 ps-3">
-                @foreach($errors->all() as $error)
-                    <li>{{ $error }}</li>
-                @endforeach
-            </ul>
-        `;
+        // 1. Error Handling (Only if errors exist)
+        @if($errors->any())
+            document.addEventListener("DOMContentLoaded", function() {
+                let title = 'Login Failed';
+                let message = `
+                    <ul class="mb-0 ps-3">
+                        @foreach($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                `;
 
-        // Check if the error is a CSRF timeout
-        @if(session('status') == '419')
-            title = 'Session Expired';
-            message = 'Your security token expired. Please refresh and try again.';
+                // Check for CSRF timeout
+                @if(session('status') == '419')
+                    title = 'Session Expired';
+                    message = 'Your security token expired. Please refresh and try again.';
+                @endif
+
+                Swal.fire({
+                    icon: 'error',
+                    title: title,
+                    html: `<div class="text-start bg-light p-3 rounded border text-danger small">${message}</div>`,
+                    confirmButtonColor: '#4f46e5',
+                    confirmButtonText: 'Refresh Page',
+                }).then((result) => {
+                    if (result.isConfirmed) window.location.reload();
+                });
+            });
         @endif
 
-        Swal.fire({
-            icon: 'error',
-            title: title,
-            html: `<div class="text-start bg-light p-3 rounded border text-danger small">${message}</div>`,
-            confirmButtonColor: '#4f46e5',
-            confirmButtonText: 'Refresh Page',
-        }).then((result) => {
-            if (result.isConfirmed) {
-                window.location.reload();
+        // 2. Global Form Logic (Always Active)
+        document.addEventListener("DOMContentLoaded", function() {
+            const form = document.querySelector('form');
+            const emailInput = document.getElementById('emailInput');
+            const btn = document.getElementById('loginBtn');
+            const text = document.getElementById('btnText');
+            const spinner = document.getElementById('btnSpinner');
+
+            // Enforce Lowercase on Email Input
+            if(emailInput) {
+                emailInput.addEventListener('input', function() {
+                    this.value = this.value.toLowerCase();
+                });
+            }
+
+            // Handle Submit Loading State
+            if(form) {
+                form.addEventListener('submit', function(e) {
+                    // Prevent multiple clicks
+                    if(btn.disabled) {
+                        e.preventDefault(); 
+                        return;
+                    }
+
+                    // Activate Loading State
+                    btn.disabled = true;
+                    btn.style.opacity = '0.7';
+                    text.innerText = "Verifying...";
+                    spinner.classList.remove('d-none');
+                });
             }
         });
-    });
-
-        document.querySelector('form').addEventListener('submit', function(e) {
-        const btn = document.getElementById('loginBtn');
-        const text = document.getElementById('btnText');
-        const spinner = document.getElementById('btnSpinner');
-
-        // 1. Disable button to prevent multiple submissions
-        btn.disabled = true;
-
-        // 2. Change text and show spinner
-        text.innerText = "Verifying...";
-        spinner.classList.remove('d-none');
-
-        // Note: The form will now submit normally. 
-        // If the router is slow, the user will see "Verifying..." until the page reloads.
-    });
     </script>
-    @endif
 
     {{-- Service Worker --}}
     <script>

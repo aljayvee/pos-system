@@ -33,13 +33,13 @@
                         <div class="row g-4">
                             <div class="col-md-4">
                                 <label class="form-label fw-bold small text-uppercase text-secondary">Purchase Date</label>
-                                <input type="date" name="purchase_date" class="form-control form-control-lg bg-light border-0" value="{{ date('Y-m-d') }}" required>
+                                <input type="date" name="purchase_date" class="form-control bg-light border-0" value="{{ date('Y-m-d') }}" required>
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label fw-bold small text-uppercase text-secondary">Select Supplier</label>
                                 <div class="input-group shadow-sm rounded-4 overflow-hidden">
                                     <span class="input-group-text bg-white border-0 ps-3"><i class="fas fa-user-tie text-secondary"></i></span>
-                                    <select name="supplier_id" id="supplier_select" class="form-select form-select-lg border-0 bg-white shadow-none">
+                                    <select name="supplier_id" id="supplier_select" class="form-select border-0 bg-white shadow-none">
                                         <option value="">-- Choose Existing --</option>
                                         @foreach($suppliers as $supplier)
                                             <option value="{{ $supplier->id }}">{{ $supplier->name }}</option>
@@ -49,7 +49,7 @@
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label fw-bold small text-uppercase text-secondary">Or New Supplier</label>
-                                <input type="text" name="new_supplier_name" class="form-control form-control-lg bg-light border-0" placeholder="Type to create new...">
+                                <input type="text" name="new_supplier_name" class="form-control bg-light border-0" placeholder="Type to create new...">
                             </div>
                         </div>
                     </div>
@@ -83,7 +83,7 @@
                                     {{-- Product --}}
                                     <div class="col-12 col-md-5">
                                         <label class="form-label d-md-none fw-bold small text-secondary">Product</label>
-                                        <select name="items[0][product_id]" class="form-select form-select-lg bg-light border-0 product-select" required onchange="updateCost(this)">
+                                        <select name="items[0][product_id]" class="form-select bg-light border-0 product-select" required onchange="updateCost(this)">
                                             <option value="" data-cost="0">Select Product...</option>
                                             @foreach($products as $product)
                                                 <option value="{{ $product->id }}" data-cost="{{ $product->cost ?? 0 }}">
@@ -95,12 +95,12 @@
                                     {{-- Qty --}}
                                     <div class="col-6 col-md-3">
                                         <label class="form-label d-md-none fw-bold small text-secondary">Quantity</label>
-                                        <input type="number" name="items[0][quantity]" class="form-control form-control-lg bg-light border-0 qty-input fw-bold text-center" placeholder="0" min="1" required oninput="calculateTotal()">
+                                        <input type="number" name="items[0][quantity]" class="form-control bg-light border-0 qty-input fw-bold text-center" placeholder="0" min="1" required oninput="calculateTotal()">
                                     </div>
                                     {{-- Cost --}}
                                     <div class="col-6 col-md-3">
                                         <label class="form-label d-md-none fw-bold small text-secondary">Unit Cost</label>
-                                        <div class="input-group input-group-lg shadow-sm rounded-4 overflow-hidden">
+                                        <div class="input-group shadow-sm rounded-4 overflow-hidden">
                                             <span class="input-group-text bg-white border-0 px-3 text-secondary">₱</span>
                                             <input type="number" name="items[0][unit_cost]" class="form-control bg-white border-0 cost-input fw-bold" placeholder="0.00" step="0.01" min="0" required oninput="calculateTotal()">
                                         </div>
@@ -145,7 +145,7 @@
                 <div class="row g-3 align-items-end align-items-md-center">
                     <div class="col-12 col-md-5">
                         <label class="form-label d-md-none fw-bold small text-secondary">Product</label>
-                        <select name="items[${rowCount}][product_id]" class="form-select form-select-lg bg-light border-0 product-select" required onchange="updateCost(this)">
+                        <select name="items[${rowCount}][product_id]" class="form-select bg-light border-0 product-select" required onchange="updateCost(this)">
                             <option value="" data-cost="0">Select Product...</option>
                             @foreach($products as $product)
                                 <option value="{{ $product->id }}" data-cost="{{ $product->cost ?? 0 }}">
@@ -156,11 +156,11 @@
                     </div>
                     <div class="col-6 col-md-3">
                         <label class="form-label d-md-none fw-bold small text-secondary">Quantity</label>
-                        <input type="number" name="items[${rowCount}][quantity]" class="form-control form-control-lg bg-light border-0 qty-input fw-bold text-center" placeholder="0" min="1" required oninput="calculateTotal()">
+                        <input type="number" name="items[${rowCount}][quantity]" class="form-control bg-light border-0 qty-input fw-bold text-center" placeholder="0" min="1" required oninput="calculateTotal()">
                     </div>
                     <div class="col-6 col-md-3">
                         <label class="form-label d-md-none fw-bold small text-secondary">Unit Cost</label>
-                        <div class="input-group input-group-lg shadow-sm rounded-4 overflow-hidden">
+                        <div class="input-group shadow-sm rounded-4 overflow-hidden">
                             <span class="input-group-text bg-white border-0 px-3 text-secondary">₱</span>
                             <input type="number" name="items[${rowCount}][unit_cost]" class="form-control bg-white border-0 cost-input fw-bold" placeholder="0.00" step="0.01" min="0" required oninput="calculateTotal()">
                         </div>

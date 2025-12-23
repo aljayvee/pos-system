@@ -38,7 +38,7 @@
                         
                         <div class="mb-4">
                             <label class="form-label fw-bold text-secondary small text-uppercase">Select Product</label>
-                            <select name="product_id" class="form-select form-select-lg bg-light border-0 select2" required>
+                            <select name="product_id" class="form-select bg-light border-0 select2" required>
                                 <option value="">-- Search Item --</option>
                                 @foreach($products as $p)
                                     <option value="{{ $p->id }}">{{ $p->name }} (Qty: {{ $p->stock }})</option>
@@ -70,12 +70,12 @@
 
                         <div class="mb-4">
                             <label class="form-label fw-bold text-secondary small text-uppercase">Quantity</label>
-                            <input type="number" name="quantity" class="form-control form-control-lg bg-light border-0" min="1" placeholder="0" required>
+                            <input type="number" name="quantity" class="form-control bg-light border-0" min="1" placeholder="0" required>
                         </div>
 
                         <div class="mb-4">
                             <label class="form-label fw-bold text-secondary small text-uppercase">Reason</label>
-                            <select name="reason" class="form-select form-select-lg bg-light border-0" required>
+                            <select name="reason" class="form-select bg-light border-0" required>
                                 <option value="Spoilage/Expired">Spoilage / Expired</option>
                                 <option value="Damaged">Damaged Item</option>
                                 <option value="Theft/Lost">Theft / Lost</option>

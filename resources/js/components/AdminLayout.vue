@@ -35,7 +35,7 @@
          </button>
       </div>
 
-      <div class="flex-fill overflow-auto py-3 custom-scrollbar">
+      <div class="flex-fill overflow-auto py-3 custom-scrollbar" :class="{ 'opacity-50 pe-none': isNavigating }" @click.capture="handleNavClick">
          
          <div class="px-3 mb-4">
              <a href="/cashier/pos" class="btn btn-primary w-100 d-flex align-items-center justify-content-center py-2 shadow-sm text-uppercase fw-bold" style="letter-spacing: 0.5px;">
@@ -269,7 +269,8 @@ export default {
       isOpen: window.innerWidth >= 992,
       notifOpen: false,
       accountDropdownOpen: false,
-      currentPath: window.location.pathname
+      currentPath: window.location.pathname,
+      isNavigating: false // NEW: Track if we are currently navigating
     };
   },
   computed: {
@@ -283,6 +284,8 @@ export default {
   },
   mounted() {
     window.addEventListener('resize', this.handleResize);
+    // Reset nav state when coming back to page (browsers cache state)
+    window.addEventListener('pageshow', () => { this.isNavigating = false; });
   },
   unmounted() {
     window.removeEventListener('resize', this.handleResize);
@@ -307,6 +310,24 @@ export default {
         this.isMobile = mobile;
         this.isOpen = !this.isMobile; 
       }
+    },
+    
+    // NEW: Handle sidebar clicks to prevent double-click / multiple activation
+    handleNavClick(e) {
+        // If already navigating, stop this click
+        if (this.isNavigating) {
+            e.preventDefault();
+            e.stopPropagation();
+            return;
+        }
+
+        const link = e.target.closest('a');
+        // Only lock if it's a real navigation link
+        if (link && link.href && link.href !== '#' && !link.href.startsWith('javascript')) {
+            this.isNavigating = true;
+            // Failsafe: unlock after 5s if network is stuck
+            setTimeout(() => { this.isNavigating = false; }, 5000);
+        }
     }
   },
   directives: {

@@ -1,118 +1,144 @@
 @extends('admin.layout')
 
 @section('content')
-<div class="container-fluid px-4">
+<div class="container-fluid px-0 px-md-4">
     
-    {{-- HEADER --}}
-    <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center mt-4 mb-4 gap-2">
-        <h1 class="h2 mb-0 text-gray-800"><i class="fas fa-receipt text-primary me-2"></i>Transactions</h1>
+    {{-- TITLE & SEARCH HEADER --}}
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center py-4 px-3 px-md-0 gap-3">
+        <div>
+            <h1 class="h3 fw-bold mb-1 text-dark">Transactions</h1>
+            <p class="text-muted small mb-0">History of sales and orders</p>
+        </div>
         
-        <form action="{{ route('transactions.index') }}" method="GET" class="d-flex gap-2 flex-fill flex-sm-grow-0" style="max-width: 400px;">
-            <div class="input-group">
-                <input type="text" name="search" class="form-control" placeholder="Search ID or Ref..." value="{{ request('search') }}">
-                <button type="submit" class="btn btn-primary"><i class="fas fa-search"></i></button>
-            </div>
+        <form action="{{ route('transactions.index') }}" method="GET" class="position-relative" style="min-width: 300px;">
+            <i class="fas fa-search position-absolute top-50 start-0 translate-middle-y ms-3 text-muted"></i>
+            <input type="text" name="search" class="form-control ps-5 rounded-pill border-0 shadow-sm" 
+                   placeholder="Search ID, Customer..." value="{{ request('search') }}" style="background: #fff; font-size: 0.95rem;">
             @if(request('search'))
-                <a href="{{ route('transactions.index') }}" class="btn btn-outline-secondary"><i class="fas fa-undo"></i></a>
+                <a href="{{ route('transactions.index') }}" class="position-absolute top-50 end-0 translate-middle-y me-3 text-muted">
+                    <i class="fas fa-times-circle"></i>
+                </a>
             @endif
         </form>
     </div>
 
     @if(session('success'))
-        <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
-            {{ session('success') }} <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        <div class="px-3 px-md-0 mb-3">
+            <div class="alert alert-success border-0 shadow-sm rounded-3 d-flex align-items-center">
+                <i class="fas fa-check-circle me-2 fs-5"></i> {{ session('success') }} 
+            </div>
         </div>
     @endif
 
-    <div class="card shadow-sm border-0 mb-4">
-        
-        {{-- DESKTOP TABLE --}}
-        <div class="d-none d-lg-block">
+    {{-- DESKTOP VIEW --}}
+    <div class="d-none d-lg-block">
+        <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
             <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
-                    <thead class="bg-light small text-uppercase text-secondary">
-                        <tr>
-                            <th class="ps-4">ID / Ref</th>
-                            <th>Date</th>
-                            <th>Cashier</th>
-                            <th>Customer</th>
-                            <th>Method</th>
-                            <th class="text-end">Total</th>
-                            <th class="text-end pe-4">Action</th>
+                <table class="table table-hover align-middle mb-0" style="min-width: 800px;">
+                    <thead class="bg-light">
+                        <tr class="text-secondary small text-uppercase fw-bold" style="letter-spacing: 0.5px;">
+                            <th class="ps-4 py-3">Reference</th>
+                            <th class="py-3">Customer</th>
+                            <th class="py-3">Date</th>
+                            <th class="py-3">Method</th>
+                            <th class="text-end py-3">Amount</th>
+                            <th class="text-end pe-4 py-3"></th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody class="border-top-0">
                         @forelse($transactions as $sale)
-                        <tr>
-                            <td class="ps-4">
-                                <span class="fw-bold text-dark">#{{ $sale->id }}</span>
-                                @if($sale->reference_number) <div class="small text-muted">{{ $sale->reference_number }}</div> @endif
+                        <tr style="cursor: pointer;" onclick="window.location='{{ route('transactions.show', $sale->id) }}'">
+                            <td class="ps-4 py-3">
+                                <div class="fw-bold text-dark">#{{ $sale->id }}</div>
+                                @if($sale->reference_number) 
+                                    <div class="small text-muted font-monospace">{{ $sale->reference_number }}</div> 
+                                @endif
                             </td>
-                            <td class="text-muted">{{ $sale->created_at->format('M d, Y h:i A') }}</td>
-                            <td>{{ $sale->user->name }}</td>
-                            <td>{{ $sale->customer->name ?? 'Walk-in' }}</td>
+                            <td class="py-3">
+                                <div class="d-flex align-items-center">
+                                    <div class="avatar-circle bg-primary bg-opacity-10 text-primary rounded-circle me-2 d-flex align-items-center justify-content-center fw-bold" style="width: 32px; height: 32px; font-size: 0.8rem;">
+                                        {{ substr($sale->customer->name ?? 'W', 0, 1) }}
+                                    </div>
+                                    <div>
+                                        <div class="fw-bold text-dark">{{ $sale->customer->name ?? 'Walk-in Customer' }}</div>
+                                        <div class="small text-muted">{{ $sale->user->name }}</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="text-secondary small">{{ $sale->created_at->format('M d, Y • h:i A') }}</td>
                             <td>
                                 @php
                                     $badge = match($sale->payment_method) {
-                                        'cash' => 'bg-success-subtle text-success',
-                                        'credit' => 'bg-danger-subtle text-danger',
-                                        default => 'bg-info-subtle text-info',
+                                        'cash' => 'bg-success text-white',
+                                        'credit' => 'bg-danger text-white',
+                                        default => 'bg-info text-white',
+                                    };
+                                    $icon = match($sale->payment_method) {
+                                        'cash' => 'fa-money-bill-wave',
+                                        'credit' => 'fa-file-invoice-dollar',
+                                        default => 'fa-credit-card',
                                     };
                                 @endphp
-                                <span class="badge {{ $badge }} border border-opacity-10 text-uppercase">{{ $sale->payment_method }}</span>
+                                <span class="badge {{ $badge }} fw-normal px-2 py-1 rounded-pill">
+                                    <i class="fas {{ $icon }} me-1 small"></i> {{ ucfirst($sale->payment_method) }}
+                                </span>
                             </td>
-                            <td class="text-end fw-bold">₱{{ number_format($sale->total_amount, 2) }}</td>
+                            <td class="text-end fw-bold text-dark fs-6 font-monospace">₱{{ number_format($sale->total_amount, 2) }}</td>
                             <td class="text-end pe-4">
-                                <a href="{{ route('transactions.show', $sale->id) }}" class="btn btn-sm btn-outline-primary shadow-sm"><i class="fas fa-eye"></i> View</a>
+                                <i class="fas fa-chevron-right text-muted small opacity-50"></i>
                             </td>
                         </tr>
                         @empty
-                        <tr><td colspan="7" class="text-center py-5 text-muted">No transactions found.</td></tr>
+                        <tr><td colspan="6" class="text-center py-5 text-muted">No transactions found.</td></tr>
                         @endforelse
                     </tbody>
                 </table>
             </div>
         </div>
+    </div>
 
-        {{-- === MOBILE NATIVE VIEW === --}}
-        <div class="d-lg-none bg-light pt-2 pb-2">
-            @forelse($transactions as $sale)
-            <a href="{{ route('transactions.show', $sale->id) }}" class="text-decoration-none text-dark">
-                <div class="card border-0 shadow-sm mx-3 mb-3" style="border-radius: 12px;">
-                    <div class="card-body p-3">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <span class="badge bg-secondary bg-opacity-10 text-secondary border">#{{ $sale->id }}</span>
-                            <small class="text-muted">{{ $sale->created_at->format('M d, h:i A') }}</small>
+    {{-- MOBILE VIEW --}}
+    <div class="d-lg-none pb-5">
+        @forelse($transactions as $sale)
+        <a href="{{ route('transactions.show', $sale->id) }}" class="text-decoration-none">
+            <div class="card border-0 shadow-sm mx-3 mb-3 rounded-4 overflow-hidden position-relative">
+                <div class="card-body p-3">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div class="d-flex align-items-center">
+                            <div class="bg-light rounded-3 p-2 me-3 text-center" style="min-width: 50px;">
+                                <div class="fw-bold text-dark" style="font-size: 1.1rem; line-height: 1;">{{ $sale->created_at->format('d') }}</div>
+                                <div class="small text-muted text-uppercase" style="font-size: 0.7rem;">{{ $sale->created_at->format('M') }}</div>
+                            </div>
+                            <div>
+                                <h6 class="fw-bold text-dark mb-0">{{ $sale->customer->name ?? 'Walk-in' }}</h6>
+                                <div class="small text-muted">#{{ $sale->id }} • {{ $sale->created_at->format('h:i A') }}</div>
+                            </div>
                         </div>
-                        
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <h5 class="fw-bold mb-0 text-primary">₱{{ number_format($sale->total_amount, 2) }}</h5>
-                            @php
-                                $badgeClass = match($sale->payment_method) {
-                                    'cash' => 'bg-success-subtle text-success',
-                                    'credit' => 'bg-danger-subtle text-danger',
-                                    default => 'bg-info-subtle text-info',
-                                };
-                            @endphp
-                            <span class="badge {{ $badgeClass }} rounded-pill text-uppercase" style="font-size: 0.7rem;">
-                                {{ $sale->payment_method }}
-                            </span>
-                        </div>
-                        
-                        <div class="d-flex align-items-center text-muted small border-top pt-2">
-                            <i class="fas fa-user me-2 opacity-50"></i> {{ $sale->customer->name ?? 'Walk-in' }}
-                            <span class="mx-2">•</span>
-                            <i class="fas fa-user-tag me-2 opacity-50"></i> {{ $sale->user->name }}
+                        <div class="text-end">
+                            <div class="fw-bolder text-dark" style="font-size: 1.1rem;">₱{{ number_format($sale->total_amount, 2) }}</div>
                         </div>
                     </div>
+                    <div class="d-flex justify-content-between align-items-center mt-3 pt-2 border-top border-light">
+                        <span class="badge {{ $sale->payment_method == 'credit' ? 'bg-danger-subtle text-danger' : 'bg-success-subtle text-success' }} rounded-pill px-3">
+                            {{ ucfirst($sale->payment_method) }}
+                        </span>
+                        <small class="text-muted">By {{ $sale->user->name }} <i class="fas fa-chevron-right ms-1" style="font-size: 0.7rem;"></i></small>
+                    </div>
                 </div>
-            </a>
-            @empty
-            <div class="text-center py-5 text-muted">No transactions found.</div>
-            @endforelse
+            </div>
+        </a>
+        @empty
+        <div class="text-center py-5 text-muted">
+            <i class="fas fa-receipt fa-3x mb-3 opacity-25"></i>
+            <p>No transactions found.</p>
         </div>
-
-        @if($transactions->hasPages()) <div class="card-footer bg-white border-top-0 py-3">{{ $transactions->links() }}</div> @endif
+        @endforelse
     </div>
+
+    @if($transactions->hasPages()) 
+        <div class="px-3 pb-4">
+            {{ $transactions->links() }}
+        </div> 
+    @endif
 </div>
 @endsection

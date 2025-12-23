@@ -23,18 +23,20 @@
     <div class="card mb-4 border-0 shadow-sm rounded-4">
         <div class="card-body p-2">
             <form action="{{ route('reports.index') }}" method="GET" class="row g-2 align-items-center">
+                @if(config('safety_flag_features.multi_store'))
                 @if($isMultiStore == '1')
                 <div class="col-12 col-md-3">
                     <div class="input-group">
                         <span class="input-group-text bg-light border-0"><i class="fas fa-store text-muted"></i></span>
                         <select name="store_filter" class="form-select bg-light border-0" onchange="this.form.submit()">
-                            <!--<option value="all" {{ $targetStore == 'all' ? 'selected' : '' }}>-- All Branches --</option>
+                            <option value="all" {{ $targetStore == 'all' ? 'selected' : '' }}>-- All Branches --</option>
                             @foreach($stores as $store)
                                 <option value="{{ $store->id }}" {{ $targetStore == $store->id ? 'selected' : '' }}>{{ $store->name }}</option>
-                            @endforeach-->
+                            @endforeach
                         </select>
                     </div>
                 </div>
+                @endif
                 @endif
 
                 <div class="col-6 col-md-2">

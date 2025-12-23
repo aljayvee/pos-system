@@ -1,9 +1,32 @@
 import './bootstrap';
 import { createApp } from 'vue';
+import NProgress from 'nprogress';
+import 'nprogress/nprogress.css';
 
 // CHANGED: Import AdminLayout instead of SidebarLayout to match your Blade template
 import AdminLayout from './components/AdminLayout.vue';
 import StatsCard from './components/StatsCard.vue'; // <--- ADD THIS
+
+// Configure NProgress for premium feel
+NProgress.configure({ 
+    minimum: 0.3, 
+    easing: 'ease', 
+    speed: 500, 
+    showSpinner: false, // Keep it clean
+    trickleSpeed: 200 
+});
+
+// Global smooth transition listeners
+document.addEventListener('click', e => {
+    const link = e.target.closest('a');
+    if (link && link.href && link.href.startsWith(window.location.origin) && !link.target && !e.ctrlKey && !e.metaKey && link.getAttribute('href') !== '#') {
+        NProgress.start();
+    }
+});
+document.addEventListener('submit', e => {
+    if (!e.target.target) NProgress.start();
+});
+window.addEventListener('pageshow', () => NProgress.done());
 
 const app = createApp({});
 

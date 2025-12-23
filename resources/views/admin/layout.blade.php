@@ -87,6 +87,10 @@
 
     {{-- 1. ADD THIS: Bootstrap JS Bundle (Required for Modals) --}}
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    {{-- OPTIMIZATION: Instant Page Loads (Prefetch on hover) --}}
+    <script src="//instant.page/5.2.0" type="module" integrity="sha384-jnZyxPjiipYXnSU0ygqeac2q7CVYMbh84GO0uHryadeyJ+hy/agWCMAeKwF265F+" crossorigin="anonymous"></script>
+    
     @stack('scripts')
 </body>
 

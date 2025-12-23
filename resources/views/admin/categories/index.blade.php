@@ -33,7 +33,7 @@
                                 <span class="position-absolute top-50 start-0 translate-middle-y ps-3 text-muted">
                                     <i class="fas fa-tag"></i>
                                 </span>
-                                <input type="text" name="name" class="form-control form-control-lg ps-5 bg-light border-0 shadow-sm" 
+                                <input type="text" name="name" class="form-control ps-5 bg-light border-0 shadow-sm" 
                                        placeholder="e.g. Beverages, Snacks, Electronics" required>
                             </div>
                             <button type="submit" class="btn btn-primary btn-lg px-4 rounded-3 shadow-lg fw-bold">
