@@ -75,6 +75,7 @@
         <admin-layout
             user-name="{{ Auth::user()->name }}"
             user-role="{{ Auth::user()->role }}"
+            :user-permissions="{{ json_encode(Auth::user()->effective_permissions) }}"
             page-title="{{ $pageTitle ?? 'Dashboard' }}"
             csrf-token="{{ csrf_token() }}"
             :out-of-stock="{{ $outOfStockCount ?? 0 }}"

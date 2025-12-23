@@ -98,9 +98,13 @@ class AuthController extends Controller
 
     protected function redirectBasedOnRole($user)
     {
-        return $user->role === 'admin' 
-            ? redirect()->route('admin.dashboard') 
-            : redirect()->route('cashier.pos');
+        // Cashiers go directly to POS
+        if ($user->role === 'cashier') {
+            return redirect()->route('cashier.pos');
+        }
+
+        // Everyone else (Admin, Manager, Supervisor, Stock Clerk, Auditor) goes to Dashboard
+        return redirect()->route('admin.dashboard');
     }
 
     // --- WAITING ROOM LOGIC ---

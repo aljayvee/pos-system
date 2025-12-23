@@ -19,6 +19,9 @@ class ProductController extends Controller
 
     public function import(Request $request)
     {
+        if (!Auth::user()->hasPermission(\App\Enums\Permission::INVENTORY_EDIT->value)) {
+            abort(403);
+        }
         $request->validate(['csv_file' => 'required|file|mimes:csv,txt']);
 
         $file = $request->file('csv_file');
@@ -138,6 +141,9 @@ class ProductController extends Controller
     // Restore Archived Product
     public function restore($id)
     {
+        if (!Auth::user()->hasPermission(\App\Enums\Permission::INVENTORY_EDIT->value)) {
+            abort(403);
+        }
         $product = Product::withTrashed()->findOrFail($id);
         $product->restore();
         return back()->with('success', 'Product restored successfully.');
@@ -146,6 +152,9 @@ class ProductController extends Controller
     // Force Delete (Permanent)
     public function forceDelete($id)
     {
+        if (!Auth::user()->hasPermission(\App\Enums\Permission::INVENTORY_EDIT->value)) {
+            abort(403);
+        }
         $product = Product::withTrashed()->findOrFail($id);
         if($product->saleItems()->exists()) {
             return back()->with('error', 'Cannot permanently delete. This item has sales history.');
@@ -157,6 +166,9 @@ class ProductController extends Controller
     // 2. Show Create Form
     public function create()
     {
+        if (!Auth::user()->hasPermission(\App\Enums\Permission::INVENTORY_EDIT->value)) {
+            abort(403);
+        }
         $categories = Category::all();
         return view('admin.products.create', compact('categories'));
     }
@@ -204,6 +216,9 @@ class ProductController extends Controller
 
     public function store(Request $request)
 {
+    if (!Auth::user()->hasPermission(\App\Enums\Permission::INVENTORY_EDIT->value)) {
+        abort(403);
+    }
     $validated = $request->validate([
         'name' => 'required',
         'price' => 'required|numeric',
@@ -262,6 +277,9 @@ class ProductController extends Controller
     // 4. Show Edit Form
     public function edit(Product $product)
     {
+        if (!Auth::user()->hasPermission(\App\Enums\Permission::INVENTORY_EDIT->value)) {
+            abort(403);
+        }
         $categories = Category::all();
         return view('admin.products.edit', compact('product', 'categories'));
     }
@@ -269,6 +287,9 @@ class ProductController extends Controller
     // 5. Update Product (FIXED for Multi-Store)
     public function update(Request $request, Product $product)
     {
+        if (!Auth::user()->hasPermission(\App\Enums\Permission::INVENTORY_EDIT->value)) {
+            abort(403);
+        }
         $request->validate([
             'name' => 'required',
             'price' => 'required|numeric',
@@ -356,6 +377,9 @@ class ProductController extends Controller
     // 6. Delete/Archive Product
     public function destroy(Product $product)
     {
+        if (!Auth::user()->hasPermission(\App\Enums\Permission::INVENTORY_EDIT->value)) {
+            abort(403);
+        }
         // Log BEFORE deleting
         ActivityLog::create([
             'user_id' => auth()->id(),

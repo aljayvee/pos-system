@@ -44,10 +44,14 @@
                             <div class="col-12">
                                 <label class="form-label fw-bold small text-uppercase text-secondary">Role <span class="text-danger">*</span></label>
                                 <select name="role" class="form-select bg-light border-0">
-                                    <option value="cashier">Cashier (POS & Sales Only)</option>
                                     <option value="admin">Admin (Full System Access)</option>
+                                    <option value="manager">Manager (Operations & Overrides)</option>
+                                    <option value="supervisor">Supervisor (Sales Management)</option>
+                                    <option value="cashier">Cashier (POS & Sales)</option>
+                                    <option value="stock_clerk">Stock Clerk (Inventory Only)</option>
+                                    <option value="auditor">Auditor (Read-Only Access)</option>
                                 </select>
-                                <div class="form-text mt-2"><i class="fas fa-info-circle me-1 text-primary"></i> Admins can manage inventory, users, and settings. Cashiers can only process sales.</div>
+                                <div class="form-text mt-2"><i class="fas fa-info-circle me-1 text-primary"></i> Select the primary role. Specific permissions can be customized after creation.</div>
                             </div>
 
                             <div class="col-12 my-2"><hr class="text-muted opacity-25"></div>

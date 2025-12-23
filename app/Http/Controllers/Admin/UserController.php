@@ -34,7 +34,7 @@ class UserController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
             'password' => 'required|min:6|confirmed', 
-            'role' => 'required|in:admin,cashier'
+            'role' => 'required|in:admin,cashier,manager,supervisor,stock_clerk,auditor'
         ]);
 
         // FIX: Create User ONCE. Removed the duplicate User::create calls.
@@ -52,7 +52,14 @@ class UserController extends Controller
 
     public function edit(User $user)
     {
-        return view('admin.users.edit', compact('user'));
+        // Get permissions for the user's current role to show "Default" status
+        $rawPerms = \Illuminate\Support\Facades\Config::get('role_permission.' . $user->role, []);
+        $rolePermissions = [];
+        foreach ($rawPerms as $perm) {
+            $rolePermissions[] = ($perm instanceof \BackedEnum) ? $perm->value : $perm;
+        }
+
+        return view('admin.users.edit', compact('user', 'rolePermissions'));
     }
 
     public function update(Request $request, User $user)
@@ -66,15 +73,38 @@ class UserController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => ['required', 'email', Rule::unique('users')->ignore($user->id)],
-            'role' => 'required|in:admin,cashier',
-            'password' => 'nullable|min:6'
+            'role' => 'required|in:admin,cashier,manager,supervisor,stock_clerk,auditor', // Updated roles
+            'password' => 'nullable|min:6',
+            'permissions' => 'nullable|array'
         ]);
 
         $data = [
             'name' => $request->name,
             'email' => $request->email,
-            'role' => $request->role,
         ];
+
+        // SECURITY: Prevent non-admins from changing their own Role or Permissions
+        $isSelf = auth()->id() === $user->id;
+        $isAdmin = auth()->user()->role === 'admin';
+
+        if (!$isSelf || $isAdmin) {
+            // Allowed to update Role
+            $data['role'] = $request->role;
+            
+            // Allowed to update Permissions
+            if ($request->has('permissions')) {
+                $perms = collect($request->permissions)
+                    ->filter(fn($val) => !is_null($val))
+                    ->map(fn($val) => (bool) $val)
+                    ->toArray();
+                
+                $data['permissions'] = !empty($perms) ? $perms : null;
+            }
+        } elseif ($request->role !== $user->role) {
+             // If self (non-admin) tries to change role, fail or ignore? 
+             // Form validation passed, but logic denies.
+             return back()->with('error', 'Security Alert: You cannot change your own role.');
+        }
 
         if ($request->filled('password')) {
             $data['password'] = Hash::make($request->password);

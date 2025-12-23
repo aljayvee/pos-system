@@ -14,12 +14,14 @@
             <p class="text-muted small m-0">Manage stock, prices, and categories.</p>
         </div>
         <div class="d-flex flex-wrap gap-2">
+            @can('inventory.edit')
             <button class="btn btn-white border shadow-sm rounded-pill px-4 fw-bold" data-bs-toggle="modal" data-bs-target="#importModal">
                 <i class="fas fa-file-import me-2 text-secondary"></i>Import CSV
             </button>
             <a href="{{ route('products.create') }}" class="btn btn-primary shadow-lg rounded-pill px-4 fw-bold">
                 <i class="fas fa-plus-circle me-2"></i>Add Product
             </a>
+            @endcan
         </div>
     </div>
 
@@ -201,6 +203,8 @@
                         <i class="fas fa-print"></i>
                     </a>
                     @endif
+
+                    @can('inventory.edit')
                     <a href="{{ route('products.edit', $product->id) }}" class="btn btn-warning flex-fill fw-bold text-dark py-2 shadow-sm rounded-3">
                         <i class="fas fa-edit me-1"></i> Edit
                     </a>
@@ -211,6 +215,7 @@
                             <i class="fas fa-trash"></i>
                         </button>
                     </form>
+                    @endcan
                 </div>
             </div>
         </div>

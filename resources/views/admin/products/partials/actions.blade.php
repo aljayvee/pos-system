@@ -4,6 +4,7 @@
 
 <div class="btn-group shadow-sm" role="group">
     @if(request('archived'))
+        @can('inventory.edit')
         <form action="{{ route('products.restore', $product->id) }}" method="POST" class="d-inline">
             @csrf
             <button class="btn btn-sm btn-success text-white" title="Restore Product" data-bs-toggle="tooltip">
@@ -16,6 +17,7 @@
                 <i class="fas fa-times"></i>
             </button>
         </form>
+        @endcan
     @else
         @if($barcodeEnabled == '1' && $product->sku)
             <a href="{{ route('products.barcode', $product->id) }}" target="_blank" class="btn btn-sm btn-light border text-dark hover-bg-light" title="Print Barcode">
@@ -23,6 +25,7 @@
             </a>
         @endif
 
+        @can('inventory.edit')
         <a href="{{ route('products.edit', $product->id) }}" class="btn btn-sm btn-light border text-primary hover-bg-light" title="Edit Product">
             <i class="fas fa-edit"></i>
         </a>
@@ -33,5 +36,6 @@
                 <i class="fas fa-archive"></i>
             </button>
         </form>
+        @endcan
     @endif
 </div>
