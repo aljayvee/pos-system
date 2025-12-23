@@ -1,12 +1,13 @@
 @extends('admin.layout')
 
 @section('content')
-<div class="container-fluid px-4">
+<div class="container-fluid px-2 py-3 px-md-4">
     
-<a href="{{ route('purchases.index') }}" class="btn btn-outline-secondary">Back/Cancel</a>
-    <div class="d-flex align-items-center justify-content-between mt-4 mb-4">
-        <h1 class="h2 mb-0"><i class="fas fa-cart-plus text-success me-2"></i>Restock Inventory</h1>
-        
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <h4 class="fw-bold text-dark mb-0"><i class="fas fa-cart-plus text-success me-2"></i>Restock Inventory</h4>
+        <a href="{{ route('purchases.index') }}" class="btn btn-light border shadow-sm rounded-pill fw-bold">
+            <i class="fas fa-times me-1"></i> Cancel
+        </a>
     </div>
 
     <form action="{{ route('purchases.store') }}" method="POST" id="purchaseForm">
@@ -16,29 +17,29 @@
             
             {{-- SUPPLIER & DETAILS CARD --}}
             <div class="col-12">
-                <div class="card shadow-sm border-0">
-                    <div class="card-header bg-white py-3">
-                        <h5 class="mb-0 text-secondary">1. Supplier Details</h5>
+                <div class="card shadow-sm border-0 rounded-4 overflow-hidden">
+                    <div class="card-header bg-success bg-opacity-10 text-success py-3 border-0">
+                        <h5 class="mb-0 fw-bold"><i class="fas fa-info-circle me-2"></i>1. Supplier Details</h5>
                     </div>
-                    <div class="card-body">
+                    <div class="card-body p-4">
                          @if($errors->any())
-                            <div class="alert alert-danger">
+                            <div class="alert alert-danger rounded-3 border-0 shadow-sm mb-4">
                                 <ul class="mb-0 ps-3">
                                     @foreach($errors->all() as $error) <li>{{ $error }}</li> @endforeach
                                 </ul>
                             </div>
                         @endif
 
-                        <div class="row g-3">
+                        <div class="row g-4">
                             <div class="col-md-4">
-                                <label class="form-label fw-bold">Purchase Date</label>
-                                <input type="date" name="purchase_date" class="form-control" value="{{ date('Y-m-d') }}" required>
+                                <label class="form-label fw-bold small text-uppercase text-secondary">Purchase Date</label>
+                                <input type="date" name="purchase_date" class="form-control form-control-lg bg-light border-0" value="{{ date('Y-m-d') }}" required>
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label fw-bold">Select Supplier</label>
-                                <div class="input-group">
-                                    <span class="input-group-text bg-light"><i class="fas fa-user-tie"></i></span>
-                                    <select name="supplier_id" id="supplier_select" class="form-select select2">
+                                <label class="form-label fw-bold small text-uppercase text-secondary">Select Supplier</label>
+                                <div class="input-group shadow-sm rounded-4 overflow-hidden">
+                                    <span class="input-group-text bg-white border-0 ps-3"><i class="fas fa-user-tie text-secondary"></i></span>
+                                    <select name="supplier_id" id="supplier_select" class="form-select form-select-lg border-0 bg-white shadow-none">
                                         <option value="">-- Choose Existing --</option>
                                         @foreach($suppliers as $supplier)
                                             <option value="{{ $supplier->id }}">{{ $supplier->name }}</option>
@@ -47,8 +48,8 @@
                                 </div>
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label fw-bold text-muted">Or New Supplier</label>
-                                <input type="text" name="new_supplier_name" class="form-control" placeholder="Type to create new...">
+                                <label class="form-label fw-bold small text-uppercase text-secondary">Or New Supplier</label>
+                                <input type="text" name="new_supplier_name" class="form-control form-control-lg bg-light border-0" placeholder="Type to create new...">
                             </div>
                         </div>
                     </div>
@@ -57,17 +58,18 @@
 
             {{-- ITEMS REPEATER --}}
             <div class="col-12">
-                <div class="card shadow-sm border-0">
-                    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0 text-secondary">2. Items to Restock</h5>
-                        <div class="badge bg-success-subtle text-success border border-success px-3 py-2">
-                            Est. Total: <span id="grandTotal" class="fw-bold">₱0.00</span>
+                <div class="card shadow-lg border-0 rounded-4 overflow-hidden">
+                    <div class="card-header bg-white py-3 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 border-bottom border-light">
+                        <h5 class="mb-0 fw-bold text-dark"><i class="fas fa-cubes me-2 text-primary"></i>2. Items to Restock</h5>
+                        <div class="bg-success text-white px-4 py-2 rounded-pill shadow-sm d-flex align-items-center justify-content-between" style="min-width: 200px;">
+                            <span class="small opacity-75 me-2">EST. TOTAL</span>
+                            <span id="grandTotal" class="fw-bold fs-5">₱0.00</span>
                         </div>
                     </div>
-                    <div class="card-body p-0 p-md-3 bg-light">
+                    <div class="card-body p-0 p-md-4 bg-light">
                         
                         {{-- HEADERS (Hidden on Mobile) --}}
-                        <div class="d-none d-md-flex row g-2 px-2 mb-2 fw-bold text-muted small text-uppercase">
+                        <div class="d-none d-md-flex row g-2 px-3 mb-2 fw-bold text-secondary small text-uppercase items-header">
                             <div class="col-5">Product</div>
                             <div class="col-3">Quantity</div>
                             <div class="col-3">Unit Cost</div>
@@ -76,12 +78,12 @@
 
                         <div id="items_container">
                             {{-- Row 0 --}}
-                            <div class="item-row card card-body shadow-sm border-0 mb-2 px-3 py-3" id="row_0">
+                            <div class="item-row card card-body shadow-sm border-0 mb-3 rounded-4 px-3 py-4" id="row_0">
                                 <div class="row g-3 align-items-end align-items-md-center">
                                     {{-- Product --}}
                                     <div class="col-12 col-md-5">
-                                        <label class="form-label d-md-none fw-bold small">Product</label>
-                                        <select name="items[0][product_id]" class="form-select product-select" required onchange="updateCost(this)">
+                                        <label class="form-label d-md-none fw-bold small text-secondary">Product</label>
+                                        <select name="items[0][product_id]" class="form-select form-select-lg bg-light border-0 product-select" required onchange="updateCost(this)">
                                             <option value="" data-cost="0">Select Product...</option>
                                             @foreach($products as $product)
                                                 <option value="{{ $product->id }}" data-cost="{{ $product->cost ?? 0 }}">
@@ -92,36 +94,36 @@
                                     </div>
                                     {{-- Qty --}}
                                     <div class="col-6 col-md-3">
-                                        <label class="form-label d-md-none fw-bold small">Quantity</label>
-                                        <input type="number" name="items[0][quantity]" class="form-control qty-input" placeholder="0" min="1" required oninput="calculateTotal()">
+                                        <label class="form-label d-md-none fw-bold small text-secondary">Quantity</label>
+                                        <input type="number" name="items[0][quantity]" class="form-control form-control-lg bg-light border-0 qty-input fw-bold text-center" placeholder="0" min="1" required oninput="calculateTotal()">
                                     </div>
                                     {{-- Cost --}}
                                     <div class="col-6 col-md-3">
-                                        <label class="form-label d-md-none fw-bold small">Unit Cost</label>
-                                        <div class="input-group">
-                                            <span class="input-group-text px-2 text-muted">₱</span>
-                                            <input type="number" name="items[0][unit_cost]" class="form-control cost-input" placeholder="0.00" step="0.01" min="0" required oninput="calculateTotal()">
+                                        <label class="form-label d-md-none fw-bold small text-secondary">Unit Cost</label>
+                                        <div class="input-group input-group-lg shadow-sm rounded-4 overflow-hidden">
+                                            <span class="input-group-text bg-white border-0 px-3 text-secondary">₱</span>
+                                            <input type="number" name="items[0][unit_cost]" class="form-control bg-white border-0 cost-input fw-bold" placeholder="0.00" step="0.01" min="0" required oninput="calculateTotal()">
                                         </div>
                                     </div>
                                     {{-- Remove --}}
                                     <div class="col-12 col-md-1 text-end text-md-center">
-                                        <button type="button" class="btn btn-outline-danger w-100 w-md-auto" onclick="removeRow(this)" disabled>
-                                            <i class="fas fa-trash"></i> <span class="d-md-none ms-2">Remove Item</span>
+                                        <button type="button" class="btn btn-outline-danger w-100 w-md-auto rounded-pill border-0 bg-danger-subtle text-danger" onclick="removeRow(this)" disabled>
+                                            <i class="fas fa-trash"></i> <span class="d-md-none ms-2">Remove</span>
                                         </button>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="d-grid mt-3">
-                            <button type="button" class="btn btn-outline-primary border-dashed py-2" onclick="addRow()">
-                                <i class="fas fa-plus-circle me-1"></i> Add Another Item
+                        <div class="d-grid mt-4">
+                            <button type="button" class="btn btn-white border-2 border-dashed border-primary text-primary fw-bold py-3 rounded-4 hover-shadow" onclick="addRow()">
+                                <i class="fas fa-plus-circle me-2"></i> Add Another Item
                             </button>
                         </div>
 
                     </div>
-                    <div class="card-footer bg-white py-3">
-                        <button type="submit" class="btn btn-success btn-lg w-100 shadow-sm">
+                    <div class="card-footer bg-white py-4 border-top-0 d-flex justify-content-end">
+                        <button type="submit" class="btn btn-success rounded-pill px-5 py-3 fw-bold shadow-lg text-uppercase tracking-wide">
                             <i class="fas fa-check-circle me-2"></i> Confirm Stock In
                         </button>
                     </div>
@@ -139,11 +141,11 @@
     function addRow() {
         const container = document.getElementById('items_container');
         const newRowHTML = `
-            <div class="item-row card card-body shadow-sm border-0 mb-2 px-3 py-3 animate__animated animate__fadeIn" id="row_${rowCount}">
+            <div class="item-row card card-body shadow-sm border-0 mb-3 rounded-4 px-3 py-4 animate__animated animate__fadeIn" id="row_${rowCount}">
                 <div class="row g-3 align-items-end align-items-md-center">
                     <div class="col-12 col-md-5">
-                        <label class="form-label d-md-none fw-bold small">Product</label>
-                        <select name="items[${rowCount}][product_id]" class="form-select product-select" required onchange="updateCost(this)">
+                        <label class="form-label d-md-none fw-bold small text-secondary">Product</label>
+                        <select name="items[${rowCount}][product_id]" class="form-select form-select-lg bg-light border-0 product-select" required onchange="updateCost(this)">
                             <option value="" data-cost="0">Select Product...</option>
                             @foreach($products as $product)
                                 <option value="{{ $product->id }}" data-cost="{{ $product->cost ?? 0 }}">
@@ -153,18 +155,18 @@
                         </select>
                     </div>
                     <div class="col-6 col-md-3">
-                        <label class="form-label d-md-none fw-bold small">Quantity</label>
-                        <input type="number" name="items[${rowCount}][quantity]" class="form-control qty-input" placeholder="0" min="1" required oninput="calculateTotal()">
+                        <label class="form-label d-md-none fw-bold small text-secondary">Quantity</label>
+                        <input type="number" name="items[${rowCount}][quantity]" class="form-control form-control-lg bg-light border-0 qty-input fw-bold text-center" placeholder="0" min="1" required oninput="calculateTotal()">
                     </div>
                     <div class="col-6 col-md-3">
-                        <label class="form-label d-md-none fw-bold small">Unit Cost</label>
-                        <div class="input-group">
-                            <span class="input-group-text px-2 text-muted">₱</span>
-                            <input type="number" name="items[${rowCount}][unit_cost]" class="form-control cost-input" placeholder="0.00" step="0.01" min="0" required oninput="calculateTotal()">
+                        <label class="form-label d-md-none fw-bold small text-secondary">Unit Cost</label>
+                        <div class="input-group input-group-lg shadow-sm rounded-4 overflow-hidden">
+                            <span class="input-group-text bg-white border-0 px-3 text-secondary">₱</span>
+                            <input type="number" name="items[${rowCount}][unit_cost]" class="form-control bg-white border-0 cost-input fw-bold" placeholder="0.00" step="0.01" min="0" required oninput="calculateTotal()">
                         </div>
                     </div>
                     <div class="col-12 col-md-1 text-end text-md-center">
-                        <button type="button" class="btn btn-outline-danger w-100 w-md-auto" onclick="removeRow(this)">
+                        <button type="button" class="btn btn-outline-danger w-100 w-md-auto rounded-pill border-0 bg-danger-subtle text-danger" onclick="removeRow(this)">
                             <i class="fas fa-trash"></i> <span class="d-md-none ms-2">Remove</span>
                         </button>
                     </div>

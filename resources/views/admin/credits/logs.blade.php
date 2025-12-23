@@ -1,25 +1,30 @@
 @extends('admin.layout')
 
 @section('content')
-<div class="container-fluid px-4">
+<div class="container-fluid px-2 py-3 px-md-4 py-md-4">
     
     {{-- HEADER --}}
-    <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center mt-4 mb-4 gap-2">
-        <h1 class="h2 mb-0 text-gray-800"><i class="fas fa-history text-success me-2"></i>Payment Logs</h1>
-        <a href="{{ route('credits.index') }}" class="btn btn-outline-primary shadow-sm">
-            <i class="fas fa-file-invoice-dollar me-1"></i> Outstanding Credits
+    <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center mb-4 gap-2">
+        <h4 class="fw-bold text-dark mb-1">
+            <i class="fas fa-history text-success me-2"></i>Payment Logs
+        </h4>
+        <a href="{{ route('credits.index') }}" class="btn btn-light border shadow-sm rounded-pill fw-bold">
+            <i class="fas fa-file-invoice-dollar me-1 text-secondary"></i> Outstanding Credits
         </a>
     </div>
 
     {{-- DESKTOP VIEW: TABLE --}}
-    <div class="card shadow-sm border-0 d-none d-lg-block">
+    <div class="card shadow-sm border-0 d-none d-lg-block rounded-4 overflow-hidden">
+        <div class="card-header bg-white py-3 border-bottom border-light">
+            <h5 class="m-0 font-weight-bold text-dark"><i class="fas fa-list me-2 text-primary"></i>All Payments</h5>
+        </div>
         <div class="card-body p-0">
             <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0">
                     <thead class="bg-light text-secondary small text-uppercase fw-bold">
                         <tr>
                             <th class="ps-4 py-3">Date Paid</th>
-                            <th class="py-3">Customer</th>
+                            <th class="py-3">Customer Information</th>
                             <th class="py-3">Amount Paid</th>
                             <th class="py-3">Processed By</th>
                             <th class="pe-4 py-3">Notes</th>
@@ -29,19 +34,27 @@
                         @forelse($payments as $payment)
                         <tr>
                             <td class="ps-4 text-muted">
-                                {{ \Carbon\Carbon::parse($payment->payment_date)->format('M d, Y h:i A') }}
+                                <div class="fw-bold text-dark">{{ \Carbon\Carbon::parse($payment->payment_date)->format('M d, Y') }}</div>
+                                <small>{{ \Carbon\Carbon::parse($payment->payment_date)->format('h:i A') }}</small>
                             </td>
                             <td>
                                 <span class="fw-bold text-dark">{{ $payment->credit->customer->name ?? 'Unknown' }}</span>
                                 <small class="text-muted d-block" style="font-size: 0.75rem;">Credit ID: #{{ $payment->customer_credit_id }}</small>
                             </td>
                             <td>
-                                <span class="text-success fw-bold">+ ₱{{ number_format($payment->amount, 2) }}</span>
+                                <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 rounded-pill fs-6">
+                                    + ₱{{ number_format($payment->amount, 2) }}
+                                </span>
                             </td>
                             <td>
-                                <span class="badge bg-light text-secondary border">{{ $payment->user->name ?? 'System' }}</span>
+                                <div class="d-flex align-items-center">
+                                    <div class="bg-light rounded-circle d-flex align-items-center justify-content-center me-2" style="width:28px; height:28px;">
+                                        <i class="fas fa-user small text-secondary"></i>
+                                    </div>
+                                    <span class="small fw-bold">{{ $payment->user->name ?? 'System' }}</span>
+                                </div>
                             </td>
-                            <td class="pe-4 text-muted small fst-italic">
+                            <td class="pe-4 text-muted small fst-italic" style="max-width: 250px;">
                                 {{ $payment->notes ?? '-' }}
                             </td>
                         </tr>
@@ -64,24 +77,25 @@
         <div class="row g-3">
             @forelse($payments as $payment)
             <div class="col-12 col-md-6">
-                <div class="card shadow-sm border-0 border-start border-4 border-success h-100">
-                    <div class="card-body">
+                <div class="card shadow-sm border-0 h-100 rounded-4">
+                    <div class="card-body p-3">
                         {{-- Top Row: Customer & Amount --}}
                         <div class="d-flex justify-content-between align-items-start mb-2">
                             <div>
-                                <h6 class="fw-bold text-dark mb-0">{{ $payment->credit->customer->name ?? 'Unknown' }}</h6>
-                                <small class="text-muted" style="font-size: 0.75rem;">Credit #{{ $payment->customer_credit_id }}</small>
+                                <h6 class="fw-bold text-dark mb-0 d-flex align-items-center">
+                                    <i class="fas fa-user-circle me-2 text-muted"></i>{{ $payment->credit->customer->name ?? 'Unknown' }}
+                                </h6>
+                                <small class="text-muted ps-4" style="font-size: 0.75rem;">Credit #{{ $payment->customer_credit_id }}</small>
                             </div>
                             <div class="text-end">
-                                <span class="d-block text-success fw-bold fs-5">+ ₱{{ number_format($payment->amount, 2) }}</span>
+                                <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill">+ ₱{{ number_format($payment->amount, 2) }}</span>
                             </div>
                         </div>
                         
                         {{-- Middle Row: Info Box --}}
-                        <div class="d-flex justify-content-between align-items-center bg-light rounded p-2 mb-2">
+                        <div class="d-flex justify-content-between align-items-center bg-light rounded-3 p-2 mb-2 mt-3">
                              <small class="text-muted"><i class="far fa-clock me-1"></i> {{ \Carbon\Carbon::parse($payment->payment_date)->format('M d, Y') }}</small>
                              <div class="d-flex align-items-center">
-                                 <i class="fas fa-user-circle text-secondary me-1"></i>
                                  <small class="text-dark fw-bold">{{ $payment->user->name ?? 'System' }}</small>
                              </div>
                         </div>
@@ -97,7 +111,7 @@
             </div>
             @empty
             <div class="col-12 text-center py-5 text-muted">
-                <i class="fas fa-history fa-3x mb-3 opacity-25"></i>
+                <i class="fas fa-history fa-3x mb-3 opacity-25 text-light-gray"></i>
                 <p>No payment history found.</p>
             </div>
             @endforelse
