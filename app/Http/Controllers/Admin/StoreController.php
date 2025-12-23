@@ -39,4 +39,11 @@ class StoreController extends Controller
         session(['active_store_id' => $id]);
         return back()->with('success', 'Switched active store context.');
     }
+
+    public function update(Request $request, Store $store)
+    {
+        $request->validate(['name' => 'required']);
+        $store->update($request->all());
+        return back()->with('success', 'Store details updated successfully.');
+    }
 }
