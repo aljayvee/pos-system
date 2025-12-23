@@ -16,7 +16,14 @@ class InventoryController extends Controller
     // 1. Show Inventory & Stats
     public function index(Request $request)
     {
-        $query = Product::with('category')->where('stock', '>', 0);
+        $storeId = $this->getActiveStoreId();
+
+        // Query Products that have stock IN THIS BRANCH
+        $query = Product::with('category')
+                    ->whereHas('inventories', function($q) use ($storeId) {
+                        $q->where('store_id', $storeId)
+                          ->where('stock', '>', 0);
+                    });
 
         if ($request->filled('search')) {
             $query->where('name', 'like', '%' . $request->search . '%');
@@ -27,7 +34,7 @@ class InventoryController extends Controller
 
         $allProducts = $query->get();
 
-        // Stats
+        // Stats - Accessor ($p->stock) handles the store logic automatically now
         $totalItems = $allProducts->sum('stock');
         $totalCostValue = $allProducts->sum(function($p) { return $p->stock * ($p->cost ?? 0); });
         $totalSalesValue = $allProducts->sum(function($p) { return $p->stock * $p->price; });

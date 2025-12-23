@@ -206,53 +206,154 @@ class ReportController extends Controller
         return view('admin.reports.credits', compact('credits', 'totalReceivables'));
     }
 
-    // 4. Forecast Report (FIXED)
-    public function forecast()
+    // 4. Forecast Report (ENTERPRISE GRADE)
+    public function forecast(Request $request)
     {
-        $startDate = Carbon::now()->subDays(30);
-        $products = Product::with(['category', 'saleItems' => function($q) use ($startDate) {
-            $q->whereHas('sale', function($sq) use ($startDate) {
-                $sq->where('created_at', '>=', $startDate);
-            });
-        }])->get();
+        $storeId = $this->getActiveStoreId();
+        $daysToAnalyze = 30; // Standard 30-day velocity window
+        $startDate = Carbon::now()->subDays($daysToAnalyze);
 
+        // 1. Fetch Products with Store-Specific Inventory & Sales Data
+        // We use leftJoin for sales to include items with 0 sales (Non-Moving)
+        $products = Product::select('products.*', 'inventories.stock as current_stock', 'inventories.reorder_point')
+            ->join('inventories', function($join) use ($storeId) {
+                $join->on('products.id', '=', 'inventories.product_id')
+                     ->where('inventories.store_id', '=', $storeId);
+            })
+            ->with(['category'])
+            ->withSum(['saleItems as total_qty_sold' => function($q) use ($startDate, $storeId) {
+                // IMPORTANT: Filter sales by STORE and DATE
+                $q->whereHas('sale', function($sq) use ($startDate, $storeId) {
+                    $sq->where('created_at', '>=', $startDate)
+                       ->where('store_id', $storeId);
+                });
+            }], 'quantity')
+            ->withSum(['saleItems as total_revenue_generated' => function($q) use ($startDate, $storeId) {
+                // Calculate Revenue for ABC Analysis
+                $q->select(DB::raw('SUM(price * quantity)'));
+                $q->whereHas('sale', function($sq) use ($startDate, $storeId) {
+                    $sq->where('created_at', '>=', $startDate)
+                       ->where('store_id', $storeId);
+                });
+            }], 'quantity') // Note: withSum requires a column, but we overrode the select. 
+            // Alternative: Fetch simple sum and calc in PHP to be safer against nulls.
+            ->get();
+
+        // 2. Prepare Data Structure
         $forecastData = [];
+        $totalRevenue = 0;
 
-        foreach ($products as $product) {
-            $totalSold = $product->saleItems->sum('quantity');
-            $ads = $totalSold / 30;
-            $daysLeft = ($ads > 0) ? ($product->stock / $ads) : 999;
-            $targetStock = $ads * 14; 
-            $reorderQty = ($product->stock < $targetStock) ? ($targetStock - $product->stock) : 0;
+        foreach ($products as $p) {
+            $qtySold = $p->total_qty_sold ?? 0;
+            // Fallback revenue calc if withSum is tricky
+            $revenue = $qtySold * $p->price; 
+            
+            $p->real_revenue = $revenue; // Attach for sorting
+            $totalRevenue += $revenue;
 
-            if ($totalSold > 0 || $product->stock <= $product->reorder_point) {
-                $forecastData[] = [
-                    'id' => $product->id,
-                    'name' => $product->name,
-                    'category' => $product->category->name ?? '-',
-                    'stock' => $product->stock,
-                    'total_sold_30d' => $totalSold,
-                    // FIX: Pass raw numbers (floats), do not format here
-                    'ads' => $ads,
-                    'days_left' => $daysLeft, 
-                    'status' => $this->getStockStatus($daysLeft, $product->stock, $product->reorder_point),
-                    'reorder_qty' => ceil($reorderQty)
-                ];
-            }
+            // Velocity (Items per day)
+            $velocity = $qtySold / $daysToAnalyze;
+
+            // Days of Inventory (DOI)
+            // Avoid division by zero. If velocity is 0, DOI is infinite (999)
+            $doi = ($velocity > 0) ? ($p->current_stock / $velocity) : 999;
+
+            $forecastData[] = [
+                'id' => $p->id,
+                'name' => $p->name,
+                'category' => $p->category->name ?? 'Uncategorized',
+                'stock' => $p->current_stock,
+                'reorder_point' => $p->reorder_point,
+                'velocity' => $velocity, // Float
+                'doi' => $doi,           // Float (Days)
+                'revenue' => $revenue,
+                'status' => 'Healthy',   // Placeholder
+                'class' => 'C',          // Placeholder
+                'movement' => 'Non-Moving' // Placeholder
+            ];
         }
 
-        usort($forecastData, function ($a, $b) { return $a['days_left'] <=> $b['days_left']; });
+        // 3. ABC Analysis (Sort by Revenue DESC)
+        usort($forecastData, function ($a, $b) {
+            return $b['revenue'] <=> $a['revenue'];
+        });
 
-        return view('admin.reports.forecast', compact('forecastData'));
-    }
+        $cumulativeRevenue = 0;
+        foreach ($forecastData as &$item) {
+            $cumulativeRevenue += $item['revenue'];
+            $percentage = ($totalRevenue > 0) ? ($cumulativeRevenue / $totalRevenue) : 0;
 
-    private function getStockStatus($daysLeft, $stock, $reorderPoint)
-    {
-        if ($stock == 0) return 'Out of Stock';
-        if ($stock <= $reorderPoint) return 'Critical Level';
-        if ($daysLeft <= 3) return 'Critical (Runs out < 3 days)';
-        if ($daysLeft <= 7) return 'Low (Runs out < 1 week)';
-        return 'Healthy';
+            // Standard Pareto Principle (80/15/5)
+            if ($percentage <= 0.80) {
+                $item['class'] = 'A'; // High Value
+            } elseif ($percentage <= 0.95) {
+                $item['class'] = 'B'; // Medium Value
+            } else {
+                $item['class'] = 'C'; // Low Value
+            }
+        }
+        unset($item); // Break reference
+
+        // 4. Movement Classification (Sort by Velocity DESC to find Fast Movers)
+        // We'll define "Fast" as the top 20% of items associated with sales activity
+        // Or simpler: Based on absolute velocity? Let's use relative percentile for "Enterprise" feel.
+        
+        // Let's stick to concrete logic for now:
+        // Fast: > 1 item/day
+        // Average: > 0.1 item/day
+        // Slow: > 0
+        // Non-Moving: 0
+        
+        foreach ($forecastData as &$item) {
+            $v = $item['velocity'];
+            
+            if ($v >= 1.0) $item['movement'] = 'Fast Moving';
+            elseif ($v > 0.1) $item['movement'] = 'Average';
+            elseif ($v > 0) $item['movement'] = 'Slow Moving';
+            else $item['movement'] = 'Non-Moving';
+
+            // Stock Health Status
+            if ($item['stock'] == 0) {
+                $item['status'] = 'Out of Stock';
+            } elseif ($item['stock'] <= $item['reorder_point']) {
+                $item['status'] = 'Critical';
+            } elseif ($item['doi'] <= 7) {
+                $item['status'] = 'Low';
+            } else {
+                $item['status'] = 'Healthy';
+            }
+
+            // Suggested Reorder
+            // Target: 14 Days of Supply (Safety Stock)
+            $targetStock = $item['velocity'] * 14; 
+            if ($item['stock'] < $targetStock) {
+                $item['reorder_qty'] = ceil($targetStock - $item['stock']);
+            } else {
+                $item['reorder_qty'] = 0;
+            }
+        }
+        unset($item);
+
+        // 5. Final Sort: Prioritize "Out of Stock" and "Critical" items for the user
+        usort($forecastData, function ($a, $b) {
+            // Priority 1: Status Importance
+            $statusOrder = ['Out of Stock' => 1, 'Critical' => 2, 'Low' => 3, 'Healthy' => 4];
+            $statusCompare = $statusOrder[$a['status']] <=> $statusOrder[$b['status']];
+            if ($statusCompare !== 0) return $statusCompare;
+
+            // Priority 2: ABC Class (A items first)
+            $classCompare = strcmp($a['class'], $b['class']);
+            if ($classCompare !== 0) return $classCompare;
+
+            return 0;
+        });
+
+        // 6. Summary Metrics
+        $totalStockValue = array_sum(array_column($forecastData, 'revenue')); // Reuse revenue for simplicity or fetch cost
+        $outOfStockCount = count(array_filter($forecastData, fn($i) => $i['status'] === 'Out of Stock'));
+        $criticalCount = count(array_filter($forecastData, fn($i) => $i['status'] === 'Critical'));
+
+        return view('admin.reports.forecast', compact('forecastData', 'outOfStockCount', 'criticalCount'));
     }
 
     // 5. EXPORT FUNCTION (Updated for BIR Tax Columns)

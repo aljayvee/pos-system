@@ -277,6 +277,7 @@
           </div>
       </main>
     </div>
+    <toast-manager />
   </div>
 </template>
 

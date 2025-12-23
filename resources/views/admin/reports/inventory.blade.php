@@ -10,10 +10,10 @@
         </div>
         
         <div class="d-flex flex-wrap gap-2">
-            <a href="{{ route('reports.index') }}" class="btn btn-white border shadow-sm flex-fill flex-xl-grow-0 rounded-pill px-4 text-secondary hover-primary">Sales</a>
-            <a href="{{ route('reports.inventory') }}" class="btn btn-primary shadow-sm flex-fill flex-xl-grow-0 rounded-pill fw-bold px-4">Inventory</a>
-            <a href="{{ route('reports.credits') }}" class="btn btn-white border shadow-sm flex-fill flex-xl-grow-0 rounded-pill px-4 text-secondary hover-primary">Credits</a>
-            <a href="{{ route('reports.forecast') }}" class="btn btn-white border shadow-sm flex-fill flex-xl-grow-0 rounded-pill px-4 text-secondary hover-primary">Forecast</a>
+            <a href="{{ route('reports.index') }}" class="btn btn-white border shadow-sm flex-fill flex-xl-grow-0 rounded-pill px-4 text-secondary hover-primary single-click-link">Sales</a>
+            <a href="{{ route('reports.inventory') }}" class="btn btn-primary shadow-sm flex-fill flex-xl-grow-0 rounded-pill fw-bold px-4 single-click-link">Inventory</a>
+            <a href="{{ route('reports.credits') }}" class="btn btn-white border shadow-sm flex-fill flex-xl-grow-0 rounded-pill px-4 text-secondary hover-primary single-click-link">Credits</a>
+            <a href="{{ route('reports.forecast') }}" class="btn btn-white border shadow-sm flex-fill flex-xl-grow-0 rounded-pill px-4 text-secondary hover-primary single-click-link">Forecast</a>
         </div>
     </div>
 
@@ -103,41 +103,45 @@
             </div>
         </div>
 
-        {{-- Mobile Native View --}}
+        {{-- Mobile Global Swipe List --}}
         <div class="d-lg-none bg-light p-3">
-            @foreach($inventory as $item)
-            <div class="card border-0 shadow-sm mb-3 rounded-4 {{ $item->current_stock <= $item->reorder_point ? 'border-start border-4 border-warning' : '' }}">
-                <div class="card-body p-3">
-                    <div class="d-flex justify-content-between align-items-start mb-2">
-                        <div>
-                            <div class="fw-bold text-dark fs-5">{{ $item->name }}</div>
-                            <small class="text-muted">{{ $item->category->name ?? 'No Category' }}</small>
+             <div class="alert alert-info py-2 px-3 rounded-4 mb-3 border-0 shadow-sm d-flex align-items-center">
+                <i class="fas fa-hand-pointer me-2"></i> 
+                <small class="fw-bold">Swipe Left/Right for Actions</small>
+            </div>
+
+            @forelse($inventory as $item)
+            {{-- Vue Component Wrapper --}}
+            <swipe-item 
+                :item-data="{ id: {{ $item->id }}, name: '{{ addslashes($item->name) }}' }"
+                @edit="(data) => window.location.href = '/admin/products/' + data.id + '/edit'"
+                @delete="(data) => confirm('Delete ' + data.name + '?') ? document.getElementById('delete-form-' + data.id).submit() : false"
+            >
+                <div class="d-flex justify-content-between align-items-center p-3 rounded-4 bg-white" style="min-height: 80px;">
+                    <div>
+                        <div class="fw-bold text-dark">{{ $item->name }}</div>
+                        <div class="text-muted small">{{ $item->category->name ?? 'Uncategorized' }}</div>
+                        <div class="d-flex align-items-center mt-1">
+                            <span class="badge {{ $item->current_stock > $item->reorder_point ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger' }} rounded-pill px-2 me-2">
+                                {{ $item->current_stock }} Stock
+                            </span>
+                            <small class="text-muted">₱{{ number_format($item->price, 2) }}</small>
                         </div>
-                        @if($item->current_stock == 0) <span class="badge bg-danger rounded-pill shadow-sm">Out</span>
-                        @elseif($item->current_stock <= $item->reorder_point) <span class="badge bg-warning text-dark rounded-pill shadow-sm">Low</span>
-                        @else <span class="badge bg-success rounded-pill shadow-sm">Good</span>
-                        @endif
                     </div>
-                    
-                    <div class="d-flex justify-content-between align-items-center bg-white border rounded-4 p-3 mt-2">
-                        <div class="text-center px-1">
-                            <small class="text-uppercase text-secondary fw-bold" style="font-size:0.6rem">Stock</small>
-                            <div class="fw-bold text-dark fs-5">{{ $item->current_stock }}</div>
-                        </div>
-                        <div class="vr mx-2"></div>
-                        <div class="text-center px-1">
-                             <small class="text-uppercase text-secondary fw-bold" style="font-size:0.6rem">Cost</small>
-                             <div class="text-muted small">₱{{ number_format($item->cost, 2) }}</div>
-                        </div>
-                        <div class="vr mx-2"></div>
-                        <div class="text-center px-1">
-                            <small class="text-uppercase text-secondary fw-bold" style="font-size:0.6rem">Price</small>
-                            <div class="fw-bold text-primary">₱{{ number_format($item->price, 2) }}</div>
-                        </div>
+                    <div class="text-end">
+                         <i class="fas fa-chevron-right text-muted opacity-25"></i>
                     </div>
                 </div>
-            </div>
-            @endforeach
+            </swipe-item>
+
+            {{-- Hidden Delete Form --}}
+            <form id="delete-form-{{ $item->id }}" action="{{ route('products.destroy', $item->id) }}" method="POST" class="d-none">
+                @csrf
+                @method('DELETE')
+            </form>
+            @empty
+            <div class="text-center py-5 text-muted">No inventory records found.</div>
+            @endforelse
         </div>
     </div>
 </div>

@@ -83,15 +83,51 @@
             @yield('content')
             
         </admin-layout>
+        <offline-indicator></offline-indicator>
     </div>
 
     {{-- 1. ADD THIS: Bootstrap JS Bundle (Required for Modals) --}}
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     
     {{-- OPTIMIZATION: Instant Page Loads (Prefetch on hover) --}}
-    <script src="//instant.page/5.2.0" type="module" integrity="sha384-jnZyxPjiipYXnSU0ygqeac2q7CVYMbh84GO0uHryadeyJ+hy/agWCMAeKwF265F+" crossorigin="anonymous"></script>
+    <script src="//instant.page/5.2.0" type="module" integrity="sha384-jnZyxPjiipYXnSU0ygqeac2q7CVYMbh84q0uHVRRxEtvFPiQYbXWUorga2aqZJ0z" crossorigin="anonymous"></script>
     
     @stack('scripts')
+
+    {{-- 2. ADD THIS: Flash Message Bridge to Vue --}}
+    <script>
+        window.laravel_flash = {!! json_encode([
+            'success' => session('success'),
+            'error' => session('error'),
+            'warning' => session('warning'),
+            'info' => session('info')
+        ]) !!};
+
+        // GLOBAL: Prevent Double Clicks & Lock Navigation on Reports
+        document.addEventListener('click', function(e) {
+            const clickedLink = e.target.closest('.single-click-link');
+            if (clickedLink) {
+                if (clickedLink.dataset.processing === "true") {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    return;
+                }
+                
+                // 1. Lock ALL navigation links immediately
+                const allLinks = document.querySelectorAll('.single-click-link');
+                allLinks.forEach(link => {
+                    link.dataset.processing = "true";
+                    link.classList.add('disabled', 'opacity-50');
+                    link.style.pointerEvents = 'none';
+                });
+                
+                // 2. Highlight the active one with a spinner
+                clickedLink.classList.remove('opacity-50'); 
+                const originalText = clickedLink.innerText;
+                clickedLink.innerHTML = `<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> ${originalText}`;
+            }
+        });
+    </script>
 </body>
 
 </html>

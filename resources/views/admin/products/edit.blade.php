@@ -124,8 +124,8 @@
                     <div class="card-body pt-0">
                         <div class="mb-3">
                             <label class="form-label fw-bold small text-secondary">Current Stock</label>
-                            <input type="number" name="stock" class="form-control bg-light border-0" value="{{ $product->stock }}">
-                            <div class="form-text small text-muted">For audit adjustments, consider using the Inventory module.</div>
+                            <input type="number" name="stock" class="form-control bg-light border-0 text-muted" value="{{ $product->stock }}" readonly disabled style="cursor: not-allowed;">
+                            <div class="form-text small text-warning"><i class="fas fa-exclamation-circle me-1"></i> Stock levels are managed via <strong>Purchase History</strong> or <strong>Stock Adjustments</strong>.</div>
                         </div>
                         <div class="mb-3">
                             <label class="form-label fw-bold small text-secondary">Reorder Point</label>
