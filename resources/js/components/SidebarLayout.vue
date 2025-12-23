@@ -11,7 +11,7 @@
 
         <div class="logo-container" :class="{ 'justify-center': !isOpen && !isMobile }">
             <i class="fas fa-store text-primary fa-lg me-2"></i>
-            <span class="logo-text" v-show="isOpen || isMobile">POS System</span>
+            <span class="logo-text" v-show="isOpen || isMobile"></span>
         </div>
       </div>
 

@@ -26,7 +26,7 @@
                  <div class="rounded d-flex align-items-center justify-content-center text-white" style="width: 36px; height: 36px;">
                     <i class="fas fa-store fa-lg text-primary"></i>
                  </div>
-                 <span class="ms-2 fw-bold fs-5 tracking-wide text-white fade-text" v-show="isOpen || isMobile">POS System</span>
+                 <span class="ms-2 fw-bold fs-5 tracking-wide text-white fade-text" v-show="isOpen || isMobile">VERAPOS</span>
              </div>
          </div>
 
@@ -145,25 +145,7 @@
          </ul>
       </div>
 
-      <div class="p-3 border-top border-secondary border-opacity-10" style="background-color: #151521;">
-          <div class="d-flex align-items-center justify-content-between">
-              
-                  <div class="d-flex flex-column text-nowrap">
-                      <small class="fw-bold text-white lh-1">{{ userName }}</small>
-                      <small class="text-muted" style="font-size: 0.7rem;">{{ userRole.toUpperCase() }}</small>
-                  </div>
-
-                  
-              
-              
-              <form action="/logout" method="POST" :class="{ 'w-100': !isOpen && !isMobile }">
-                 <input type="hidden" name="_token" :value="csrfToken">
-                 <button class="btn btn-link text-danger p-0 d-flex align-items-center justify-content-center" :class="{ 'mx-auto': !isOpen && !isMobile }" style="width: 38px; height: 38px;" title="Logout">
-                     <i class="fas fa-sign-out-alt fa-lg"></i>
-                 </button>
-              </form>
-          </div>
-      </div>
+      <!-- Footer Removed -->
     </aside>
 
     <div class="d-flex flex-column flex-fill overflow-hidden position-relative w-100 bg-light">
@@ -172,33 +154,100 @@
         <button v-if="!isOpen && !isMobile" @click="toggleSidebar" class="btn btn-light border me-3 text-secondary"><i class="fas fa-bars"></i></button>
         <button v-if="isMobile" @click="toggleSidebar" class="btn btn-light border me-3 text-secondary"><i class="fas fa-bars"></i></button>
 
-        <h5 class="h9 mb-0 text-dark">POS System</h5>
+        <h5 class="h9 mb-0 text-dark"></h5>
 
-        <div class="ms-auto position-relative" v-click-outside="closeNotif">
-             <button @click="toggleNotif" class="btn btn-light rounded-circle position-relative p-2 text-secondary hover-bg-light" style="width: 42px; height: 42px;">
-                 <i class="far fa-bell fa-lg"></i>
-                 <span v-if="totalAlerts > 0" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger border border-light">{{ totalAlerts }}</span>
-             </button>
+      <div class="ms-auto d-flex align-items-center gap-3">
+             
+             <!-- NOTIFICATIONS -->
+             <div class="position-relative" v-click-outside="closeNotif">
+                 <button @click="toggleNotif" class="btn btn-light rounded-circle position-relative p-2 text-secondary hover-bg-light transition-all" :class="{ 'bg-light text-primary': notifOpen }" style="width: 42px; height: 42px;">
+                     <i class="far fa-bell fa-lg"></i>
+                     <span v-if="totalAlerts > 0" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger border border-light">{{ totalAlerts }}</span>
+                 </button>
+    
+                 <div v-if="notifOpen" class="dropdown-menu dropdown-menu-end show shadow-lg border-0 mt-3 p-0 overflow-hidden rounded-4 notification-dropdown" style="z-index: 1060;">
+                     <div class="px-4 py-3 bg-white border-bottom d-flex justify-content-between align-items-center">
+                         <h6 class="mb-0 fw-bold text-dark">Notifications</h6>
+                         <span v-if="totalAlerts > 0" class="badge bg-danger bg-opacity-10 text-danger rounded-pill px-3">{{ totalAlerts }} New</span>
+                     </div>
+                     <div class="list-group list-group-flush" style="max-height: 350px; overflow-y: auto;">
+                         <div v-if="totalAlerts === 0" class="p-5 text-center text-muted">
+                            <i class="far fa-bell-slash fa-2x mb-2 opacity-25"></i>
+                            <p class="mb-0 small">No new notifications</p>
+                         </div>
+                         <template v-else>
+                             <a href="/admin/products?filter=out_of_stock" v-if="outOfStock > 0" class="list-group-item list-group-item-action p-3 border-start border-4 border-danger">
+                                 <div class="d-flex align-items-start">
+                                     <div class="bg-danger bg-opacity-10 rounded p-2 me-3">
+                                         <i class="fas fa-exclamation-triangle text-danger"></i>
+                                     </div>
+                                     <div>
+                                         <small class="fw-bold text-dark d-block mb-1">Out of Stock Alert</small>
+                                         <small class="text-muted d-block lh-sm">{{ outOfStock }} products have hit 0 stock.</small>
+                                     </div>
+                                 </div>
+                             </a>
+                             <a href="/admin/products?filter=low_stock" v-if="lowStock > 0" class="list-group-item list-group-item-action p-3 border-start border-4 border-warning">
+                                 <div class="d-flex align-items-start">
+                                     <div class="bg-warning bg-opacity-10 rounded p-2 me-3">
+                                         <i class="fas fa-box-open text-warning"></i>
+                                     </div>
+                                     <div>
+                                         <small class="fw-bold text-dark d-block mb-1">Low Stock Warning</small>
+                                         <small class="text-muted d-block lh-sm">{{ lowStock }} items are running low.</small>
+                                     </div>
+                                 </div>
+                             </a>
+                         </template>
+                     </div>
+                     <div class="p-2 bg-light text-center border-top">
+                        <a href="/admin/inventory" class="text-decoration-none small fw-bold text-primary">View Inventory</a>
+                     </div>
+                 </div>
+            </div>
 
-             <div v-if="notifOpen" class="dropdown-menu dropdown-menu-end show shadow-lg border-0 mt-3 p-0 overflow-hidden" style="width: 320px; position: absolute; right: 0; z-index: 1060;">
-                 <div class="px-3 py-3 bg-white border-bottom d-flex justify-content-between align-items-center">
-                     <span class="fw-bold">Notifications</span>
-                     <span v-if="totalAlerts > 0" class="badge bg-danger rounded-pill">{{ totalAlerts }}</span>
-                 </div>
-                 <div class="list-group list-group-flush" style="max-height: 300px; overflow-y: auto;">
-                     <div v-if="totalAlerts === 0" class="p-4 text-center text-muted small">No new notifications</div>
-                     <template v-else>
-                         <a href="/admin/products" v-if="outOfStock > 0" class="list-group-item list-group-item-action p-3">
-                             <small class="fw-bold text-danger d-block">Out of Stock</small>
-                             <small class="text-muted">{{ outOfStock }} products have 0 stock.</small>
-                         </a>
-                         <a href="/admin/products" v-if="lowStock > 0" class="list-group-item list-group-item-action p-3">
-                             <small class="fw-bold text-warning d-block">Low Stock</small>
-                             <small class="text-muted">{{ lowStock }} items running low.</small>
-                         </a>
-                     </template>
-                 </div>
-             </div>
+            <!-- MY ACCOUNT DROPDOWN -->
+            <div class="position-relative" v-click-outside="closeAccountDropdown">
+                <button @click="toggleAccountDropdown" class="btn btn-light d-flex align-items-center gap-2 rounded-pill px-3 py-2 border shadow-sm hover-bg-light transition-all">
+                    <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center fw-bold" 
+                         style="width: 28px; height: 28px; font-size: 0.8rem;">
+                        {{ userName.charAt(0).toUpperCase() }}
+                    </div>
+                    <span class="d-none d-sm-block fw-bold text-dark small">My Account</span>
+                    <i class="fas fa-chevron-down text-muted small ms-1" :class="{ 'rotate-180': accountDropdownOpen }"></i>
+                </button>
+
+                <div v-if="accountDropdownOpen" class="dropdown-menu dropdown-menu-end show shadow-lg border-0 mt-3 p-0 overflow-hidden rounded-4 account-dropdown" style="z-index: 1060;">
+                    
+                    <!-- Dropdown Header: User Info -->
+                    <div class="px-4 py-4 bg-white border-bottom text-center">
+                        <div class="rounded-circle bg-primary bg-gradient text-white d-flex align-items-center justify-content-center shadow mx-auto mb-3" 
+                             style="width: 64px; height: 64px; font-size: 1.75rem; font-family: monospace;">
+                            {{ userName.charAt(0).toUpperCase() }}
+                        </div>
+                        <h6 class="fw-bold text-dark mb-1">{{ userName }}</h6>
+                        <span class="badge bg-secondary bg-opacity-10 text-secondary rounded-pill px-3">{{ userRole.toUpperCase() }}</span>
+                        
+                        <div class="mt-3">
+                            <a href="/profile" class="btn btn-sm btn-outline-primary rounded-pill px-4 fw-bold shadow-sm d-inline-flex align-items-center gap-2 transition-all hover-scale">
+                                <i class="fas fa-user-cog"></i> Profile Settings
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Dropdown Body: Actions -->
+                    <div class="p-2">
+                        <form action="/logout" method="POST">
+                            <input type="hidden" name="_token" :value="csrfToken">
+                            <button class="dropdown-item p-3 rounded-3 text-danger d-flex align-items-center justify-content-center fw-bold hover-bg-danger-soft transition-all">
+                                <i class="fas fa-sign-out-alt me-2"></i>
+                                Log Out
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
         </div>
       </header>
 
@@ -219,6 +268,7 @@ export default {
       isMobile: window.innerWidth < 992, 
       isOpen: window.innerWidth >= 992,
       notifOpen: false,
+      accountDropdownOpen: false,
       currentPath: window.location.pathname
     };
   },
@@ -239,8 +289,18 @@ export default {
   },
   methods: {
     toggleSidebar() { this.isOpen = !this.isOpen; },
-    toggleNotif() { this.notifOpen = !this.notifOpen; },
+    toggleNotif() { 
+        this.notifOpen = !this.notifOpen; 
+        if(this.notifOpen) this.accountDropdownOpen = false;
+    },
     closeNotif() { this.notifOpen = false; },
+    
+    toggleAccountDropdown() { 
+        this.accountDropdownOpen = !this.accountDropdownOpen; 
+        if(this.accountDropdownOpen) this.notifOpen = false;
+    },
+    closeAccountDropdown() { this.accountDropdownOpen = false; },
+
     handleResize() {
       const mobile = window.innerWidth < 992;
       if (this.isMobile !== mobile) {
@@ -248,33 +308,131 @@ export default {
         this.isOpen = !this.isMobile; 
       }
     }
+  },
+  directives: {
+    clickOutside: {
+      beforeMount(el, binding) {
+        el.clickOutsideEvent = function(event) {
+          if (!(el === event.target || el.contains(event.target))) {
+            binding.value(event);
+          }
+        };
+        document.body.addEventListener('click', el.clickOutsideEvent);
+      },
+      unmounted(el) {
+        document.body.removeEventListener('click', el.clickOutsideEvent);
+      }
+    }
   }
 };
 </script>
 
 <style scoped>
-/* FORCE TEXT COLORS */
+/* GLOBAL PREMIUM RESET */
+.font-sans { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
 .text-white { color: #ffffff !important; }
-.text-muted { color: #6c757d !important; }
+.text-muted { color: #94a3b8 !important; } /* Lighter slate for better contrast on dark */
+.rotate-180 { transform: rotate(180deg); }
+.transition-all { transition: all 0.2s ease-in-out; }
+.hover-scale:hover { transform: scale(1.05); }
 
 /* TRANSITIONS */
-.sidebar-transition { transition: all 0.3s ease; white-space: nowrap; }
-.sidebar-open { width: 260px; transform: translateX(0); }
-.sidebar-closed-desktop { width: 80px; }
-.sidebar-closed-mobile { width: 260px; transform: translateX(-100%); }
+.sidebar-transition { transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1); white-space: nowrap; }
+.sidebar-open { width: 280px; transform: translateX(0); }
+.sidebar-closed-desktop { width: 88px; }
+.sidebar-closed-mobile { width: 280px; transform: translateX(-100%); }
 
-/* LINKS */
-.nav-link { color: #a2a3b7; padding: 0.8rem 1rem; border-radius: 0.4rem; transition: all 0.2s ease; margin-bottom: 2px; }
-.nav-link:hover { color: #ffffff; background-color: rgba(255, 255, 255, 0.05); }
-.nav-link.active { background-color: #1b1b28 !important; color: #3699ff !important; position: relative; }
-.nav-link.active::before { content: ''; position: absolute; left: 0; top: 10%; height: 80%; width: 4px; background-color: #3699ff; border-radius: 0 4px 4px 0; }
+/* SIDEBAR PREMIUM */
+.sidebar-backdrop { backdrop-filter: blur(4px); }
+.nav-link { 
+    color: #94a3b8; 
+    padding: 0.9rem 1.2rem; 
+    border-radius: 0.75rem; 
+    transition: all 0.3s ease; 
+    margin-bottom: 4px; 
+    font-weight: 500;
+}
+.nav-link:hover { 
+    color: #ffffff; 
+    background-color: rgba(255, 255, 255, 0.08); 
+    transform: translateX(4px);
+}
+.nav-link.active { 
+    background: linear-gradient(90deg, rgba(59, 130, 246, 0.15) 0%, rgba(59, 130, 246, 0.05) 100%); 
+    color: #60a5fa !important; 
+    position: relative; 
+    box-shadow: inset 3px 0 0 0 #3b82f6; /* Modern left border */
+}
+/* Icon styling */
+.icon-wrapper { 
+    width: 24px; 
+    display: flex; 
+    justify-content: center; 
+    align-items: center; 
+    font-size: 1.2rem; 
+    flex-shrink: 0; 
+    transition: transform 0.2s;
+}
+.nav-link:hover .icon-wrapper, .nav-link.active .icon-wrapper {
+    transform: scale(1.1);
+}
+
+/* HEADER GLASSMORPHISM */
+header.navbar {
+    background: rgba(255, 255, 255, 0.85) !important;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05) !important;
+    position: relative;
+    z-index: 1020; /* Ensure header is above content cards */
+}
+
+/* NOTIFICATION & ACCOUNT DROPDOWN PREMIUM */
+.notification-dropdown, .account-dropdown { 
+    width: 380px; 
+    position: absolute; 
+    right: 0; 
+    border: 1px solid rgba(0,0,0,0.05); 
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04) !important;
+}
+
+.account-dropdown { min-width: 260px; width: auto; } /* Specific tweak for account */
+
+/* MOBILE OPTIMIZATIONS */
+@media (max-width: 576px) {
+    .notification-dropdown { 
+        position: fixed; /* Center relative to screen */
+        top: 80px;
+        left: 50%;
+        right: auto;
+        transform: translateX(-50%); /* Perfect Center */
+        width: 350px; /* Slightly wider for better content fit */
+        max-width: 92vw; /* Ensure no overflow */
+        margin-top: 0;
+        border-radius: 1rem;
+        max-height: 80vh;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    }
+
+    .account-dropdown {
+        position: absolute;
+        top: 100%;
+        right: 0;
+        left: auto;
+        width: auto;
+        min-width: 250px;
+        max-width: 300px; /* Prevent it from being too wide */
+        margin-top: 0.5rem;
+        border-radius: 1rem;
+    }
+}
 
 /* UTILS */
 .hover-white:hover { color: #ffffff !important; }
-.icon-wrapper { width: 35px; display: flex; justify-content: center; align-items: center; font-size: 1.15rem; flex-shrink: 0; }
-.custom-scrollbar::-webkit-scrollbar { width: 5px; }
+.custom-scrollbar::-webkit-scrollbar { width: 6px; }
 .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-.custom-scrollbar::-webkit-scrollbar-thumb { background: #3f4254; border-radius: 10px; }
-.fade-in { animation: fadeIn 0.2s ease-out; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
+.custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+.fade-in { animation: fadeIn 0.3s ease-out; }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 </style>
