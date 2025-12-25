@@ -6,7 +6,12 @@
     {{-- HEADER --}}
     <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center mt-4 mb-4 gap-2">
         <h1 class="h2 mb-0 text-gray-800"><i class="fas fa-users-cog text-primary me-2"></i>Users</h1>
-        <a href="{{ route('users.create') }}" class="btn btn-primary shadow-sm"><i class="fas fa-user-plus me-1"></i> New User</a>
+        @if(auth()->user()->role !== 'auditor')
+        <div class="d-flex gap-2">
+            <a href="{{ route('users.archived') }}" class="btn btn-outline-secondary shadow-sm"><i class="fas fa-archive me-1"></i> Archive</a>
+            <a href="{{ route('users.create') }}" class="btn btn-primary shadow-sm"><i class="fas fa-user-plus me-1"></i> New User</a>
+        </div>
+        @endif
     </div>
 
     @if(session('success'))
@@ -55,15 +60,19 @@
                             <td class="text-muted small">{{ $user->created_at->format('M d, Y') }}</td>
                             <td class="text-end pe-4">
                                 <div class="d-flex justify-content-end gap-2">
+                                    @if(in_array(auth()->user()->role, ['admin', 'manager']))
                                     <form action="{{ route('users.toggle', $user->id) }}" method="POST">
                                         @csrf
                                         <button class="btn btn-sm btn-outline-secondary" title="Toggle"><i class="fas {{ $user->is_active ? 'fa-ban' : 'fa-check' }}"></i></button>
                                     </form>
                                     <a href="{{ route('users.edit', $user->id) }}" class="btn btn-sm btn-warning text-dark"><i class="fas fa-edit"></i></a>
-                                    <form action="{{ route('users.destroy', $user->id) }}" method="POST" onsubmit="return confirm('Delete?');">
+                                    <form id="delete-form-{{ $user->id }}" action="{{ route('users.destroy', $user->id) }}" method="POST" style="display: none;">
                                         @csrf @method('DELETE')
-                                        <button class="btn btn-sm btn-outline-danger"><i class="fas fa-trash"></i></button>
                                     </form>
+                                    <button onclick="confirmDelete({{ $user->id }})" class="btn btn-sm btn-outline-danger"><i class="fas fa-trash"></i></button>
+                                    @else
+                                    <button class="btn btn-sm btn-light text-muted" disabled><i class="fas fa-lock"></i></button>
+                                    @endif
                                 </div>
                             </td>
                         </tr>
@@ -96,15 +105,19 @@
                         </span>
                         
                         <div class="d-flex gap-2">
+                            @if(in_array(auth()->user()->role, ['admin', 'manager']))
                             <form action="{{ route('users.toggle', $user->id) }}" method="POST">
                                 @csrf
                                 <button class="btn btn-light border shadow-sm text-secondary rounded-circle" style="width: 36px; height: 36px;"><i class="fas {{ $user->is_active ? 'fa-ban' : 'fa-check' }}"></i></button>
                             </form>
                             <a href="{{ route('users.edit', $user->id) }}" class="btn btn-light border shadow-sm text-warning rounded-circle" style="width: 36px; height: 36px; display:flex; align-items:center; justify-content:center;"><i class="fas fa-edit"></i></a>
-                            <form action="{{ route('users.destroy', $user->id) }}" method="POST" onsubmit="return confirm('Delete?');">
+                            <form id="delete-form-mobile-{{ $user->id }}" action="{{ route('users.destroy', $user->id) }}" method="POST" style="display: none;">
                                 @csrf @method('DELETE')
-                                <button class="btn btn-light border shadow-sm text-danger rounded-circle" style="width: 36px; height: 36px;"><i class="fas fa-trash"></i></button>
                             </form>
+                            <button onclick="confirmDeleteMobile({{ $user->id }})" class="btn btn-light border shadow-sm text-danger rounded-circle" style="width: 36px; height: 36px;"><i class="fas fa-trash"></i></button>
+                            @else
+                            <button class="btn btn-light border shadow-sm text-muted rounded-circle" disabled style="width: 36px; height: 36px;"><i class="fas fa-lock"></i></button>
+                            @endif
                         </div>
                     </div>
                 </div>
@@ -114,9 +127,43 @@
             @endforelse
         </div>
         
-        @if(method_exists($users, 'links'))
+@if(method_exists($users, 'links'))
         <div class="card-footer bg-white border-top-0 py-3">{{ $users->links() }}</div>
         @endif
     </div>
 </div>
+
+<script>
+    function confirmDelete(userId) {
+        Swal.fire({
+            title: 'Delete User?',
+            text: "This action cannot be undone!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Yes, delete it!'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                document.getElementById('delete-form-' + userId).submit();
+            }
+        });
+    }
+
+    function confirmDeleteMobile(userId) {
+        Swal.fire({
+            title: 'Delete User?',
+            text: "This action cannot be undone!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Yes, delete it!'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                document.getElementById('delete-form-mobile-' + userId).submit();
+            }
+        });
+    }
+</script>
 @endsection

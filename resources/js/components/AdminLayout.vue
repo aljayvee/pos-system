@@ -191,6 +191,31 @@
                             <p class="mb-0 small">No new notifications</p>
                          </div>
                          <template v-else>
+                             <!-- PENDING APPROVALS -->
+                             <button 
+                                v-for="req in pendingApprovals" 
+                                :key="req.id"
+                                @click="openApprovalModal(req)"
+                                class="list-group-item list-group-item-action p-3 border-start border-4 border-info bg-info bg-opacity-10"
+                             >
+                                 <div class="d-flex align-items-start">
+                                     <div class="bg-info bg-opacity-25 text-primary rounded-circle p-2 me-3 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                         <i class="fas fa-user-clock"></i>
+                                     </div>
+                                     <div>
+                                         <small class="fw-bold text-dark d-block mb-1">Approval Request</small>
+                                         <small class="text-secondary d-block lh-sm mb-1">
+                                             <span class="fw-bold">{{ req.requester.name }}</span> 
+                                             <span v-if="!req.target_user.is_active">wants to create account </span>
+                                             <span v-else>wants to promote </span>
+                                             <span class="fw-bold">{{ req.target_user.name }}</span> to 
+                                             <span class="badge bg-primary bg-opacity-25 text-primary ms-1">{{ req.new_role.toUpperCase() }}</span>
+                                         </small>
+                                         <small class="text-muted" style="font-size: 0.7rem;">Expires {{ new Date(req.expires_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) }}</small>
+                                     </div>
+                                 </div>
+                             </button>
+
                              <a href="/admin/products?filter=out_of_stock" v-if="outOfStock > 0" class="list-group-item list-group-item-action p-3 border-start border-4 border-danger">
                                  <div class="d-flex align-items-start">
                                      <div class="bg-danger bg-opacity-10 rounded p-2 me-3">
@@ -293,8 +318,68 @@
       </main>
     </div>
     <toast-manager />
+    
+    <!-- NOTIFICATION PREVIEW TOAST -->
+    <div v-if="showNewNotifToast" class="position-fixed top-0 end-0 p-3" style="z-index: 2000;">
+        <div class="toast show align-items-center text-white bg-primary border-0 shadow-lg" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="d-flex">
+                <div class="toast-body fw-bold">
+                    <i class="fas fa-bell me-2"></i> New Approval Request!
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" @click="showNewNotifToast = false"></button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- APPROVAL MODAL -->
+    <div v-if="showApprovalModal" class="modal fade show d-block" style="background: rgba(0,0,0,0.5);" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-header bg-primary text-white border-0 rounded-top-4">
+                    <h5 class="modal-title fw-bold"><i class="fas fa-user-check me-2"></i>Review Request</h5>
+                    <button type="button" class="btn-close btn-close-white" @click="closeApprovalModal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="alert alert-light border shadow-sm rounded-3 mb-4">
+                        <div class="d-flex align-items-center mb-2">
+                             <div class="fw-bold text-secondary text-uppercase small" style="width: 80px;">Requester:</div>
+                             <div class="fw-bold text-dark">{{ selectedRequest?.requester?.name }}</div>
+                        </div>
+                        <div class="d-flex align-items-center mb-2">
+                             <div class="fw-bold text-secondary text-uppercase small" style="width: 80px;">Target:</div>
+                             <div class="fw-bold text-primary">{{ selectedRequest?.target_user?.name }}</div>
+                        </div>
+                        <div class="d-flex align-items-center">
+                             <div class="fw-bold text-secondary text-uppercase small" style="width: 80px;">Action:</div>
+                             <div class="fw-bold text-dark">
+                                 <span v-if="!selectedRequest?.target_user?.is_active">Activate New Account (<span class="badge bg-warning text-dark">{{ selectedRequest?.new_role }}</span>)</span>
+                                 <span v-else>Promote to <span class="badge bg-warning text-dark">{{ selectedRequest?.new_role }}</span></span>
+                             </div>
+                        </div>
+                    </div>
+
+                    <p class="small text-muted mb-3">To approve this action, please confirm your Administrator password.</p>
+                    
+                    <div class="mb-4">
+                        <input type="password" v-model="adminPassword" class="form-control form-control-lg bg-light border-0" placeholder="Enter your password..." @keyup.enter="submitDecision('approve')">
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button @click="submitDecision('approve')" class="btn btn-primary btn-lg fw-bold shadow-sm" :disabled="modalLoading">
+                            <span v-if="modalLoading" class="spinner-border spinner-border-sm me-2"></span>
+                            <i v-if="!modalLoading" class="fas fa-check-circle me-2"></i> Approve Request
+                        </button>
+                        <button @click="submitDecision('reject')" class="btn btn-light text-danger fw-bold shadow-sm" :disabled="modalLoading">
+                            <i class="fas fa-times-circle me-2"></i> Reject Request
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
   </div>
 </template>
+
 
 <script>
 export default {
@@ -318,69 +403,162 @@ export default {
       notifOpen: false,
       accountDropdownOpen: false,
       currentPath: window.location.pathname,
-      isNavigating: false 
+      isNavigating: false,
+      
+      // Approval Logic
+      pendingApprovals: [],
+      showApprovalModal: false,
+      selectedRequest: null,
+      adminPassword: '',
+      modalLoading: false,
+      pollInterval: null,
+      
+      // Toast Logic
+      previousApprovalsCount: 0,
+      showNewNotifToast: false
     };
+  },
+  mounted() {
+      // Start polling if Admin (Case Insensitive)
+      if (this.userRole && this.userRole.toLowerCase() === 'admin') {
+          console.log('Admin Layout: Starting poll for approvals...');
+          this.fetchPendingApprovals();
+          this.pollInterval = setInterval(this.fetchPendingApprovals, 5000); // Check every 5s for faster feedback
+      } else {
+          console.log('Admin Layout: Not an admin, polling disabled. Role:', this.userRole);
+      }
+  },
+  beforeUnmount() {
+      if(this.pollInterval) clearInterval(this.pollInterval);
   },
   methods: {
     can(permission) {
-        // Admin role always has access (optional fallback, but better to be explicit)
-        // If we want Strict RBAC, just check the permissions array.
-        // For now, let's strictly check permissions array to respect overrides.
-        // But if userPermissions is undefined (old session), default to role checks??
         if (!this.userPermissions) return this.userRole === 'admin';
-        
         return this.userPermissions.includes(permission);
     },
     toggleSidebar() { 
         this.isOpen = !this.isOpen; 
-        // Save preference only on desktop
-        if (!this.isMobile) {
-            localStorage.setItem('sidebar_state', this.isOpen);
-        }
+        if (!this.isMobile) localStorage.setItem('sidebar_state', this.isOpen);
     },
     toggleNotif() { 
         this.notifOpen = !this.notifOpen; 
         if(this.notifOpen) this.accountDropdownOpen = false;
     },
     closeNotif() { this.notifOpen = false; },
-    
     toggleAccountDropdown() { 
         this.accountDropdownOpen = !this.accountDropdownOpen; 
         if(this.accountDropdownOpen) this.notifOpen = false;
     },
     closeAccountDropdown() { this.accountDropdownOpen = false; },
-
     handleResize() {
       const mobile = window.innerWidth < 992;
       if (this.isMobile !== mobile) {
         this.isMobile = mobile;
-        
         if (this.isMobile) {
-            this.isOpen = false; // Always close when entering mobile view
+            this.isOpen = false; 
         } else {
-            // Restore saved state when returning to desktop
             const savedState = localStorage.getItem('sidebar_state');
             this.isOpen = savedState !== null ? savedState === 'true' : true;
         }
       }
     },
-    
-    // NEW: Handle sidebar clicks to prevent double-click / multiple activation
     handleNavClick(e) {
-        // If already navigating, stop this click
         if (this.isNavigating) {
-            e.preventDefault();
-            e.stopPropagation();
-            return;
+            e.preventDefault(); e.stopPropagation(); return;
         }
-
         const link = e.target.closest('a');
-        // Only lock if it's a real navigation link
         if (link && link.href && link.href !== '#' && !link.href.startsWith('javascript')) {
             this.isNavigating = true;
-            // Failsafe: unlock after 5s if network is stuck
             setTimeout(() => { this.isNavigating = false; }, 5000);
         }
+    },
+    
+    // --- APPROVAL METHODS ---
+    fetchPendingApprovals() {
+        fetch('/admin/approval/pending')
+            .then(res => res.json())
+            .then(data => {
+                // console.log('Pending Approvals Fetched:', data.requests);
+                const newRequests = data.requests || [];
+                
+                // Check if we have MORE requests than before
+                if (newRequests.length > this.previousApprovalsCount) {
+                     // Trigger Toast
+                     this.showNewNotifToast = true;
+                     // Auto hide after 2 seconds
+                     setTimeout(() => {
+                        this.showNewNotifToast = false;
+                     }, 2000);
+                }
+                
+                this.pendingApprovals = newRequests;
+                this.previousApprovalsCount = newRequests.length;
+            })
+            .catch(err => console.error('Poll error', err));
+    },
+    openApprovalModal(req) {
+        this.selectedRequest = req;
+        this.adminPassword = '';
+        this.showApprovalModal = true;
+        this.notifOpen = false;
+    },
+    closeApprovalModal() {
+        this.showApprovalModal = false;
+        this.selectedRequest = null;
+    },
+    submitDecision(decision) {
+        if (decision === 'approve' && !this.adminPassword) {
+            alert('Please enter your password to confirm approval.');
+            return;
+        }
+        
+        this.modalLoading = true;
+        fetch(`/admin/approval/${this.selectedRequest.id}/decide`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': this.csrfToken
+            },
+            body: JSON.stringify({
+                decision: decision,
+                password: this.adminPassword
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            this.modalLoading = false;
+            if (data.success) {
+                this.closeApprovalModal();
+                this.fetchPendingApprovals(); // Refresh list
+                // User will get notification via their polling
+            } else {
+                alert(data.message || 'Action failed.');
+            }
+        })
+        .catch(err => {
+            this.modalLoading = false;
+            console.error('Approval Error:', err);
+            
+            // Try to extract JSON message if possible
+            if (err.response && err.response.data) {
+                 alert('Error: ' + (err.response.data.message || 'System error'));
+            } else {
+                 alert('System error: ' + err.message);
+            }
+        });
+    }
+  },
+  computed: {
+    sidebarClasses() {
+        if (this.isMobile) {
+            return this.isOpen 
+                ? 'sidebar-open position-fixed top-0 start-0 bottom-0 shadow-lg' 
+                : 'sidebar-closed-mobile position-fixed top-0 start-0 bottom-0';
+        }
+        return this.isOpen ? 'sidebar-open' : 'sidebar-closed-desktop';
+    },
+    totalAlerts() {
+        return (this.outOfStock || 0) + (this.lowStock || 0) + this.pendingApprovals.length;
     }
   },
   directives: {

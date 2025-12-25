@@ -26,6 +26,12 @@ class AuthController extends Controller
         if (Auth::attempt($credentials)) {
             $user = Auth::user();
             
+            // Check if user is active (Approval Workflow)
+            if (!$user->is_active) {
+                Auth::logout();
+                return back()->withErrors(['email' => 'Your account is currently inactive or pending approval.']);
+            }
+            
             // --- SMART CHECK START ---
             
             // Check if there is an existing session in the DB

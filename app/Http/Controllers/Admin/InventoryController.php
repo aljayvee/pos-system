@@ -141,7 +141,7 @@ class InventoryController extends Controller
 
     public function history()
     {
-        $adjustments = StockAdjustment::with('product', 'user')->latest()->get();
+        $adjustments = StockAdjustment::with('product', 'user')->latest()->paginate(20);
         return view('admin.inventory.history', compact('adjustments'));
     }
 

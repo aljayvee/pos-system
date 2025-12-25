@@ -20,6 +20,7 @@
         {{-- Main Content --}}
         <div class="col-lg-8">
             
+            @if(auth()->user()->role !== 'auditor')
             {{-- Add New Category Card --}}
             <div class="card border-0 shadow-lg rounded-4 mb-4 overflow-hidden">
                 <div class="card-header bg-primary text-white py-3 border-0">
@@ -46,6 +47,7 @@
                     </form>
                 </div>
             </div>
+            @endif
 
             {{-- Categories List --}}
             <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
@@ -62,10 +64,11 @@
                                 </div>
                                 <div>
                                     <span class="fw-bold text-dark d-block fs-6">{{ $cat->name }}</span>
-                                    <span class="text-muted x-small">ID: #{{ $cat->id }}</span>
+                                    <!--<span class="text-muted x-small">ID: #{{ $cat->id }}</span>-->
                                 </div>
                             </div>
                             
+                            @if(auth()->user()->role !== 'auditor')
                             <div class="d-flex gap-2">
                                 {{-- Edit Button (Trigger Modal) --}}
                                 <button type="button" class="btn btn-light text-primary btn-sm rounded-circle shadow-sm" 
@@ -83,6 +86,7 @@
                                     </button>
                                 </form>
                             </div>
+                            @endif
                         </div>
                         @empty
                         <div class="text-center py-5">

@@ -9,10 +9,12 @@ use Illuminate\Notifications\Notifiable;
 use App\Enums\Permission;
 use Illuminate\Support\Facades\Config;
 
+use Illuminate\Database\Eloquent\SoftDeletes;
+
 class User extends Authenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable, SoftDeletes;
 
     /**
      * The attributes that are mass assignable.
@@ -50,8 +52,16 @@ class User extends Authenticatable
     /**
      * Check if user has a specific permission.
      */
+    /**
+     * Check if user has a specific permission.
+     */
     public function hasPermission(string|Permission $permission): bool
     {
+        // Global Admin Override
+        if ($this->role === 'admin') {
+            return true;
+        }
+
         if ($permission instanceof Permission) {
             $permission = $permission->value;
         }
@@ -65,6 +75,8 @@ class User extends Authenticatable
      */
     public function getEffectivePermissionsAttribute(): array
     {
+        $effective = []; // Fix undefined variable
+
         // 1. Get Role Defaults
         $roleConfig = Config::get('role_permission.' . $this->role, []);
         

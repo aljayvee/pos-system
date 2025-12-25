@@ -13,12 +13,14 @@
         
         {{-- DESKTOP TOOLBAR --}}
         <div class="d-none d-md-flex flex-wrap gap-2">
+            @if(auth()->user()->role !== 'auditor')
             <a href="{{ route('purchases.create') }}" class="btn btn-primary shadow-sm rounded-pill fw-bold px-3">
                 <i class="fas fa-plus-circle me-1"></i> Restock
             </a>
             <a href="{{ route('inventory.adjust') }}" class="btn btn-warning shadow-sm rounded-pill fw-bold px-3 text-dark">
                 <i class="fas fa-sliders-h me-1"></i> Adjust
             </a>
+            @endif
             <div class="btn-group shadow-sm">
                 <a href="{{ route('inventory.history') }}" class="btn btn-white border rounded-start-pill fw-bold text-dark">
                     <i class="fas fa-history me-1"></i> History
@@ -31,12 +33,14 @@
 
         {{-- MOBILE TOOLBAR (Organized Grid) --}}
         <div class="d-grid d-md-none w-100 gap-2 mt-2" style="grid-template-columns: 1fr 1fr;">
+            @if(auth()->user()->role !== 'auditor')
             <a href="{{ route('purchases.create') }}" class="btn btn-primary shadow-sm rounded-3 fw-bold">
                 <i class="fas fa-plus-circle me-1"></i> Restock
             </a>
             <a href="{{ route('inventory.adjust') }}" class="btn btn-warning shadow-sm rounded-3 fw-bold text-dark">
                 <i class="fas fa-sliders-h me-1"></i> Adjust
             </a>
+            @endif
             <a href="{{ route('inventory.history') }}" class="btn btn-white border shadow-sm rounded-3 fw-bold text-dark">
                 <i class="fas fa-history me-1"></i> History
             </a>

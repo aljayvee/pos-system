@@ -128,7 +128,14 @@ class ProductController extends Controller
             // Filter post-query for simplicity, or add join logic
              $products = $query->get()->filter(function($p) {
                 return $p->stock <= $p->reorder_point; // Accessor automatically gets branch stock
-            })->toQuery()->paginate(10);
+            });
+
+            if ($products->isEmpty()) {
+                // Return an empty paginator if no results found
+                $products = new \Illuminate\Pagination\LengthAwarePaginator([], 0, 10);
+            } else {
+                $products = $products->toQuery()->paginate(10);
+            }
         } else {
             $products = $query->paginate(10)->withQueryString();
         }

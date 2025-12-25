@@ -25,6 +25,16 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // DEFINE GATES FOR PERMISSIONS
+        // This bridges Laravel's @can() directive to our Custom RBAC
+        \Illuminate\Support\Facades\Gate::before(function ($user, $ability) {
+             if (method_exists($user, 'hasPermission')) {
+                 if ($user->hasPermission($ability)) {
+                     return true;
+                 }
+             }
+        });
+
         Paginator::useBootstrapFive();
 
         // NEW: Share Notification Data with Admin Layout

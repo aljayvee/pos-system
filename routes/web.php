@@ -33,48 +33,83 @@ Route::middleware(['auth', 'role:admin,manager,supervisor,stock_clerk,auditor'])
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('admin.dashboard');
 
     // 1. INVENTORY MANAGEMENT
+    // 1. INVENTORY MANAGEMENT
     Route::middleware(['role:inventory.view'])->group(function () {
-        Route::resource('categories', CategoryController::class);
-        Route::resource('products', ProductController::class);
-        Route::post('/products/check-duplicate', [ProductController::class, 'checkDuplicate'])->name('products.check_duplicate');
-        Route::post('/products/import', [ProductController::class, 'import'])->name('products.import');
-        Route::get('/products/{product}/barcode', [ProductController::class, 'printBarcode'])->name('products.barcode');
-        Route::post('/products/{id}/restore', [ProductController::class, 'restore'])->name('products.restore');
-        Route::delete('/products/{id}/force-delete', [ProductController::class, 'forceDelete'])->name('products.force_delete');
-        
-        Route::resource('purchases', \App\Http\Controllers\Admin\PurchaseController::class)->only(['index', 'create', 'store', 'show', 'destroy']);
+        // Read-Only Access
+        Route::resource('categories', CategoryController::class)->only(['index', 'show']);
+        Route::resource('products', ProductController::class)->only(['index', 'show']);
+        Route::get('/products/{product}/barcode', [ProductController::class, 'printBarcode'])->name('products.barcode'); // Print is read-only?
+        Route::resource('purchases', \App\Http\Controllers\Admin\PurchaseController::class)->only(['index', 'show']);
         
         Route::get('/inventory', [InventoryController::class, 'index'])->name('inventory.index');
         Route::get('/inventory/history', [InventoryController::class, 'history'])->name('inventory.history');
         Route::get('/inventory/export', [InventoryController::class, 'export'])->name('inventory.export');
 
-        // Adjustments need specific edit/adjust permission? For now view implies access to list, but typical REST controllers handle show/edit.
-        // Let's assume inventory.view protects the ROUTE, controller might have finer checks for store/update.
-        // Actually, let's keep it simple: inventory.view allows viewing. 
-        // Writing (POST/PUT) might need inventory.edit, but middleware on resource applies to all.
-        // Ideally: Route::resource(...)->middleware('role:inventory.edit')->only(['store','update','destroy']);
-        // But for now, let's use the highest common denominator or just view.
-        Route::get('/inventory/adjust', [InventoryController::class, 'adjust'])->name('inventory.adjust');
-        Route::post('/inventory/adjust', [InventoryController::class, 'storeAdjustment'])->name('inventory.storeAdjustment')->middleware('role:inventory.adjust'); 
+        // Write Access Restricted to 'inventory.edit'
+        Route::middleware(['role:inventory.edit'])->group(function() {
+             Route::resource('categories', CategoryController::class)->except(['index', 'show']);
+             Route::resource('products', ProductController::class)->except(['index', 'show']);
+             
+             Route::post('/products/check-duplicate', [ProductController::class, 'checkDuplicate'])->name('products.check_duplicate');
+             Route::post('/products/import', [ProductController::class, 'import'])->name('products.import');
+             Route::post('/products/{id}/restore', [ProductController::class, 'restore'])->name('products.restore');
+             Route::delete('/products/{id}/force-delete', [ProductController::class, 'forceDelete'])->name('products.force_delete');
+
+             Route::resource('purchases', \App\Http\Controllers\Admin\PurchaseController::class)->only(['create', 'store', 'destroy']);
+        });
+
+        // Restrict Adjustment VIEW and ACTION to 'inventory.adjust' permission
+        Route::middleware(['role:inventory.adjust'])->group(function() {
+            Route::get('/inventory/adjust', [InventoryController::class, 'adjust'])->name('inventory.adjust');
+            Route::post('/inventory/adjust', [InventoryController::class, 'storeAdjustment'])->name('inventory.storeAdjustment');
+        });
     });
 
     // 2. FINANCE & CUSTOMERS (Using sales.view as base)
     // Customers/Suppliers/Credits usually linked to Sales
     Route::middleware(['role:sales.view,reports.view'])->group(function () {
-        Route::resource('customers', \App\Http\Controllers\Admin\CustomerController::class);
-        Route::resource('suppliers', \App\Http\Controllers\Admin\SupplierController::class);
+        // READ-ONLY Access (Auditors, Supervisors, etc.)
+        Route::resource('customers', \App\Http\Controllers\Admin\CustomerController::class)->only(['index', 'show']);
+        Route::resource('suppliers', \App\Http\Controllers\Admin\SupplierController::class)->only(['index', 'show']);
         
         Route::get('/credits', [CreditController::class, 'index'])->name('credits.index');
         Route::get('/credits/export', [CreditController::class, 'export'])->name('credits.export');
         Route::get('/credits/{credit}/history', [CreditController::class, 'history'])->name('credits.history');
         Route::get('/credits/payment-logs', [CreditController::class, 'paymentLogs'])->name('credits.logs');
-        Route::post('/credits/{credit}/pay', [CreditController::class, 'storePayment'])->name('credits.pay'); 
+
+        // WRITE Access (Admin & Manager Only)
+        // Adjust/Pay/Create/Edit/Delete
+        Route::middleware(['role:admin,manager'])->group(function() {
+            Route::resource('customers', \App\Http\Controllers\Admin\CustomerController::class)->except(['index', 'show']);
+            Route::resource('suppliers', \App\Http\Controllers\Admin\SupplierController::class)->except(['index', 'show']);
+            Route::post('/credits/{credit}/pay', [CreditController::class, 'storePayment'])->name('credits.pay'); 
+        });
     });
 
     // 3. USER MANAGEMENT
+    // 3. USER MANAGEMENT
     Route::middleware(['role:user.manage'])->group(function () {
-        Route::post('/users/{user}/toggle', [UserController::class, 'toggleStatus'])->name('users.toggle');
-        Route::resource('users', UserController::class)->except(['show']);
+        // Read-Only for anyone with user.manage (including Auditor)
+        Route::resource('users', UserController::class)->only(['index']);
+
+        // Write/Execute Actions (Admin & Manager Only)
+        Route::middleware(['role:admin,manager'])->group(function() {
+            Route::post('/users/{user}/toggle', [UserController::class, 'toggleStatus'])->name('users.toggle');
+            Route::post('/admin/verify-override', [UserController::class, 'verifyOverride'])->name('admin.verify_override');
+            
+            // ASYNC ROLE APPROVAL (New)
+            Route::post('/approval/send', [\App\Http\Controllers\Admin\ApprovalController::class, 'sendRequest'])->name('approval.send');
+            Route::get('/approval/{id}/status', [\App\Http\Controllers\Admin\ApprovalController::class, 'checkStatus'])->name('approval.status');
+            Route::get('/approval/pending', [\App\Http\Controllers\Admin\ApprovalController::class, 'getPending'])->name('approval.pending');
+            Route::post('/approval/{id}/decide', [\App\Http\Controllers\Admin\ApprovalController::class, 'decideRequest'])->name('approval.decide');
+
+            // Create, Edit, Update, Destroy
+            Route::get('/users/archived', [UserController::class, 'archived'])->name('users.archived');
+            Route::post('/users/{id}/restore', [UserController::class, 'restore'])->name('users.restore');
+            Route::delete('/users/{id}/force-delete', [UserController::class, 'forceDelete'])->name('users.force_delete');
+            
+            Route::resource('users', UserController::class)->except(['index', 'show']);
+        });
     });
 
     // 4. REPORTS & ANALYTICS

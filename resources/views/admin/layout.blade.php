@@ -29,6 +29,8 @@
             });
     }, 4000);
 
+
+
     let isModalOpen = false;
 
     function showConsentModal(details) {

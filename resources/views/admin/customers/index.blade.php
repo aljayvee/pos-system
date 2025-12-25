@@ -11,9 +11,11 @@
             </h4>
             <p class="text-muted small mb-0">Manage customer profiles, loyalty points, and history.</p>
         </div>
+        @if(auth()->user()->role !== 'auditor')
         <button class="btn btn-primary shadow-sm rounded-pill fw-bold px-4" data-bs-toggle="modal" data-bs-target="#addCustomerModal">
             <i class="fas fa-plus-circle me-2"></i>New Customer
         </button>
+        @endif
     </div>
 
     @if(session('success'))
@@ -96,6 +98,7 @@
                                     <a href="{{ route('customers.show', $customer->id) }}" class="btn btn-sm btn-light border-end" title="View Profile">
                                         <i class="fas fa-eye text-primary"></i>
                                     </a>
+                                    @if(auth()->user()->role !== 'auditor')
                                     <button class="btn btn-sm btn-light border-end" data-bs-toggle="modal" data-bs-target="#editCustomerModal-{{ $customer->id }}" title="Edit">
                                         <i class="fas fa-edit text-warning"></i>
                                     </button>
@@ -105,6 +108,7 @@
                                             <i class="fas fa-trash"></i>
                                         </button>
                                     </form>
+                                    @endif
                                 </div>
                             </td>
                         </tr>
@@ -164,22 +168,24 @@
                 </div>
 
                 <div class="row g-2">
-                    <div class="col-4">
+                    <div class="col-12">
                         <a href="{{ route('customers.show', $customer->id) }}" class="btn btn-light w-100 fw-bold border">
                             View
                         </a>
                     </div>
-                    <div class="col-4">
+                    @if(auth()->user()->role !== 'auditor')
+                    <div class="col-6">
                         <button class="btn btn-warning w-100 fw-bold text-dark" data-bs-toggle="modal" data-bs-target="#editCustomerModal-{{ $customer->id }}">
                             Edit
                         </button>
                     </div>
-                    <div class="col-4">
+                    <div class="col-6">
                         <form action="{{ route('customers.destroy', $customer->id) }}" method="POST" onsubmit="return confirm('Delete this customer?');">
                             @csrf @method('DELETE')
                             <button class="btn btn-outline-danger w-100 fw-bold border-2">Delete</button>
                         </form>
                     </div>
+                    @endif
                 </div>
             </div>
         </div>
@@ -200,6 +206,7 @@
 {{-- ADD MODAL --}}
 <div class="modal fade" id="addCustomerModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
+        @if(auth()->user()->role !== 'auditor')
         <form action="{{ route('customers.store') }}" method="POST">
             @csrf
             <div class="modal-content border-0 shadow-lg rounded-4">
@@ -227,6 +234,15 @@
                 </div>
             </div>
         </form>
+        @else
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-body p-5 text-center">
+                <h5>Access Denied</h5>
+                <p>Auditors cannot add new customers.</p>
+                <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+        @endif
     </div>
 </div>
 @endsection

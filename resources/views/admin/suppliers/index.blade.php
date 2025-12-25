@@ -8,9 +8,11 @@
         <h4 class="fw-bold text-dark mb-1">
             <i class="fas fa-truck text-primary me-2"></i>Suppliers
         </h4>
+        @if(auth()->user()->role !== 'auditor')
         <a href="{{ route('suppliers.create') }}" class="btn btn-primary shadow-sm rounded-pill fw-bold px-4">
             <i class="fas fa-plus me-1"></i> Add Supplier
         </a>
+        @endif
     </div>
 
     @if(session('success'))
@@ -69,12 +71,14 @@
                             <td class="text-center pe-4">
                                 <div class="btn-group shadow-sm rounded-pill">
                                     <a href="{{ route('suppliers.show', $supplier->id) }}" class="btn btn-sm btn-light border text-primary fw-bold px-3">View</a>
+                                    @if(auth()->user()->role !== 'auditor')
                                     <a href="{{ route('suppliers.edit', $supplier->id) }}" class="btn btn-sm btn-light border text-dark px-3"><i class="fas fa-edit"></i></a>
                                     <button type="button" class="btn btn-sm btn-light border text-danger px-3" 
                                             onclick="if(confirm('Delete {{ $supplier->name }}?')) document.getElementById('del-{{ $supplier->id }}').submit()"
                                             {{ $supplier->purchases_count > 0 ? 'disabled' : '' }}>
                                         <i class="fas fa-trash"></i>
                                     </button>
+                                    @endif
                                 </div>
                                 <form id="del-{{ $supplier->id }}" action="{{ route('suppliers.destroy', $supplier->id) }}" method="POST" class="d-none">@csrf @method('DELETE')</form>
                             </td>
@@ -111,6 +115,7 @@
                     <a href="{{ route('suppliers.show', $supplier->id) }}" class="btn btn-light border text-primary fw-bold flex-fill py-2 rounded-pill shadow-sm">
                         View
                     </a>
+                    @if(auth()->user()->role !== 'auditor')
                     <a href="{{ route('suppliers.edit', $supplier->id) }}" class="btn btn-warning text-dark fw-bold flex-fill py-2 rounded-pill shadow-sm">
                         Edit
                     </a>
@@ -120,6 +125,7 @@
                             Delete
                         </button>
                     </form>
+                    @endif
                 </div>
             </div>
         </div>

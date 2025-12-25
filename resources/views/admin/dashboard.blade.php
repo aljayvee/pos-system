@@ -63,7 +63,9 @@
                     <h5 class="alert-heading fw-bold mb-1">Attention Needed</h5>
                     <p class="mb-0">
                         You have <span class="fw-bold text-decoration-underline">{{ $outOfStockItems }} items</span> totally out of stock.
+                        @if(auth()->user()->role !== 'auditor')
                         <a href="{{ route('inventory.index') }}" class="btn btn-sm btn-light text-danger fw-bold ms-2 rounded-pill px-3">Restock Now</a>
+                        @endif
                     </p>
                 </div>
             </div>
@@ -140,9 +142,11 @@
                                             </div>
                                         </td>
                                         <td class="text-end pe-4 border-bottom-0">
+                                            @if(auth()->user()->role !== 'auditor')
                                             <a href="{{ route('inventory.adjust') }}?product_id={{ $item->id }}" class="btn btn-sm btn-light text-primary rounded-pill px-3 fw-bold">
                                                 Restock
                                             </a>
+                                            @endif
                                         </td>
                                     </tr>
                                     @endforeach
@@ -160,9 +164,11 @@
                                             <div class="fw-bold text-dark">{{ $item->name }}</div>
                                             <small class="text-muted">{{ $item->unit ?? 'Unit' }}</small>
                                         </div>
+                                        @if(auth()->user()->role !== 'auditor')
                                         <a href="{{ route('inventory.adjust') }}?product_id={{ $item->id }}" class="btn btn-xs btn-light text-primary rounded-pill px-3">
                                             Restock
                                         </a>
+                                        @endif
                                     </div>
                                     <div class="d-flex align-items-center mt-1">
                                          <span class="fw-bold text-danger me-2 small">{{ $item->current_stock }} left</span>

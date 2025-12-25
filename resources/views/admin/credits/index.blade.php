@@ -113,9 +113,11 @@
                             </td>
                             <td class="text-end pe-4">
                                 <div class="btn-group shadow-sm rounded-pill">
+                                    @if(auth()->user()->role !== 'auditor')
                                     <button class="btn btn-sm btn-success fw-bold px-3" data-bs-toggle="modal" data-bs-target="#payCreditModal-{{ $credit->credit_id }}">
                                         <i class="fas fa-wallet me-1"></i> Pay
                                     </button>
+                                    @endif
                                     <a href="{{ route('credits.history', $credit->credit_id) }}" class="btn btn-sm btn-light border-start text-secondary px-3" title="View History">
                                         <i class="fas fa-history"></i>
                                     </a>
@@ -165,9 +167,11 @@
                 </div>
 
                 <div class="d-flex gap-2">
+                    @if(auth()->user()->role !== 'auditor')
                     <button class="btn btn-success flex-fill fw-bold py-2 rounded-pill shadow-sm" data-bs-toggle="modal" data-bs-target="#payCreditModal-{{ $credit->credit_id }}">
                         <i class="fas fa-wallet me-1"></i> Pay Now
                     </button>
+                    @endif
                     <a href="{{ route('credits.history', $credit->credit_id) }}" class="btn btn-outline-secondary flex-fill fw-bold py-2 rounded-pill border-0 bg-light text-dark">
                         <i class="fas fa-history me-1 text-secondary"></i> History
                     </a>
