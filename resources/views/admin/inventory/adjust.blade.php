@@ -2,8 +2,15 @@
 
 @section('content')
 <div class="container-fluid px-2 py-3 px-md-4 py-md-4">
+    {{-- MOBILE HEADER --}}
+    <div class="d-lg-none sticky-top bg-white border-bottom shadow-sm px-3 py-3 d-flex align-items-center justify-content-between z-3 mb-3" style="top: 0;">
+        <a href="{{ route('inventory.index') }}" class="text-dark"><i class="fas fa-arrow-left"></i></a>
+        <h6 class="m-0 fw-bold text-dark">Stock Adjustment</h6>
+        <div style="width: 40px;"></div>
+    </div>
+
     {{-- HEADER --}}
-    <div class="mb-4">
+    <div class="mb-4 d-none d-lg-block">
         <a href="{{ route('inventory.index') }}" class="btn btn-light border shadow-sm rounded-pill fw-bold mb-3">
             <i class="fas fa-arrow-left me-1"></i> Back
         </a>
@@ -11,11 +18,11 @@
         <p class="text-muted small mb-0">Manually correct stock levels for damages, loss, or internal use.</p>
     </div>
 
-    <div class="row g-4">
+    <div class="row g-4 mb-5 pb-5 mb-lg-0 pb-lg-0">
         {{-- ADJUSTMENT FORM --}}
         <div class="col-lg-4">
             <div class="card shadow-sm border-0 h-100 rounded-4">
-                <div class="card-header bg-warning bg-opacity-10 text-dark fw-bold py-3 border-bottom-0">
+                <div class="card-header bg-warning bg-opacity-10 text-dark fw-bold py-3 border-bottom-0 d-none d-lg-block">
                     <i class="fas fa-pen me-2 text-warning"></i>Record Adjustment
                 </div>
                 <div class="card-body p-4">
@@ -38,7 +45,7 @@
                         
                         <div class="mb-4">
                             <label class="form-label fw-bold text-secondary small text-uppercase">Select Product</label>
-                            <select name="product_id" class="form-select bg-light border-0 select2" required>
+                            <select name="product_id" class="form-select bg-light border-0 select2 py-3" required>
                                 <option value="">-- Search Item --</option>
                                 @foreach($products as $p)
                                     <option value="{{ $p->id }}">{{ $p->name }} (Qty: {{ $p->stock }})</option>
@@ -70,12 +77,12 @@
 
                         <div class="mb-4">
                             <label class="form-label fw-bold text-secondary small text-uppercase">Quantity</label>
-                            <input type="number" name="quantity" class="form-control bg-light border-0" min="1" placeholder="0" required>
+                            <input type="number" name="quantity" class="form-control bg-light border-0 py-3 fw-bold" min="1" placeholder="0" required inputmode="numeric">
                         </div>
 
                         <div class="mb-4">
                             <label class="form-label fw-bold text-secondary small text-uppercase">Reason</label>
-                            <select name="reason" class="form-select bg-light border-0" required>
+                            <select name="reason" class="form-select bg-light border-0 py-3" required>
                                 <option value="Spoilage/Expired">Spoilage / Expired</option>
                                 <option value="Damaged">Damaged Item</option>
                                 <option value="Theft/Lost">Theft / Lost</option>
@@ -89,9 +96,18 @@
                             <textarea name="remarks" class="form-control bg-light border-0" rows="3" placeholder="Optional details..."></textarea>
                         </div>
 
-                        <button type="submit" class="btn btn-dark w-100 py-3 fw-bold shadow-sm rounded-pill text-uppercase tracking-wide">
-                            <i class="fas fa-save me-2"></i> Save Adjustment
-                        </button>
+                        <div class="d-none d-lg-block">
+                             <button type="submit" class="btn btn-dark w-100 py-3 fw-bold shadow-sm rounded-pill text-uppercase tracking-wide">
+                                <i class="fas fa-save me-2"></i> Save Adjustment
+                            </button>
+                        </div>
+                        
+                        {{-- MOBILE STICKY BOTTOM BAR --}}
+                        <div class="d-lg-none position-fixed bottom-0 start-0 w-100 bg-white border-top p-3 z-3 shadow-lg">
+                            <button type="submit" class="btn btn-dark w-100 py-3 rounded-pill fw-bold shadow-lg">
+                                Save Adjustment
+                            </button>
+                        </div>
                     </form>
                 </div>
             </div>
@@ -105,7 +121,7 @@
                 </div>
                 
                 {{-- Desktop Table --}}
-                <div class="card-body p-0 d-none d-md-block">
+                <div class="card-body p-0 d-none d-lg-block">
                     <div class="table-responsive">
                         <table class="table table-hover align-middle mb-0">
                             <thead class="bg-light text-secondary text-uppercase small">
@@ -155,31 +171,44 @@
                 </div>
 
                 {{-- Mobile List View --}}
-                <div class="card-body p-3 d-md-none bg-light">
-                    @forelse($adjustments as $adj)
-                    <div class="card border-0 shadow-sm mb-3 rounded-4">
-                        <div class="card-body p-3">
-                            <div class="d-flex justify-content-between mb-2">
-                                <span class="text-muted small">{{ $adj->created_at->format('M d, h:i A') }}</span>
-                                <span class="badge bg-light text-dark border rounded-pill">{{ $adj->type }}</span>
-                            </div>
-                            <h6 class="fw-bold text-dark mb-1">{{ $adj->product->name ?? 'Unknown' }}</h6>
-                             <div class="d-flex justify-content-between align-items-center mt-3 bg-light rounded-3 p-2">
-                                <div class="d-flex align-items-center">
-                                    <div class="bg-white rounded-circle d-flex align-items-center justify-content-center me-2 shadow-sm" style="width:24px; height:24px;">
-                                        <i class="fas fa-user-circle text-secondary" style="font-size: 0.8rem;"></i>
+                <div class="d-lg-none">
+                     <ul class="list-group list-group-flush">
+                        @forelse($adjustments as $adj)
+                        <li class="list-group-item p-3 border-bottom-0 hover-bg-light">
+                            <div class="d-flex justify-content-between align-items-start mb-1">
+                                <div class="d-flex align-items-center gap-2">
+                                     @php
+                                        $iconClass = match(strtolower($adj->type)) {
+                                            'wastage', 'spoilage/expired', 'damage', 'theft/lost' => 'fa-trash-alt text-danger',
+                                            'internal use' => 'fa-clipboard-check text-warning',
+                                            default => 'fa-box-open text-primary',
+                                        };
+                                        $txtColor = match(strtolower($adj->type)) {
+                                            'wastage', 'spoilage/expired', 'damage', 'theft/lost' => 'text-danger',
+                                            'internal use' => 'text-warning',
+                                            default => 'text-primary',
+                                        };
+                                    @endphp
+                                    <div class="rounded-circle bg-light d-flex align-items-center justify-content-center {{ $txtColor }}" style="width: 32px; height: 32px;">
+                                        <i class="fas {{ $iconClass }} small"></i>
                                     </div>
-                                    <small class="text-muted">{{ $adj->user->name ?? 'System' }}</small>
+                                    <div>
+                                        <div class="fw-bold text-dark" style="font-size: 0.95rem;">{{ $adj->product->name ?? 'Unknown' }}</div>
+                                        <div class="small text-muted">{{ $adj->created_at->format('M d, h:i A') }}</div>
+                                    </div>
                                 </div>
-                                <span class="fw-bold fs-5 {{ $adj->quantity > 0 ? 'text-success' : 'text-danger' }}">
-                                    {{ $adj->quantity > 0 ? '+' : '' }}{{ $adj->quantity }}
-                                </span>
+                                <div class="text-end">
+                                    <div class="fw-bold {{ $adj->quantity > 0 ? 'text-success' : 'text-danger' }} fs-6">
+                                        {{ $adj->quantity > 0 ? '+' : '' }}{{ $adj->quantity }}
+                                    </div>
+                                    <span class="badge bg-light text-secondary border rounded-pill" style="font-size: 0.65rem;">{{ ucfirst($adj->type) }}</span>
+                                </div>
                             </div>
-                        </div>
-                    </div>
-                    @empty
-                    <div class="text-center py-4 text-muted">No adjustments yet</div>
-                    @endforelse
+                        </li>
+                        @empty
+                        <div class="text-center py-4 text-muted">No adjustments yet</div>
+                        @endforelse
+                     </ul>
                 </div>
 
                 @if($adjustments->hasPages())

@@ -2,8 +2,15 @@
 
 @section('content')
 <div class="container-fluid px-2 py-3 px-md-4 py-md-4">
-    {{-- HEADER --}}
-    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
+    {{-- MOBILE HEADER --}}
+    <div class="d-lg-none sticky-top bg-white border-bottom shadow-sm px-3 py-3 d-flex align-items-center justify-content-between z-3 mb-3" style="top: 0;">
+        <a href="{{ route('inventory.index') }}" class="text-dark"><i class="fas fa-arrow-left"></i></a>
+        <h6 class="m-0 fw-bold text-dark">History</h6>
+        <a href="{{ route('inventory.export') }}" class="text-success"><i class="fas fa-file-arrow-down"></i></a>
+    </div>
+
+    {{-- DESKTOP HEADER --}}
+    <div class="d-none d-lg-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
         <div>
             <h4 class="fw-bold text-dark mb-1">
                 <i class="fas fa-history text-secondary me-2"></i>Adjustment Logs
@@ -21,7 +28,7 @@
     </div>
 
     {{-- DESKTOP TABLE VIEW --}}
-    <div class="card shadow-sm border-0 mb-4 rounded-4 overflow-hidden d-none d-md-block">
+    <div class="card shadow-sm border-0 mb-4 rounded-4 overflow-hidden d-none d-lg-block">
         <div class="card-header bg-white py-3 border-bottom border-light">
             <h5 class="m-0 font-weight-bold text-dark"><i class="fas fa-list-alt me-2 text-primary"></i>History Records</h5>
         </div>
@@ -94,50 +101,53 @@
         </div>
     </div>
 
-    {{-- MOBILE CARD LIST VIEW --}}
-    <div class="d-md-none">
-        @forelse($adjustments as $adj)
-        <div class="card border-0 shadow-sm mb-3 rounded-4">
-            <div class="card-body p-3">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <span class="text-muted small"><i class="far fa-clock me-1"></i>{{ $adj->created_at->format('M d, h:i A') }}</span>
-                    @php
-                        $badgeClass = match(strtolower($adj->type)) {
-                            'wastage', 'spoilage/expired', 'damage', 'theft/lost' => 'bg-danger-subtle text-danger',
-                            'internal use' => 'bg-warning-subtle text-warning text-dark-emphasis',
-                            default => 'bg-primary-subtle text-primary',
-                        };
-                    @endphp
-                    <span class="badge {{ $badgeClass }} rounded-pill">{{ ucfirst($adj->type) }}</span>
-                </div>
-                
-                <h6 class="fw-bold text-dark mb-1">{{ $adj->product->name ?? 'Unknown Item' }}</h6>
-                
-                <div class="d-flex justify-content-between align-items-center mt-3 bg-light rounded-3 p-2">
-                    <div class="d-flex align-items-center">
-                        <div class="bg-white rounded-circle d-flex align-items-center justify-content-center me-2 shadow-sm" style="width:24px; height:24px;">
-                            <i class="fas fa-user-circle text-secondary" style="font-size: 0.8rem;"></i>
+    {{-- MOBILE NATIVE LIST VIEW --}}
+    <div class="d-lg-none card shadow-sm border-0 rounded-4 overflow-hidden mb-4">
+        <ul class="list-group list-group-flush">
+            @forelse($adjustments as $adj)
+            <li class="list-group-item p-3 border-bottom-0 hover-bg-light">
+                <div class="d-flex justify-content-between align-items-start mb-1">
+                    <div class="d-flex align-items-center gap-2">
+                        @php
+                            $iconClass = match(strtolower($adj->type)) {
+                                'wastage', 'spoilage/expired', 'damage', 'theft/lost' => 'fa-trash-alt text-danger',
+                                'internal use' => 'fa-clipboard-check text-warning',
+                                default => 'fa-box-open text-primary',
+                            };
+                            $txtColor = match(strtolower($adj->type)) {
+                                'wastage', 'spoilage/expired', 'damage', 'theft/lost' => 'text-danger',
+                                'internal use' => 'text-warning',
+                                default => 'text-primary',
+                            };
+                        @endphp
+                        <div class="rounded-circle bg-light d-flex align-items-center justify-content-center {{ $txtColor }}" style="width: 32px; height: 32px;">
+                            <i class="fas {{ $iconClass }} small"></i>
                         </div>
-                        <small class="text-muted">{{ $adj->user->name ?? 'System' }}</small>
+                        <div>
+                            <div class="fw-bold text-dark" style="font-size: 0.95rem;">{{ $adj->product->name ?? 'Unknown' }}</div>
+                            <div class="small text-muted">{{ $adj->created_at->format('M d, h:i A') }} &bull; {{ $adj->user->name ?? 'Sys' }}</div>
+                        </div>
                     </div>
-                    <span class="fw-bold fs-5 {{ $adj->quantity > 0 ? 'text-success' : 'text-danger' }}">
-                        {{ $adj->quantity > 0 ? '+' : '' }}{{ $adj->quantity }}
-                    </span>
+                    <div class="text-end">
+                        <div class="fw-bold {{ $adj->quantity > 0 ? 'text-success' : 'text-danger' }} fs-6">
+                            {{ $adj->quantity > 0 ? '+' : '' }}{{ $adj->quantity }}
+                        </div>
+                        <span class="badge {{ $badgeClass }} rounded-pill" style="font-size: 0.65rem;">{{ ucfirst($adj->type) }}</span>
+                    </div>
                 </div>
-                
                 @if($adj->remarks)
-                <div class="mt-2 small text-muted fst-italic border-top pt-2">
-                    "{{ $adj->remarks }}"
-                </div>
+                    <div class="bg-light rounded p-2 mt-2 ms-5 small text-muted">
+                        <i class="fas fa-quote-left me-1 opacity-25"></i> {{ $adj->remarks }}
+                    </div>
                 @endif
+            </li>
+            @empty
+            <div class="text-center py-5 text-muted">
+                <i class="fas fa-history fa-3x mb-3 text-light-gray opacity-25"></i><br>
+                No history found.
             </div>
-        </div>
-        @empty
-        <div class="text-center py-5 text-muted">
-            <i class="fas fa-history fa-3x mb-3 text-light-gray opacity-25"></i><br>
-            No history found.
-        </div>
-        @endforelse
+            @endforelse
+        </ul>
     </div>
 
     @if($adjustments->hasPages())

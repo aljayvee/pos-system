@@ -8,7 +8,7 @@
 <div class="container-fluid px-2 py-3 px-md-4 py-md-4">
     
     {{-- HEADER --}}
-    <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center mb-4 gap-3">
+    <div class="d-none d-lg-flex flex-column flex-sm-row justify-content-between align-items-sm-center mb-4 gap-3">
         <div>
             <h3 class="fw-bold text-dark m-0 tracking-tight">Product Inventory</h3>
             <p class="text-muted small m-0">Manage stock, prices, and categories.</p>
@@ -19,7 +19,7 @@
                 <i class="fas fa-file-import me-2 text-secondary"></i>Import CSV
             </button>
             <a href="{{ route('products.create') }}" class="btn btn-primary shadow-lg rounded-pill px-4 fw-bold">
-                <i class="fas fa-plus-circle me-2"></i>Add Product
+                <i class="fas fa-plus-circle me-2"></i>Add New Product
             </a>
             @endcan
         </div>
@@ -60,7 +60,7 @@
     </div>
 
     {{-- TOOLBAR --}}
-    <div class="card shadow-sm border-0 rounded-4 mb-4">
+    <div class="card shadow-sm border-0 rounded-4 mb-4 d-none d-lg-block d-none d-lg-block">
         <div class="card-body p-3">
             <form action="{{ route('products.index') }}" method="GET" class="row g-2 align-items-center">
                 {{-- Search --}}
@@ -165,64 +165,182 @@
         </div>
     </div>
 
-    {{-- MOBILE CARD VIEW --}}
-    <div class="d-lg-none bg-light p-2">
-        @forelse($products as $product)
-        <div class="card shadow-sm border-0 mb-3 rounded-4 overflow-hidden">
-            <div class="card-body p-3">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <span class="badge bg-light text-secondary border fw-normal shadow-sm">
-                        {{ $product->category->name ?? 'Uncategorized' }}
-                    </span>
-                    @if($product->stock == 0) <span class="badge bg-danger text-white rounded-pill">Out</span>
-                    @elseif($product->stock <= $product->reorder_point) <span class="badge bg-warning text-dark rounded-pill">Low</span>
-                    @else <span class="badge bg-success text-white rounded-pill">Active</span>
+    {{-- MOBILE NATIVE VIEW --}}
+    <div class="d-lg-none">
+        
+        {{-- Sticky Search Header --}}
+        <div class="sticky-top bg-white border-bottom shadow-sm p-3 mb-3" style="top: 0; z-index: 1020;">
+            <div class="d-flex align-items-center gap-2 mb-2">
+                <h5 class="fw-bold text-dark m-0 tracking-tight flex-grow-1">Products</h5>
+                @can('inventory.edit')
+                <button class="btn btn-light rounded-circle border shadow-sm" data-bs-toggle="modal" data-bs-target="#importModal" style="width: 40px; height: 40px;">
+                    <i class="fas fa-file-import text-secondary"></i>
+                </button>
+                @endcan
+            </div>
+            
+            <form action="{{ route('products.index') }}" method="GET">
+                <div class="input-group shadow-sm rounded-4 overflow-hidden bg-light border">
+                    <span class="input-group-text bg-transparent border-0 ps-3"><i class="fas fa-search text-muted"></i></span>
+                    <input type="text" name="search" class="form-control border-0 bg-transparent shadow-none" placeholder="Search..." value="{{ request('search') }}">
+                    @if(request('search'))
+                        <a href="{{ route('products.index') }}" class="btn btn-link text-muted text-decoration-none"><i class="fas fa-times"></i></a>
                     @endif
                 </div>
+            </form>
+            
+            {{-- Quick Filters (Horizontal Scroll) --}}
+            <div class="d-flex gap-2 mt-2 overflow-auto pb-1" style="scrollbar-width: none;">
+                {{-- All Items --}}
+                <a href="{{ route('products.index') }}" class="btn btn-sm rounded-pill text-nowrap {{ !request('filter') && !request('category') ? 'btn-dark text-white' : 'btn-light border text-secondary' }}">
+                    All Items
+                </a>
 
-                <div class="d-flex justify-content-between align-items-start mb-3">
-                    <div>
-                        <h6 class="fw-bold text-dark mb-1">{{ $product->name }}</h6>
-                        @if($product->sku) <div class="text-muted small"><i class="fas fa-barcode me-1"></i> {{ $product->sku }}</div> @endif
+                {{-- Low Stock (Toggle) --}}
+                <a href="{{ request('filter') == 'low' ? route('products.index', request()->except('filter')) : route('products.index', array_merge(request()->all(), ['filter' => 'low'])) }}" 
+                   class="btn btn-sm rounded-pill text-nowrap {{ request('filter') == 'low' ? 'btn-danger text-white' : 'btn-light border text-secondary' }}">
+                    Low Stock
+                </a>
+                
+                <div class="vr mx-1"></div>
+                
+                @foreach($categories->take(10) as $cat)
+                    <a href="{{ request('category') == $cat->id ? route('products.index', request()->except('category')) : route('products.index', array_merge(request()->except('page'), ['category' => $cat->id])) }}" 
+                       class="btn btn-sm rounded-pill text-nowrap {{ request('category') == $cat->id ? 'btn-primary text-white' : 'btn-light border text-secondary' }}">
+                        {{ $cat->name }}
+                    </a>
+                @endforeach
+            </div>
+        </div>
+
+        {{-- Product List --}}
+        <div class="list-group list-group-flush mx-0">
+            @forelse($products as $product)
+            <div class="list-group-item p-3 border-bottom d-flex align-items-center gap-3" onclick="openProductActionSheet({{ $product->id }}, '{{ addslashes($product->name) }}', '{{ route('products.edit', $product->id) }}', '{{ route('products.destroy', $product->id) }}', {{ $barcodeEnabled ? 1 : 0 }}, '{{ route('products.barcode', $product->id) }}')" style="cursor: pointer;">
+                
+                {{-- Avatar --}}
+                <div class="rounded-3 bg-primary bg-opacity-10 text-primary d-flex align-items-center justify-content-center fw-bold flex-shrink-0" style="width: 50px; height: 50px;">
+                    {{ substr($product->name, 0, 1) }}
+                </div>
+                
+                {{-- Details --}}
+                <div class="flex-grow-1 overflow-hidden">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="fw-bold text-dark text-truncate">{{ $product->name }}</span>
+                        <span class="fw-bold text-primary">₱{{ number_format($product->price, 2) }}</span>
                     </div>
-                    <div class="text-end">
-                        <div class="fw-bold text-primary fs-5">₱{{ number_format($product->price, 2) }}</div>
-                        <div class="small {{ $product->stock <= $product->reorder_point ? 'text-danger fw-bold' : 'text-muted' }}">{{ $product->stock }} {{ $product->unit }}</div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="text-muted small text-truncate" style="max-width: 150px;">{{ $product->category->name ?? 'Uncategorized' }}</span>
+                        
+                        {{-- Stock Badge --}}
+                        @if($product->stock == 0)
+                            <span class="badge bg-danger-subtle text-danger rounded-pill x-small">Out of Stock</span>
+                        @elseif($product->stock <= $product->reorder_point)
+                            <span class="badge bg-warning-subtle text-warning text-dark-emphasis rounded-pill x-small">Low: {{ $product->stock }}</span>
+                        @else
+                            <span class="text-secondary x-small">{{ $product->stock }} {{ $product->unit }}</span>
+                        @endif
                     </div>
                 </div>
-
-                @if($product->expiration_date && $product->expiration_date < now()->addDays(30))
-                    <div class="p-2 rounded bg-danger bg-opacity-10 text-danger small border border-danger border-opacity-25 mb-3">
-                        <i class="fas fa-exclamation-triangle me-1"></i> Expiring: {{ $product->expiration_date->format('M d, Y') }}
-                    </div>
+                
+                <i class="fas fa-chevron-right text-muted opacity-25"></i>
+            </div>
+            @empty
+            <div class="text-center py-5">
+                <i class="fas fa-box-open fa-3x text-muted opacity-25 mb-3"></i>
+                <p class="text-muted fw-bold">No products found</p>
+                @if(request()->anyFilled(['search', 'category', 'filter']))
+                    <a href="{{ route('products.index') }}" class="btn btn-light rounded-pill border px-4">Clear Filters</a>
                 @endif
+            </div>
+            @endforelse
+        </div>
+        
+        {{-- FAB --}}
+        @can('inventory.edit')
+        <a href="{{ route('products.create') }}" class="btn btn-primary rounded-circle shadow-lg position-fixed d-flex align-items-center justify-content-center" 
+           style="bottom: 90px; right: 20px; width: 60px; height: 60px; z-index: 1030;">
+            <i class="fas fa-plus fa-lg text-white"></i>
+        </a>
+        @endcan
 
-                <div class="d-flex gap-2 border-top pt-3">
-                    @if($barcodeEnabled)
-                    <a href="{{ route('products.barcode', $product->id) }}" class="btn btn-light border shadow-sm flex-fill fw-bold text-secondary py-2 rounded-3">
-                        <i class="fas fa-print"></i>
-                    </a>
-                    @endif
+    </div>
 
-                    @can('inventory.edit')
-                    <a href="{{ route('products.edit', $product->id) }}" class="btn btn-warning flex-fill fw-bold text-dark py-2 shadow-sm rounded-3">
-                        <i class="fas fa-edit me-1"></i> Edit
-                    </a>
-                    
-                    <form action="{{ route('products.destroy', $product->id) }}" method="POST" class="flex-fill" onsubmit="return confirm('Delete?');">
-                        @csrf @method('DELETE')
-                        <button class="btn btn-danger w-100 fw-bold text-white py-2 shadow-sm rounded-3">
-                            <i class="fas fa-trash"></i>
+    {{-- BOTTOM SHEET ACTION MODAL --}}
+    <div class="modal fade" id="productActionSheet" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-fullscreen-sm-down" style="align-items: flex-end; margin-bottom: 0;">
+            <div class="modal-content rounded-top-5 border-0 shadow-lg bg-light">
+                <div class="modal-header border-0 pb-2 pt-4 justify-content-center">
+                    <div style="width: 50px; height: 5px; background-color: #e0e0e0; border-radius: 10px;"></div>
+                </div>
+                <div class="modal-body px-3 pb-4 pt-0">
+                    <div class="text-center mb-4">
+                        <h5 class="fw-bold text-dark m-0" id="actionSheetTitle">Product Name</h5>
+                        <p class="text-muted small m-0">Select an action</p>
+                    </div>
+
+                    <div class="d-flex flex-column gap-2">
+                        @can('inventory.edit')
+                        <div class="bg-white rounded-4 overflow-hidden shadow-sm">
+                            <a href="#" id="actionEdit" class="btn btn-white w-100 p-3 text-start fw-bold d-flex align-items-center border-bottom text-dark">
+                                <div class="rounded-circle bg-warning bg-opacity-10 text-warning d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+                                    <i class="fas fa-pen"></i>
+                                </div>
+                                <span>Edit Details</span>
+                                <i class="fas fa-chevron-right ms-auto text-muted opacity-25"></i>
+                            </a>
+                            
+                            <a href="#" id="actionBarcode" class="btn btn-white w-100 p-3 text-start fw-bold d-flex align-items-center border-bottom text-dark">
+                                <div class="rounded-circle bg-secondary bg-opacity-10 text-secondary d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+                                    <i class="fas fa-barcode"></i>
+                                </div>
+                                <span>Print Barcode</span>
+                                <i class="fas fa-chevron-right ms-auto text-muted opacity-25"></i>
+                            </a>
+
+                            <form id="actionDeleteForm" action="#" method="POST" onsubmit="return confirm('Delete this product?');" class="w-100">
+                                @csrf @method('DELETE')
+                                <button class="btn btn-white w-100 p-3 text-start fw-bold d-flex align-items-center text-danger border-0">
+                                    <div class="rounded-circle bg-danger bg-opacity-10 text-danger d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+                                        <i class="fas fa-trash"></i>
+                                    </div>
+                                    <span>Delete Product</span>
+                                </button>
+                            </form>
+                        </div>
+                        @endcan
+                        
+                        <button type="button" class="btn btn-white fw-bold py-3 rounded-4 shadow-sm text-dark mt-2" data-bs-dismiss="modal">
+                            Cancel
                         </button>
-                    </form>
-                    @endcan
+                    </div>
                 </div>
             </div>
         </div>
-        @empty
-        <div class="text-center py-5 text-muted">No products found.</div>
-        @endforelse
     </div>
+
+    <script>
+        function openProductActionSheet(id, name, editUrl, deleteUrl, hasBarcode, barcodeUrl) {
+            document.getElementById('actionSheetTitle').innerText = name;
+            document.getElementById('actionEdit').href = editUrl;
+            document.getElementById('actionDeleteForm').action = deleteUrl;
+            
+            const barcodeBtn = document.getElementById('actionBarcode');
+            if (hasBarcode) {
+                barcodeBtn.href = barcodeUrl;
+                barcodeBtn.style.display = 'flex';
+            } else {
+                barcodeBtn.style.display = 'none';
+            }
+
+            new bootstrap.Modal(document.getElementById('productActionSheet')).show();
+        }
+    </script>
+    
+    <style>
+        .rounded-top-5 { border-top-left-radius: 2rem !important; border-top-right-radius: 2rem !important; }
+        .x-small { font-size: 0.75rem; }
+    </style>
 
     @if($products->hasPages())
     <div class="d-flex justify-content-center mt-4">{{ $products->links() }}</div>

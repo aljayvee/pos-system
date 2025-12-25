@@ -1,10 +1,21 @@
 @extends('admin.layout')
 
 @section('content')
-<div class="container-fluid px-0 px-md-4">
+<div class="container-fluid px-0 px-md-4 py-0 py-md-4">
     
-    {{-- TOP NAV --}}
-    <div class="d-flex align-items-center justify-content-between p-3">
+    {{-- MOBILE HEADER --}}
+    <div class="d-lg-none sticky-top bg-white border-bottom shadow-sm z-3">
+        <div class="px-3 py-3 d-flex align-items-center justify-content-between">
+            <div class="d-flex align-items-center gap-3">
+                <a href="{{ route('transactions.index') }}" class="text-dark"><i class="fas fa-arrow-left fa-lg"></i></a>
+                <h6 class="m-0 fw-bold text-dark">Receipt #{{ $sale->id }}</h6>
+            </div>
+            
+        </div>
+    </div>
+
+    {{-- TOP NAV (DESKTOP) --}}
+    <div class="d-none d-lg-flex align-items-center justify-content-between p-3">
         <a href="{{ route('transactions.index') }}" class="btn btn-light shadow-sm rounded-circle border-0" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
             <i class="fas fa-arrow-left text-dark"></i>
         </a>
@@ -12,7 +23,7 @@
         <div style="width: 40px;"></div> {{-- Spacer for centering --}}
     </div>
 
-    <div class="row justify-content-center m-0 pb-5 mb-5">
+    <div class="row justify-content-center m-0 pb-5 mb-5 px-3 px-md-0 pt-3 pt-md-0">
         <div class="col-12 col-md-8 col-lg-6 col-xl-5 px-0 px-sm-3">
             
             {{-- RECEIPT CARD --}}
@@ -129,21 +140,21 @@
 <div class="fixed-bottom bg-white border-top shadow-lg p-3 d-md-none safe-area-bottom">
     <div class="row g-2">
         <div class="col-3">
-            <a href="{{ route('admin.transactions.return', $sale->id) }}" class="btn btn-light w-100 py-2 rounded-3 text-secondary border">
-                <i class="fas fa-undo d-block mb-1"></i> <small style="font-size: 0.7rem;">Return</small>
+            <a href="{{ route('admin.transactions.return', $sale->id) }}" class="btn btn-light w-100 py-3 rounded-4 text-secondary border d-flex flex-column align-items-center justify-content-center h-100">
+                <i class="fas fa-undo mb-2 fa-lg"></i> <small style="font-size: 0.65rem;" class="fw-bold">Return</small>
             </a>
         </div>
         <div class="col-3">
-            <form action="{{ route('transactions.destroy', $sale->id) }}" method="POST" onsubmit="return confirm('CRITICAL WARNING:\n\nThis will VOID the entire transaction:\n- Restore stock\n- Remove sales record\n- Cancel credit/points\n\nAre you sure?');">
+            <form action="{{ route('transactions.destroy', $sale->id) }}" method="POST" class="h-100" onsubmit="return confirm('CRITICAL WARNING:\n\nThis will VOID the entire transaction:\n- Restore stock\n- Remove sales record\n- Cancel credit/points\n\nAre you sure?');">
                 @csrf @method('DELETE')
-                <button type="submit" class="btn btn-light w-100 py-2 rounded-3 text-danger border">
-                    <i class="fas fa-ban d-block mb-1"></i> <small style="font-size: 0.7rem;">Void</small>
+                <button type="submit" class="btn btn-light w-100 py-3 rounded-4 text-danger border d-flex flex-column align-items-center justify-content-center h-100">
+                    <i class="fas fa-ban mb-2 fa-lg"></i> <small style="font-size: 0.65rem;" class="fw-bold">Void</small>
                 </button>
             </form>
         </div>
         <div class="col-6">
-            <a href="{{ route('transactions.print', $sale->id) }}" target="_blank" class="btn btn-dark w-100 py-2 rounded-3 h-100 d-flex align-items-center justify-content-center">
-                <i class="fas fa-print me-2"></i> <span class="fw-bold">Print</span>
+            <a href="{{ route('transactions.print', $sale->id) }}" target="_blank" class="btn btn-dark w-100 py-3 rounded-4 h-100 d-flex align-items-center justify-content-center shadow-lg">
+                <i class="fas fa-print me-2"></i> <span class="fw-bold">Print Receipt</span>
             </a>
         </div>
     </div>

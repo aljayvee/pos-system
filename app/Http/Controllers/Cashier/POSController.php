@@ -343,9 +343,23 @@ class POSController extends Controller
                     throw new \Exception("Insufficient stock for '{$inventory->product->name}'. Available: {$inventory->stock}");
                 }
 
-                // Use SERVER Price
-                $price = $inventory->product->price;
-                $lineTotal = $price * $item['qty'];
+                // ADVANCED PERMISSION CHECK: price.override
+                $serverPrice = $inventory->product->price;
+                $finalPrice = $serverPrice;
+
+                // Check if Price was overridden in frontend
+                if (isset($item['is_overridden']) && $item['is_overridden']) {
+                    // Verify Permission
+                    if (Auth::user()->hasPermission(\App\Enums\Permission::PRICE_OVERRIDE)) {
+                         $finalPrice = $item['price']; // Trust the submitted price if authorized
+                    } else {
+                         // Unauthorized override attempt - Silently revert or Throw? 
+                         // Safer to Revert to Server Price to prevent hacks, but maybe log it?
+                         $finalPrice = $serverPrice; 
+                    }
+                }
+
+                $lineTotal = $finalPrice * $item['qty'];
                 $calculatedTotal += $lineTotal;
 
                 // Store for Step 6 to avoid re-querying
@@ -353,7 +367,7 @@ class POSController extends Controller
                     'inventory' => $inventory,
                     'product_id' => $item['id'],
                     'qty' => $item['qty'],
-                    'price' => $price,
+                    'price' => $finalPrice,
                     'cost' => $inventory->product->cost ?? 0
                 ];
             }

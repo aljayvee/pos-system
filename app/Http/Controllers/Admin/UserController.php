@@ -11,14 +11,20 @@ use Illuminate\Support\Facades\Hash;
 
 class UserController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         $storeId = $this->getActiveStoreId();
+        $query = \App\Models\User::where('store_id', $storeId);
+
+        if ($request->has('search') && $request->search != '') {
+             $search = $request->search;
+             $query->where(function($q) use ($search) {
+                 $q->where('name', 'like', "%{$search}%")
+                   ->orWhere('email', 'like', "%{$search}%");
+             });
+        }
         
-        // FIX: Use paginate() instead of get() for consistency
-        $users = \App\Models\User::where('store_id', $storeId)
-                    ->latest()
-                    ->paginate(10);
+        $users = $query->latest()->paginate(10);
         
         return view('admin.users.index', compact('users'));
     }
@@ -230,6 +236,19 @@ class UserController extends Controller
         if (auth()->user()->role === 'manager' && $user->role === 'admin') {
              return back()->with('error', 'Security Alert: Managers cannot deactivate Admin accounts.');
         }
+
+        // ADVANCED PERMISSION CHECK: user.unlock
+        // Only enforce if we are reactivating (unlocking) the user
+        // Deactivating (locking) might still be generic 'user.manage'
+        if (!$user->is_active) {
+            if (!auth()->user()->hasPermission(\App\Enums\Permission::USER_UNLOCK)) {
+                return back()->with('error', 'Security Alert: You do not have permission to unlock users.');
+            }
+        }
+
+        // OPTIONAL: Also restrict locking? 
+        // Usually "Unlock" is the sensitive action. "Locking" might be needed for urgent security by any manager.
+        // Adhering to strict interpretation of 'user.unlock' -> specifically for UNLOCKING.
 
         $user->update(['is_active' => !$user->is_active]);
         $status = $user->is_active ? 'activated' : 'deactivated';

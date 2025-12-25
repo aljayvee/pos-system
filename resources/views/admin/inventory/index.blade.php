@@ -2,8 +2,15 @@
 
 @section('content')
 <div class="container-fluid px-2 py-3 px-md-4 py-md-4">
-    {{-- HEADER --}}
-    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
+    {{-- MOBILE HEADER --}}
+    <div class="d-lg-none sticky-top bg-white border-bottom shadow-sm px-3 py-3 d-flex align-items-center justify-content-between z-3 mb-3" style="top: 0;">
+        <div style="width: 40px;"></div> {{-- Spacer --}}
+        <h6 class="m-0 fw-bold text-dark">Inventory</h6>
+        <div style="width: 40px;"></div> {{-- Spacer --}}
+    </div>
+
+    {{-- DESKTOP HEADER --}}
+    <div class="d-none d-lg-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
         <div>
             <h4 class="fw-bold text-dark mb-1">
                 <i class="fas fa-warehouse text-primary me-2"></i>Inventory Management
@@ -12,7 +19,7 @@
         </div>
         
         {{-- DESKTOP TOOLBAR --}}
-        <div class="d-none d-md-flex flex-wrap gap-2">
+        <div class="d-flex flex-wrap gap-2">
             @if(auth()->user()->role !== 'auditor')
             <a href="{{ route('purchases.create') }}" class="btn btn-primary shadow-sm rounded-pill fw-bold px-3">
                 <i class="fas fa-plus-circle me-1"></i> Restock
@@ -29,24 +36,6 @@
                     <i class="fas fa-file-export me-1"></i> Export
                 </a>
             </div>
-        </div>
-
-        {{-- MOBILE TOOLBAR (Organized Grid) --}}
-        <div class="d-grid d-md-none w-100 gap-2 mt-2" style="grid-template-columns: 1fr 1fr;">
-            @if(auth()->user()->role !== 'auditor')
-            <a href="{{ route('purchases.create') }}" class="btn btn-primary shadow-sm rounded-3 fw-bold">
-                <i class="fas fa-plus-circle me-1"></i> Restock
-            </a>
-            <a href="{{ route('inventory.adjust') }}" class="btn btn-warning shadow-sm rounded-3 fw-bold text-dark">
-                <i class="fas fa-sliders-h me-1"></i> Adjust
-            </a>
-            @endif
-            <a href="{{ route('inventory.history') }}" class="btn btn-white border shadow-sm rounded-3 fw-bold text-dark">
-                <i class="fas fa-history me-1"></i> History
-            </a>
-            <a href="{{ route('inventory.export') }}" class="btn btn-success shadow-sm rounded-3 fw-bold text-white">
-                <i class="fas fa-file-export me-1"></i> Export
-            </a>
         </div>
     </div>
 
@@ -84,7 +73,7 @@
                     <div class="input-group">
                         <span class="input-group-text bg-light border-0 ps-3"><i class="fas fa-search text-muted"></i></span>
                         <input type="text" name="search" class="form-control bg-light border-0 py-2" 
-                               placeholder="Search by product name, SKU..." value="{{ request('search') }}">
+                               placeholder="Search product..." value="{{ request('search') }}">
                     </div>
                 </div>
                 <div class="col-8 col-md-4">
@@ -99,7 +88,7 @@
                 </div>
                 <div class="col-4 col-md-3">
                     <button type="submit" class="btn btn-dark w-100 rounded-pill fw-bold py-2">
-                        <i class="fas fa-filter me-1"></i> Filter
+                        Filter
                     </button>
                 </div>
             </form>
@@ -107,7 +96,7 @@
     </div>
 
     {{-- === DESKTOP VIEW TABLE === --}}
-    <div class="card shadow-sm mb-4 border-0 d-none d-md-block rounded-4 overflow-hidden">
+    <div class="card shadow-sm mb-4 border-0 d-none d-lg-block rounded-4 overflow-hidden">
         <div class="card-header bg-white py-3 border-bottom border-light">
             <h5 class="m-0 font-weight-bold text-dark"><i class="fas fa-list me-2 text-primary"></i>Current Stock Levels</h5>
         </div>
@@ -174,59 +163,111 @@
     </div>
 
     {{-- === MOBILE NATIVE VIEW (List) === --}}
-    <div class="d-md-none">
-        @forelse($products as $product)
-        <div class="card border-0 shadow-sm mb-3 rounded-4 overflow-hidden">
-            <div class="card-body p-3">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <span class="badge bg-light text-secondary border rounded-pill">{{ $product->category->name ?? 'No Category' }}</span>
-                    @if($product->stock == 0)
-                        <span class="badge bg-danger-subtle text-danger fw-bold"><i class="fas fa-times-circle me-1"></i>Out of Stock</span>
-                    @elseif($product->stock <= 10)
-                        <span class="badge bg-warning-subtle text-warning text-dark-emphasis fw-bold"><i class="fas fa-exclamation-circle me-1"></i>Low Stock</span>
-                    @else
-                        <span class="badge bg-success-subtle text-success fw-bold"><i class="fas fa-check-circle me-1"></i>In Stock</span>
-                    @endif
-                </div>
-
-                <div class="d-flex align-items-center gap-3 mb-3">
-                    <div class="bg-light rounded-3 d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
+    <div class="d-lg-none card shadow-sm border-0 rounded-4 overflow-hidden mb-5">
+        <ul class="list-group list-group-flush">
+            @forelse($products as $product)
+            <li class="list-group-item p-3 border-bottom-0 hover-bg-light">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="bg-light rounded-3 d-flex align-items-center justify-content-center flex-shrink-0" style="width: 50px; height: 50px;">
                         <i class="fas fa-box text-secondary fa-lg"></i>
                     </div>
                     <div class="flex-grow-1">
-                        <h6 class="fw-bold text-dark mb-0">{{ $product->name }}</h6>
-                        <small class="text-muted d-block">{{ $product->sku ?? 'No SKU' }}</small>
-                    </div>
-                    <div class="text-end">
-                        <div class="fw-bold text-primary fs-5">₱{{ number_format($product->price, 2) }}</div>
-                        <small class="text-muted">Cost: ₱{{ number_format($product->cost ?? 0, 0) }}</small>
+                        <div class="d-flex justify-content-between align-items-start mb-1">
+                            <h6 class="fw-bold text-dark mb-0">{{ $product->name }}</h6>
+                            <span class="fw-bold text-primary">₱{{ number_format($product->price, 2) }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-end">
+                            <div>
+                                <small class="text-muted d-block">{{ $product->category->name ?? 'No Cat' }}</small>
+                                <small class="text-muted text-uppercase" style="font-size: 0.65rem;">{{ $product->sku ?? '' }}</small>
+                            </div>
+                            <div class="text-end">
+                                <small class="fw-bold {{ $product->stock <= 10 ? 'text-danger' : 'text-dark' }}">{{ $product->stock }} <span class="text-muted fw-normal">units</span></small>
+                                <div class="progress mt-1" style="height: 4px; width: 60px;">
+                                    @php
+                                        $percent = min(100, ($product->stock / ($product->reorder_point > 0 ? $product->reorder_point * 3 : 50)) * 100);
+                                        $color = $product->stock == 0 ? 'bg-danger' : ($product->stock <= 10 ? 'bg-warning' : 'bg-success');
+                                    @endphp
+                                    <div class="progress-bar {{ $color }}" style="width: {{ $percent }}%"></div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
+            </li>
+            @empty
+            <div class="text-center py-5 text-muted">
+                <i class="fas fa-search fa-3x mb-3 text-light-gray opacity-25"></i>
+                <h6 class="fw-bold text-secondary">No products found</h6>
+                <p class="small">Try adjusting filters.</p>
+            </div>
+            @endforelse
+        </ul>
+    </div>
 
-                <div class="bg-light rounded-3 p-2">
-                    <div class="d-flex justify-content-between align-items-center mb-1">
-                        <small class="fw-bold text-muted text-uppercase" style="font-size: 0.65rem;">Inventory Level</small>
-                        <span class="fw-bold {{ $product->stock <= 10 ? 'text-danger' : 'text-dark' }} small">{{ $product->stock }} units</span>
-                    </div>
-                    <div class="progress" style="height: 6px; border-radius: 3px;">
-                        @php
-                            $percent = min(100, ($product->stock / ($product->reorder_point > 0 ? $product->reorder_point * 3 : 50)) * 100);
-                            $color = $product->stock == 0 ? 'bg-danger' : ($product->stock <= 10 ? 'bg-warning' : 'bg-success');
-                        @endphp
-                        <div class="progress-bar {{ $color }}" style="width: {{ $percent }}%"></div>
+    {{-- MOBILE FAB (Trigger Action Sheet) --}}
+    <div class="d-lg-none position-fixed end-0 p-3 z-3" style="bottom: 80px;">
+        <button class="btn btn-primary shadow-lg rounded-circle d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;" data-bs-toggle="modal" data-bs-target="#inventoryActionSheet">
+            <i class="fas fa-plus fa-lg"></i>
+        </button>
+    </div>
+
+    {{-- MOBILE ACTION SHEET --}}
+    <div class="modal fade" id="inventoryActionSheet" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable fixed-bottom m-0" style="max-width: 100%;">
+            <div class="modal-content rounded-top-4 border-0 shadow-lg" style="max-height: 80vh;">
+                <div class="modal-header border-bottom-0 pb-0 justify-content-center">
+                    <div class="bg-secondary bg-opacity-25 rounded-pill" style="width: 40px; height: 5px;"></div>
+                </div>
+                <div class="modal-body pt-4 pb-4">
+                    <h5 class="fw-bold text-center mb-4">Inventory Actions</h5>
+                    
+                    <div class="d-grid gap-3">
+                        @if(auth()->user()->role !== 'auditor')
+                        <a href="{{ route('purchases.create') }}" class="btn btn-light shadow-sm text-start p-3 rounded-4 d-flex align-items-center">
+                            <div class="bg-primary text-white rounded-3 d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+                                <i class="fas fa-shopping-cart"></i>
+                            </div>
+                            <div>
+                                <span class="d-block fw-bold text-dark">Restock Products</span>
+                                <small class="text-muted">Create a new purchase order</small>
+                            </div>
+                        </a>
+
+                        <a href="{{ route('inventory.adjust') }}" class="btn btn-light shadow-sm text-start p-3 rounded-4 d-flex align-items-center">
+                            <div class="bg-warning text-dark rounded-3 d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+                                <i class="fas fa-sliders-h"></i>
+                            </div>
+                            <div>
+                                <span class="d-block fw-bold text-dark">Adjust Stock</span>
+                                <small class="text-muted">Correct inventory levels</small>
+                            </div>
+                        </a>
+                        @endif
+
+                        <a href="{{ route('inventory.history') }}" class="btn btn-light shadow-sm text-start p-3 rounded-4 d-flex align-items-center">
+                            <div class="bg-secondary text-white rounded-3 d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+                                <i class="fas fa-history"></i>
+                            </div>
+                            <div>
+                                <span class="d-block fw-bold text-dark">View History</span>
+                                <small class="text-muted">See adjustment logs</small>
+                            </div>
+                        </a>
+
+                        <a href="{{ route('inventory.export') }}" class="btn btn-light shadow-sm text-start p-3 rounded-4 d-flex align-items-center">
+                            <div class="bg-success text-white rounded-3 d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+                                <i class="fas fa-file-export"></i>
+                            </div>
+                            <div>
+                                <span class="d-block fw-bold text-dark">Export Data</span>
+                                <small class="text-muted">Download CSV report</small>
+                            </div>
+                        </a>
                     </div>
                 </div>
             </div>
         </div>
-        @empty
-        <div class="text-center py-5 text-muted">
-            <div class="mb-3">
-                <i class="fas fa-search fa-3x text-light-gray opacity-25"></i>
-            </div>
-            <h6 class="fw-bold text-secondary">No products found</h6>
-            <p class="small">Try adjusting filters or search terms.</p>
-        </div>
-        @endforelse
     </div>
 
     @if($products->hasPages())

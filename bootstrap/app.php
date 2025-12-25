@@ -24,6 +24,7 @@ return Application::configure(basePath: dirname(__DIR__))
        // REGISTER THE ALIAS HERE
         $middleware->alias([
             'role' => \App\Http\Middleware\RoleMiddleware::class,
+            'register.open' => \App\Http\Middleware\EnsureRegisterOpen::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

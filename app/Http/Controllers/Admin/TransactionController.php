@@ -51,9 +51,16 @@ class TransactionController extends Controller
             $sale = Sale::with('saleItems')->findOrFail($id);
 
             // A. Restore Inventory
+            // A. Restore Inventory (FIXED: Target Inventory table, not Product)
             foreach ($sale->saleItems as $item) {
                 if ($item->product_id) {
-                    Product::where('id', $item->product_id)->increment('stock', $item->quantity);
+                    $inventory = \App\Models\Inventory::where('product_id', $item->product_id)
+                        ->where('store_id', $sale->store_id)
+                        ->first();
+
+                    if ($inventory) {
+                        $inventory->increment('stock', $item->quantity);
+                    }
                 }
             }
 

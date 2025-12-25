@@ -1,4 +1,6 @@
 @extends('cashier.layout')
+<!-- Ensure CSRF Token for Fetch -->
+<meta name="csrf-token" content="{{ csrf_token() }}">
 
 @section('content')
 {{-- Libraries --}}
@@ -20,8 +22,9 @@
 
     /* 1. CRITICAL FIX: PREVENT HORIZONTAL SCROLL (White Lines) */
     html, body { 
-        overflow-x: hidden; 
+        height: 100%;
         width: 100%; 
+        overflow: hidden; /* Disable global scroll to enforce flex layout */
         position: relative;
         background-color: var(--bg-app); 
         font-family: 'Inter', system-ui, sans-serif;
@@ -63,6 +66,14 @@
         background: var(--primary); color: white; border-color: var(--primary);
         box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2);
     }
+    
+    .custom-scrollbar-hidden {
+        -ms-overflow-style: none;  /* IE and Edge */
+        scrollbar-width: none;  /* Firefox */
+    }
+    .custom-scrollbar-hidden::-webkit-scrollbar {
+        display: none;
+    }
 
     /* PRODUCT CARD */
     .product-card-wrapper { padding: 4px; } /* Tighter padding for mobile */
@@ -102,10 +113,11 @@
         .container-fluid { padding-left: 1.5rem; padding-right: 1.5rem; }
     }
 
-    /* MOBILE LAYOUT (< 992px) */
+    /* MOBILE LAYOUT (< 991px) */
     @media (max-width: 991px) {
         .desktop-cart-col { display: none; }
-        .product-grid-container { height: auto !important; padding-bottom: 100px; }
+        .product-grid-container { padding-bottom: 160px; }
+        .mobile-auto-height { height: auto !important; overflow: visible !important; }
         
         /* Reset Container Padding for edge-to-edge feel on small screens */
         .container-fluid { padding-left: 1rem; padding-right: 1rem; }
@@ -119,34 +131,67 @@
 </style>
 
 <div id="connection-status" class="status-online" style="height:3px; position:fixed; top:0; width:100%; z-index:9999;"></div>
-<div class="container-fluid">
-    <div class="row g-3">
+<div class="container-fluid px-0 h-100 d-flex flex-column">
+
+    {{-- MOBILE HEADER & SEARCH (Sticky) --}}
+    <div class="d-lg-none sticky-top bg-white border-bottom shadow-sm" style="z-index: 1020;">
+        <div class="px-3 py-2 d-flex align-items-center justify-content-between gap-2">
+            
+            {{-- HAMBURGER BUTTON --}}
+            <button class="btn btn-light border-0 p-1 me-1" type="button" data-bs-toggle="offcanvas" data-bs-target="#mobileNavDrawer">
+                <i class="fas fa-bars fa-lg text-dark"></i>
+            </button>
+            <button class="btn btn-danger btn-sm rounded-pill fw-bold ms-2 d-none" id="btn-close-register-mobile" onclick="showCloseRegisterModal()">
+                <i class="fas fa-store-slash me-1"></i> Close
+            </button>
+
+            <h5 class="m-0 fw-bold text-dark text-nowrap d-none d-sm-block"><i class="fas fa-cash-register text-primary me-2"></i>POS</h5>
+            
+            <div class="position-relative flex-grow-1">
+                <i class="fas fa-search text-muted position-absolute top-50 start-0 translate-middle-y ms-3"></i>
+                <input type="text" id="product-search-mobile" class="form-control bg-light border-0 ps-5 rounded-pill" placeholder="Search item...">
+            </div>
+            <button class="btn btn-light rounded-circle shadow-sm flex-shrink-0" onclick="openCameraModal()" style="width: 40px; height: 40px;">
+                <i class="fas fa-barcode text-dark"></i>
+            </button>
+        </div>
+        {{-- Category Pills --}}
+        <div class="px-2 pb-2 overflow-auto custom-scrollbar-hidden d-flex gap-2">
+            <button class="category-btn active rounded-pill border px-3 py-1 small fw-bold text-nowrap" onclick="filterCategory('all', this)">All</button>
+            @foreach($categories as $cat)
+                <button class="category-btn rounded-pill border px-3 py-1 small fw-bold text-nowrap" onclick="filterCategory('{{ strtolower($cat->name) }}', this)">
+                    {{ $cat->name }}
+                </button>
+            @endforeach
+        </div>
+    </div>
+
+    <div class="row g-0 flex-grow-1 overflow-hidden" style="min-height: 0;">
         
         {{-- LEFT: PRODUCT AREA --}}
-        <div class="col-lg-8 col-12 pt-3">
-            {{-- 1. Sticky Tools Header --}}
-            <div class="sticky-tools">
-                <div class="d-flex gap-2 mb-3 align-items-center">
-                    {{-- Search --}}
+        <div class="col-lg-8 col-12 h-100 d-flex flex-column" style="min-height: 0;">
+            
+            {{-- DESKTOP TOOLBAR (Hidden Mobile) --}}
+            <div class="d-none d-lg-block p-3 border-bottom bg-white">
+                <div class="d-flex gap-2 align-items-center">
                     <div class="search-wrapper flex-grow-1">
                         <i class="fas fa-search text-muted ms-2"></i>
-                        <input type="text" id="product-search" class="search-input" placeholder="Search">
-                        <button class="btn btn-sm text-primary" onclick="openCameraModal()"><i class="fas fa-barcode fa-lg"></i></button>
+                        <input type="text" id="product-search-desktop" class="search-input" placeholder="Search products (SKU or Name)">
+                         <button class="btn btn-sm text-primary" onclick="openCameraModal()"><i class="fas fa-barcode fa-lg"></i></button>
                     </div>
                     
-                    {{-- Compact Action Buttons --}}
-                    {{-- Changed onclick to use requestAdminAuth() --}}
-                    <button class="btn btn-white border shadow-sm rounded-3 px-3 text-secondary" onclick="requestAdminAuth(openDebtorList)">
+                    <button class="btn btn-white border shadow-sm rounded-3 px-3 text-secondary" onclick="requestAdminAuth(openDebtorList)" title="Debtors">
                         <i class="fas fa-book text-danger"></i>
                     </button>
-                    <button class="btn btn-white border shadow-sm rounded-3 px-3 text-secondary" onclick="requestAdminAuth(openReturnModal)">
+                    <button class="btn btn-white border shadow-sm rounded-3 px-3 text-secondary" onclick="requestAdminAuth(openReturnModal)" title="Returns">
                         <i class="fas fa-undo-alt text-warning"></i>
                     </button>
+                    <button class="btn btn-danger border shadow-sm rounded-3 px-3 fw-bold d-none" id="btn-close-register-desktop" onclick="showCloseRegisterModal()" title="Close Register">
+                        <i class="fas fa-store-slash me-2"></i>Close Register
+                    </button>
                 </div>
-
-                {{-- 2. Category Filter --}}
-                <div class="category-scroll d-flex gap-2 overflow-auto">
-                    <button class="category-btn active" onclick="filterCategory('all', this)">All</button>
+                <div class="category-scroll d-flex gap-2 overflow-auto mt-2">
+                    <button class="category-btn active" onclick="filterCategory('all', this)">All Items</button>
                     @foreach($categories as $cat)
                         <button class="category-btn" onclick="filterCategory('{{ strtolower($cat->name) }}', this)">
                             {{ $cat->name }}
@@ -155,65 +200,100 @@
                 </div>
             </div>
 
-            {{-- 3. Product Grid --}}
-            <div class="product-grid-container flex-grow-1 overflow-auto">
+            {{-- Product Grid --}}
+            <div class="flex-grow-1 overflow-auto p-2 p-lg-3 product-grid-container" id="product-list-container">
                 <div class="row g-2" id="product-list">
                     @foreach($products as $product)
-                    {{-- Adjusted Column Sizes for Phablet (Tecno Pova 5) --}}
-                    <div class="col-xl-3 col-lg-4 col-4 product-card-wrapper" 
+                    <div class="col-6 col-md-4 col-xl-3 product-card-wrapper"  
                             data-name="{{ strtolower($product->name) }}" 
                             data-sku="{{ $product->sku }}"
                             data-category="{{ strtolower($product->category->name ?? '') }}">
                         
-                        <div class="product-item" id="product-card-{{ $product->id }}" onclick='addToCart(@json($product))'>
+                        <div class="card border-0 h-100 shadow-sm product-item position-relative overflow-hidden" onclick='addToCart(@json($product))'>
                             {{-- Stock Badge --}}
-                            <span class="badge stock-badge rounded-pill px-2" 
+                             <span class="badge position-absolute top-0 end-0 m-2 rounded-pill shadow-sm" 
                                 id="product-stock-{{ $product->id }}"
-                                style="display: {{ $product->current_stock <= ($product->reorder_point ?? 10) ? 'inline-block' : 'none' }};">
-                                {{ $product->current_stock }}
+                                style="background-color: rgba(255, 255, 255, 0.9); color: #dc3545; border: 1px solid #f8d7da; font-size: 0.7rem; display: {{ $product->current_stock <= ($product->reorder_point ?? 10) ? 'inline-block' : 'none' }};">
+                                {{ $product->current_stock }} Left
                             </span>
 
-                            <div class="product-img-box">
+                            <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 120px;">
                                 @if($product->image)
-                                    <img src="{{ asset('storage/' . $product->image) }}" alt="{{ $product->name }}" style="width: 100%; height: 100%; object-fit: cover;">
+                                    <img src="{{ asset('storage/' . $product->image) }}" alt="{{ $product->name }}" class="w-100 h-100 object-fit-cover">
                                 @else
-                                    <i class="fas fa-box fa-3x opacity-25"></i>
+                                    <i class="fas fa-box fa-3x text-muted opacity-25"></i>
                                 @endif
                             </div>
                             
-                            <div class="product-content">
-                                <h6 class="fw-bold text-dark lh-1 text-truncate mb-1" style="font-size: 0.9rem;">{{ $product->name }}</h6>
-                                <div class="mt-auto">
-                                    <span class="text-primary fw-bolder d-block" style="font-size: 0.95rem;">₱{{ number_format($product->price, 2) }}</span>
-                                    <small class="text-muted" style="font-size: 0.7rem;">{{ $product->unit ?? 'pc' }}</small>
+                            <div class="card-body p-2 d-flex flex-column">
+                                <h6 class="card-title text-dark small fw-bold mb-1 text-truncate">{{ $product->name }}</h6>
+                                <div class="mt-auto d-flex justify-content-between align-items-end">
+                                    <div class="text-primary fw-bold">₱{{ number_format($product->price, 2) }}</div>
+                                    <small class="text-muted" style="font-size: 0.7rem;">/{{ $product->unit ?? 'pc' }}</small>
                                 </div>
                             </div>
                         </div>
                     </div>
                     @endforeach
                 </div>
+                <div class="d-lg-none w-100" style="height: 200px;"></div>
             </div>
         </div>
 
         {{-- RIGHT: CART (Desktop Only) --}}
-        <div class="col-lg-4 desktop-cart-col">
-            {{-- Injected via JS --}}
+        <div class="col-lg-4 desktop-cart-col border-start bg-white d-none d-lg-flex flex-column h-100 col-fixed-right">
+             <div class="p-3 border-bottom bg-light">
+                <h5 class="fw-bold m-0"><i class="fas fa-shopping-cart me-2"></i>Current Order</h5>
+            </div>
+            <div class="flex-grow-1 overflow-auto p-3" id="cart-items-desktop">
+                {{-- Injected via JS --}}
+            </div>
+            <div class="p-3 border-top bg-light">
+                 <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted">Subtotal</span>
+                    <span class="fw-bold">₱<span class="subtotal-display">0.00</span></span>
+                </div>
+                {{-- Tax Rows Hidden by Default --}}
+                 <div class="d-flex justify-content-between mb-2 tax-row" style="display:none;">
+                    <span class="text-muted small">VAT (12%)</span>
+                    <span class="fw-bold small">₱<span class="tax-display">0.00</span></span>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <span class="h5 fw-bold m-0">Total</span>
+                    <span class="h4 fw-bold text-primary m-0">₱<span class="total-amount-display">0.00</span></span>
+                </div>
+                
+                 <div class="d-grid gap-2">
+                    <div class="input-group">
+                         <span class="input-group-text bg-white"><i class="fas fa-user"></i></span>
+                        <select id="customer-id" class="form-select">
+                            <option value="walk-in" data-balance="0" data-points="0">Walk-in Customer</option>
+                            @foreach($customers as $c)
+                            <option value="{{ $c->id }}" data-balance="{{ $c->balance }}" data-points="{{ $c->points }}">{{ $c->name }}</option>
+                            @endforeach
+                            <option value="new">+ New Customer</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-primary btn-lg fw-bold" onclick="openPaymentModal()">PAY NOW</button>
+                    <button class="btn btn-outline-danger btn-sm" onclick="clearCart()">Clear Cart</button>
+                </div>
+            </div>
         </div>
     </div>
 </div>
 
-{{-- MOBILE FOOTER (Floating Centered Island) --}}
-<div class="mobile-footer" style="position: fixed; bottom: 20px; left: 0; right: 0; display: flex; justify-content: center; z-index: 1000; pointer-events: none;">
-    <div class="shadow-lg bg-dark text-white rounded-pill px-4 py-3 d-flex align-items-center justify-content-between gap-4" style="pointer-events: auto; min-width: 300px; max-width: 90%;">
-        
-        <div class="d-flex flex-column" style="line-height: 1;">
-            <small class="text-white-50 text-uppercase fw-bold" style="font-size: 0.65rem;">Total Due</small>
-            <span class="fw-bold fs-4">₱<span id="mobile-total-display">0.00</span></span>
+{{-- MOBILE FULL-WIDTH STICKY FOOTER --}}
+<div class="d-lg-none fixed-bottom bg-white border-top shadow-lg p-3" style="z-index: 1030;">
+    <div class="d-flex align-items-center justify-content-between gap-3">
+        <div class="d-flex flex-column">
+            <small class="text-muted text-uppercase fw-bold" style="font-size: 0.65rem;">Total Due</small>
+            <span class="fw-bold fs-4 text-dark lh-1">₱<span id="mobile-total-display">0.00</span></span>
         </div>
-
-        <button class="btn btn-primary rounded-pill fw-bold px-4" type="button" data-bs-toggle="offcanvas" data-bs-target="#mobileCartDrawer">
-            View Cart 
-            <span class="badge bg-white text-primary ms-2 rounded-circle" id="mobile-cart-count">0</span>
+        <button class="btn btn-primary rounded-pill fw-bold px-4 flex-grow-1 py-2 shadow-sm d-flex justify-content-between align-items-center" 
+                type="button" data-bs-toggle="offcanvas" data-bs-target="#mobileCartDrawer">
+            <span>View Cart</span>
+            <span class="badge bg-white text-primary rounded-pill" id="mobile-cart-count">0</span>
         </button>
     </div>
 </div>
@@ -229,7 +309,9 @@
     </div>
 </div>
 
-@include('cashier.partials.modals')
+@push('modals')
+    @include('cashier.partials.modals')
+@endpush
 
 {{-- CART TEMPLATE --}}
 <script id="cart-template" type="text/template">
@@ -244,7 +326,8 @@
         paymongoEnabled: Number("{{ \App\Models\Setting::where('key', 'enable_paymongo')->value('value') ?? 0 }}"),
         birEnabled: Number("{{ $birEnabled ?? 0 }}"), 
         taxType: "{{ \App\Models\Setting::where('key', 'tax_type')->value('value') ?? 'inclusive' }}",
-        csrfToken: document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        csrfToken: document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+        userRole: "{{ Auth::user()->role }}"
     };
 
     function playSuccessBeep() {
@@ -270,47 +353,89 @@
     document.addEventListener('DOMContentLoaded', () => {
         // Render Cart
         const cartHtml = document.getElementById('cart-template').innerHTML;
-        document.querySelectorAll('.desktop-cart-col, .offcanvas-body').forEach(el => el.innerHTML = cartHtml);
+        document.querySelectorAll('.desktop-cart-col, #mobileCartDrawer .offcanvas-body').forEach(el => el.innerHTML = cartHtml);
 
-        // Bind Customer
-        document.querySelectorAll('#customer-id').forEach(sel => {
-            sel.addEventListener('change', function() {
-                document.querySelectorAll('#customer-id').forEach(s => s.value = this.value);
-                const opt = this.options[this.selectedIndex];
-                currentCustomer = { 
-                    id: this.value, 
-                    balance: parseFloat(opt.dataset.balance || 0), 
-                    points: parseInt(opt.dataset.points || 0) 
-                };
-                if (currentCustomer.balance > 0) {
-                     Swal.fire({ toast: true, position: 'top-end', icon: 'info', title: `Debt: ₱${currentCustomer.balance}`, timer: 3000, showConfirmButton: false });
-                }
-                updateCartUI(); 
+        // Bind Customer (New Logic)
+        // Note: 'customer-id' is now a hidden input, updated via selectCustomer()
+        
+        // --- CUSTOMER SELECTION LOGIC ---
+        window.openCustomerModal = function() {
+            const el = document.getElementById('customerSelectionModal');
+            if(el) {
+                const modal = bootstrap.Modal.getOrCreateInstance(el);
+                modal.show();
+            }
+        };
+
+        window.selectCustomer = function(id, name, balance) {
+            // Update Hidden Input (for compatibility with payment logic)
+            document.querySelectorAll('#customer-id').forEach(el => el.value = id);
+            
+            // Update UI Labels
+            document.querySelectorAll('#selected-customer-name').forEach(el => el.innerText = name);
+            
+            // Update State
+            currentCustomer = { id: id, balance: parseFloat(balance || 0), points: 0 }; // Points logic simplified for now
+            
+            // Update Checkmarks in Modal
+            document.querySelectorAll('.header-check').forEach(el => el.classList.add('d-none'));
+            const check = document.getElementById(`check-${id}`);
+            if(check) check.classList.remove('d-none');
+
+            // Notify Debt
+            if (currentCustomer.balance > 0) {
+                 Swal.fire({ toast: true, position: 'top-end', icon: 'info', title: `Debt: ₱${currentCustomer.balance.toFixed(2)}`, timer: 2000, showConfirmButton: false });
+            }
+
+            // Close Modal Safely
+            const modalEl = document.getElementById('customerSelectionModal');
+            if(modalEl) {
+                const modal = bootstrap.Modal.getInstance(modalEl) || bootstrap.Modal.getOrCreateInstance(modalEl);
+                modal.hide();
+            }
+            
+            updateCartUI();
+        };
+
+        // Customer Search in Modal
+        const custSearch = document.getElementById('customer-modal-search');
+        if(custSearch) {
+            custSearch.addEventListener('keyup', function() {
+                const q = this.value.toLowerCase();
+                document.querySelectorAll('.customer-item').forEach(item => {
+                    item.style.display = item.dataset.name.includes(q) ? 'flex' : 'none';
+                });
             });
-        });
+        }
 
         // Focus Search
-        const searchInput = document.getElementById('product-search');
-        if (searchInput && window.innerWidth > 768) searchInput.focus();
+        const searchInput = document.getElementById('product-search-desktop');
+        if (searchInput && window.innerWidth > 991) searchInput.focus();
 
         // Scanner Listener
         document.addEventListener('keydown', (e) => {
-            if (e.target.tagName === 'INPUT' && e.target.id !== 'product-search') return;
+            const isSearchInput = (e.target.id === 'product-search-mobile' || e.target.id === 'product-search-desktop');
+            
+            // Allow scanning only if not focused on other inputs (except search)
+            if (e.target.tagName === 'INPUT' && !isSearchInput) return;
             if (e.target.tagName === 'TEXTAREA') return;
 
             if (e.key === 'Enter') {
-                if (scanBuffer.length > 1) { 
-                    const finalCode = (document.activeElement.id === 'product-search') 
-                                      ? document.getElementById('product-search').value 
-                                      : scanBuffer;
+                if (scanBuffer.length > 1 || isSearchInput) { 
+                    const finalCode = isSearchInput ? e.target.value : scanBuffer;
                     handleBatchScan(finalCode);
-                    if(document.activeElement.id === 'product-search') document.getElementById('product-search').value = '';
+                    if(isSearchInput) e.target.value = '';
                 }
                 scanBuffer = "";
             } else if (e.key.length === 1) {
-                scanBuffer += e.key;
-                clearTimeout(scanTimeout);
-                scanTimeout = setTimeout(() => scanBuffer = "", 200);
+                // If typing in search, don't fill buffer (let input handle it), unless it's fast (scanner)
+                // But generally scanners send keystrokes.
+                // If focused on search, we rely on 'Enter' to grab the value.
+                if(!isSearchInput) {
+                    scanBuffer += e.key;
+                    clearTimeout(scanTimeout);
+                    scanTimeout = setTimeout(() => scanBuffer = "", 200);
+                }
             }
         });
 
@@ -386,6 +511,30 @@
         }).then((res) => { if(res.isConfirmed) { cart = []; updateCartUI(); } });
     };
 
+    window.overridePrice = function(index) {
+        const item = cart[index];
+        Swal.fire({
+            title: 'Override Price',
+            text: `Set new price for ${item.name}`,
+            input: 'number',
+            inputValue: item.price,
+            showCancelButton: true,
+            confirmButtonText: 'Update'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                const newPrice = parseFloat(result.value);
+                if (newPrice >= 0) {
+                    item.price = newPrice;
+                    item.is_overridden = true; // Flag for backend
+                    updateCartUI();
+                } else {
+                    Swal.fire('Invalid Price', 'Price cannot be negative.', 'error');
+                }
+            }
+        });
+    };
+
+
     // === REFINED CART UI GENERATOR (Centered Controls) ===
     function updateCartUI() {
         localStorage.setItem('pos_cart', JSON.stringify(cart));
@@ -417,6 +566,13 @@
                         <span class="fw-bold text-dark text-center" style="width: 24px; font-size: 0.9rem;">${item.qty}</span>
                         <button class="btn btn-sm btn-link text-dark fw-bold p-0 d-flex align-items-center justify-content-center" style="width: 28px; height: 28px; text-decoration:none;" onclick="modifyQty(${index}, 1)">+</button>
                     </div>
+
+                    {{-- Price Override Button (Permission Check) --}}
+                    @if(auth()->user()->hasPermission(\App\Enums\Permission::PRICE_OVERRIDE))
+                    <button class="btn btn-link text-warning p-0 ms-2" onclick="overridePrice(${index})" title="Override Price">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    @endif
                     
                     {{-- Delete --}}
                     <button class="btn btn-link text-danger p-0 ms-2" onclick="removeItem(${index})">
@@ -453,17 +609,32 @@
     }
 
     // --- Search & Filter Logic ---
-    document.getElementById('product-search').addEventListener('keyup', function() {
-        const q = this.value.toLowerCase().trim();
-        document.querySelectorAll('.product-card-wrapper').forEach(card => {
-            const match = (card.dataset.name || '').includes(q) || (card.dataset.sku || '').includes(q);
-            card.style.display = match ? 'block' : 'none';
+    function bindSearchEvents() {
+        const inputs = [document.getElementById('product-search-mobile'), document.getElementById('product-search-desktop')];
+        inputs.forEach(input => {
+            if(!input) return;
+            input.addEventListener('keyup', function() {
+                const q = this.value.toLowerCase().trim();
+                
+                // Sync values
+                inputs.forEach(i => { if(i && i !== this) i.value = this.value; });
+
+                document.querySelectorAll('.product-card-wrapper').forEach(card => {
+                    const match = (card.dataset.name || '').includes(q) || (card.dataset.sku || '').includes(q);
+                    card.style.display = match ? 'block' : 'none';
+                });
+            });
         });
-    });
+    }
+    bindSearchEvents();
 
     window.filterCategory = function(cat, btn) {
         document.querySelectorAll('.category-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
+        // Activate all buttons for this category (mobile & desktop)
+        document.querySelectorAll('.category-btn').forEach(b => {
+            if(b.textContent.trim().toLowerCase() === btn.textContent.trim().toLowerCase()) b.classList.add('active');
+        });
+        
         document.querySelectorAll('.product-card-wrapper').forEach(card => {
             card.style.display = (cat === 'all' || card.dataset.category === cat) ? 'block' : 'none';
         });
@@ -551,7 +722,15 @@
             method: "POST", headers: { "Content-Type": "application/json", "X-CSRF-TOKEN": CONFIG.csrfToken },
             body: JSON.stringify({ customer_id: id, amount: amount })
         }).then(res => res.json()).then(data => {
-            if(data.success) Swal.fire('Success', 'Payment Collected!', 'success').then(() => location.reload());
+            if(data.success) Swal.fire('Success', 'Payment Collected!', 'success').then(() => {
+                bootstrap.Modal.getInstance(document.getElementById('debtPaymentModal')).hide();
+                startLiveStockSync(); // Refresh data
+                // Update specific debtor row if exists
+                if(currentCustomer.id == id) {
+                    currentCustomer.balance -= parseFloat(amount);
+                }
+                openDebtorList(); // Refresh list
+            });
             else Swal.fire('Error', data.message, 'error');
         });
     };
@@ -592,7 +771,10 @@
             method: "POST", headers: { "Content-Type": "application/json", "X-CSRF-TOKEN": CONFIG.csrfToken },
             body: JSON.stringify({ sale_id: saleId, items: items })
         }).then(res => res.json()).then(data => {
-            if (data.success) Swal.fire('Success', 'Return processed!', 'success').then(() => location.reload());
+            if (data.success) Swal.fire('Success', 'Return processed!', 'success').then(() => {
+                bootstrap.Modal.getInstance(document.getElementById('returnModal')).hide();
+                startLiveStockSync();
+            });
             else Swal.fire('Error', data.message, 'error');
         });
     };
@@ -614,6 +796,12 @@
         document.getElementById('flow-cash').style.display = method === 'cash' ? 'block' : 'none';
         document.getElementById('flow-digital').style.display = method === 'digital' ? 'block' : 'none';
         document.getElementById('flow-credit').style.display = method === 'credit' ? 'block' : 'none';
+        
+        // Toggle New Debtor Fields based on customer type
+        const newDebtorFields = document.getElementById('new-debtor-fields');
+        if (newDebtorFields) {
+            newDebtorFields.style.display = (currentCustomer.id === 'new') ? 'block' : 'none';
+        }
     };
     window.calculateChange = function() {
         const total = parseFloat(document.getElementById('modal-total').innerText.replace(/,/g,''));
@@ -630,11 +818,28 @@
             const paid = parseFloat(document.getElementById('amount-paid').value) || 0;
             if (paid < total) return Swal.fire('Error', 'Insufficient Cash Payment', 'error');
         } 
+        if (method === 'credit') {
+            const dueDate = document.getElementById('credit-due-date').value;
+            if (!dueDate) return Swal.fire('Error', 'Due Date is required', 'warning');
+            
+            if (currentCustomer.id === 'new') {
+                const name = document.getElementById('credit-name').value;
+                if (!name) return Swal.fire('Error', 'Debtor Name is required', 'warning');
+            }
+        }
+        
         const payload = {
             cart: cart, total_amount: total, payment_method: method, customer_id: currentCustomer.id,
             amount_paid: method === 'cash' ? document.getElementById('amount-paid').value : 0,
             reference_number: document.getElementById('reference-number')?.value,
-            credit_details: method === 'credit' ? { name: document.getElementById('credit-name')?.value, due_date: document.getElementById('credit-due-date')?.value, contact: document.getElementById('credit-contact')?.value, address: document.getElementById('credit-address')?.value } : null
+            amount_paid: method === 'cash' ? document.getElementById('amount-paid').value : 0,
+            reference_number: document.getElementById('reference-number')?.value,
+            credit_details: method === 'credit' ? { 
+                name: (currentCustomer.id === 'new') ? document.getElementById('credit-name')?.value : null, 
+                due_date: document.getElementById('credit-due-date')?.value, 
+                contact: (currentCustomer.id === 'new') ? document.getElementById('credit-contact')?.value : null, 
+                address: (currentCustomer.id === 'new') ? document.getElementById('credit-address')?.value : null 
+            } : null
         };
         if (isOffline) { saveToOfflineQueue(payload); return; }
         Swal.showLoading();
@@ -948,6 +1153,11 @@
 
     // === SECURITY: ADMIN AUTH WRAPPER ===
 async function requestAdminAuth(callback) {
+    if (['admin', 'manager'].includes(CONFIG.userRole)) {
+        callback();
+        return;
+    }
+
     const { value: password } = await Swal.fire({
         title: 'Admin Authorization',
         text: 'This action requires Admin approval.',
@@ -998,5 +1208,197 @@ async function requestAdminAuth(callback) {
         });
     }
 }
+</script>
+
+{{-- ==================== CASH REGISTER MODALS ==================== --}}
+
+{{-- 1. OPEN REGISTER MODAL (Static Backdrop) --}}
+<div class="modal fade" id="openRegisterModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true" style="z-index: 1060;">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header border-0 bg-primary text-white text-center pb-4">
+                <div class="w-100">
+                    <div class="bg-white rounded-circle d-inline-flex p-3 mb-2 text-primary shadow-sm" style="width: 60px; height: 60px; align-items: center; justify-content: center;">
+                        <i class="fas fa-cash-register fa-lg"></i>
+                    </div>
+                    <h5 class="modal-title fw-bold" id="openRegisterLabel">Open Register</h5>
+                    <small class="opacity-75">Please enter the opening float to start.</small>
+                </div>
+            </div>
+            <div class="modal-body p-4 pt-2">
+                <form id="openRegisterForm" onsubmit="submitOpenRegister(event)">
+                    <div class="mb-4">
+                        <label for="opening_float" class="form-label fw-bold text-secondary text-uppercase small">Opening Cash Amount</label>
+                        <div class="input-group input-group-lg">
+                            <span class="input-group-text bg-light border-end-0 text-muted">₱</span>
+                            <input type="number" class="form-control border-start-0 bg-light fs-4 fw-bold" id="opening_float" name="opening_float" required min="0" step="0.01" placeholder="0.00" autofocus>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100 btn-lg rounded-pill fw-bold shadow-sm">
+                        <i class="fas fa-unlock me-2"></i> Open Register
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{-- 2. CLOSE REGISTER MODAL --}}
+<div class="modal fade" id="closeRegisterModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header border-0 bg-danger text-white pb-3">
+                <h5 class="modal-title fw-bold"><i class="fas fa-store-slash me-2"></i>Close Register</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <form id="closeRegisterForm" onsubmit="submitCloseRegister(event)">
+                    <input type="hidden" id="close_session_id">
+                    
+                    <div class="alert alert-warning border-0 d-flex align-items-center mb-4">
+                        <i class="fas fa-exclamation-triangle fa-2x me-3 opacity-50"></i>
+                        <div>
+                            <div class="fw-bold">Blind Count Required</div>
+                            <div class="small">Count the physical cash in the drawer immediately.</div>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="closing_amount" class="form-label fw-bold text-secondary text-uppercase small">Actual Cash Counted</label>
+                        <div class="input-group input-group-lg">
+                            <span class="input-group-text bg-light border-end-0 text-muted">₱</span>
+                            <input type="number" class="form-control border-start-0 bg-light fs-4 fw-bold text-danger" id="closing_amount" name="closing_amount" required min="0" step="0.01" placeholder="0.00">
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="closing_notes" class="form-label text-secondary small">Notes / Remarks (Optional)</label>
+                        <textarea class="form-control" id="closing_notes" rows="2" placeholder="e.g., Short ₱5 due to loose change..."></textarea>
+                    </div>
+
+                    <button type="submit" class="btn btn-danger w-100 btn-lg rounded-pill fw-bold shadow-sm">
+                        <i class="fas fa-check-circle me-2"></i> Submit & Close
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- CASH REGISTER LOGIC ---
+    let currentSessionId = null;
+
+    document.addEventListener('DOMContentLoaded', function() {
+        checkRegisterStatus();
+    });
+
+    function checkRegisterStatus() {
+        fetch('/cashier/register/status')
+            .then(res => res.json())
+            .then(data => {
+                const openModal = new bootstrap.Modal(document.getElementById('openRegisterModal'));
+                const openBtnDesktop = document.getElementById('btn-close-register-desktop');
+                const openBtnMobile = document.getElementById('btn-close-register-mobile');
+
+                if (data.status === 'closed') {
+                    // Show Static Open Modal
+                    openModal.show();
+                    if(openBtnDesktop) openBtnDesktop.classList.add('d-none');
+                    if(openBtnMobile) openBtnMobile.classList.add('d-none');
+                } else {
+                    // Register Open
+                    currentSessionId = data.session.id;
+                    if(openBtnDesktop) openBtnDesktop.classList.remove('d-none');
+                    if(openBtnMobile) openBtnMobile.classList.remove('d-none');
+                    
+                    // Hide Modal if open (in case of manual refresh during modal open)
+                    const existingModal = bootstrap.Modal.getInstance(document.getElementById('openRegisterModal'));
+                    if (existingModal) existingModal.hide();
+                }
+            })
+            .catch(err => console.error('Status Check Failed', err));
+    }
+
+    function submitOpenRegister(e) {
+        e.preventDefault();
+        const amount = document.getElementById('opening_float').value;
+
+        fetch('/cashier/register/open', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            },
+            body: JSON.stringify({ opening_amount: amount })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                Swal.fire({
+                    icon: 'success', 
+                    title: 'Register Opened', 
+                    text: 'You may now process transactions.',
+                    timer: 1500,
+                    showConfirmButton: false
+                }).then(() => {
+                    location.reload(); // Reload to clear modal and update UI
+                });
+            } else {
+                Swal.fire('Error', data.message || 'Failed to open register', 'error');
+            }
+        });
+    }
+
+    function showCloseRegisterModal() {
+        document.getElementById('close_session_id').value = currentSessionId;
+        const modal = new bootstrap.Modal(document.getElementById('closeRegisterModal'));
+        modal.show();
+    }
+
+    function submitCloseRegister(e) {
+        e.preventDefault();
+        const amount = document.getElementById('closing_amount').value;
+        const notes = document.getElementById('closing_notes').value;
+        const sessionId = document.getElementById('close_session_id').value;
+
+        // 1. CONFIRMATION STEP (Safety Net)
+        Swal.fire({
+            title: `Confirm Closing Count`,
+            html: `You entered actual cash: <h2 class="text-danger fw-bold">₱${parseFloat(amount).toLocaleString('en-US', {minimumFractionDigits: 2})}</h2><br>Are you sure this is correct?`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc3545',
+            confirmButtonText: 'Yes, Close Register',
+            cancelButtonText: 'Re-count'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // 2. SUBMIT
+                fetch('/cashier/register/close', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    },
+                    body: JSON.stringify({ 
+                        session_id: sessionId,
+                        closing_amount: amount,
+                        notes: notes
+                    })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        Swal.fire('Closed', 'Register session closed successfully.', 'success')
+                        .then(() => {
+                            location.reload(); // Will trigger Open Modal again
+                        });
+                    } else {
+                        Swal.fire('Error', data.message, 'error');
+                    }
+                });
+            }
+        });
+    }
 </script>
 @endsection

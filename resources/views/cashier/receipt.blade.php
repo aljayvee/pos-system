@@ -52,23 +52,38 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Receipt #{{ $sale->id }}</title>
     <style>
-        body { font-family: 'Courier New', Courier, monospace; font-size: 12px; margin: 0; padding: 20px; background: #f0f0f0; }
-        .receipt { max-width: 300px; margin: 0 auto; background: #fff; padding: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        @page { margin: 0; padding: 0; }
+        body { 
+            font-family: 'Courier New', Courier, monospace; 
+            font-size: 12px; 
+            line-height: 1.2;
+            margin: 0; 
+            padding: 10px; 
+            background: #fff; 
+            color: #000;
+        }
+        .receipt { 
+            width: 100%;
+            max-width: 380px; /* Maximize width for mobile/desktop view */
+            margin: 0 auto; 
+        }
         .text-center { text-align: center; }
         .text-end { text-align: right; }
         .fw-bold { font-weight: bold; }
         .mb-1 { margin-bottom: 5px; }
         .border-bottom { border-bottom: 1px dashed #000; padding-bottom: 5px; margin-bottom: 5px; }
         .table { width: 100%; border-collapse: collapse; }
-        .table td { vertical-align: top; }
-        .qty { width: 30px; }
-        .price { width: 60px; text-align: right; }
-        .tax-breakdown { font-size: 10px; color: #333; margin-bottom: 10px; border-bottom: 1px dashed #ccc; padding-bottom: 5px; }
+        .table td { vertical-align: top; padding: 2px 0; }
+        .qty { width: 15%; }
+        .desc { width: 55%; }
+        .price { width: 30%; text-align: right; }
+        
+        .tax-breakdown { font-size: 10px; margin-top: 10px; border-top: 1px dashed #000; padding-top: 5px; }
         .tax-row { display: flex; justify-content: space-between; }
         
         @media print {
-            body { background: none; padding: 0; }
-            .receipt { box-shadow: none; width: 100%; max-width: 100%; }
+            body { padding: 0; width: 100%; }
+            .receipt { max-width: 100%; }
             .no-print { display: none; }
         }
     </style>

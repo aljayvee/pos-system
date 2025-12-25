@@ -3,13 +3,59 @@
 @section('content')
 <div class="container-fluid p-0">
 
-    {{-- Header --}}
-    <div class="d-flex justify-content-between align-items-center mb-4">
+<div class="container-fluid p-0">
+
+    {{-- MOBILE HEADER --}}
+    <div class="d-lg-none sticky-top bg-white border-bottom shadow-sm z-3">
+        <div class="px-3 py-3 d-flex align-items-center justify-content-between">
+            <h4 class="m-0 fw-bold text-dark"><i class="fas fa-cog text-primary me-2"></i>Settings</h4>
+        </div>
+        {{-- STICKY TABS (Mobile Context) --}}
+        <div class="bg-white border-bottom px-2 overflow-auto custom-scrollbar-hidden">
+            <ul class="nav nav-pills flex-nowrap pb-2" id="settingsTab" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active text-nowrap rounded-pill border ms-1" id="store-tab" data-bs-toggle="tab" data-bs-target="#store" type="button" role="tab">
+                        <i class="fas fa-store me-2"></i>Store
+                    </button>
+                </li>
+                @if(config('safety_flag_features.bir_tax_compliance'))
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link text-nowrap rounded-pill border ms-1" id="tax-tab" data-bs-toggle="tab" data-bs-target="#tax" type="button" role="tab">
+                        Tax
+                    </button>
+                </li>
+                @endif
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link text-nowrap rounded-pill border ms-1" id="loyalty-tab" data-bs-toggle="tab" data-bs-target="#loyalty" type="button" role="tab">
+                        Loyalty
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link text-nowrap rounded-pill border ms-1" id="modules-tab" data-bs-toggle="tab" data-bs-target="#modules" type="button" role="tab">
+                        Modules
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link text-nowrap rounded-pill border ms-1" id="data-tab" data-bs-toggle="tab" data-bs-target="#data" type="button" role="tab">
+                        Data
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link text-nowrap rounded-pill border ms-1 me-1" id="system-tab" data-bs-toggle="tab" data-bs-target="#system" type="button" role="tab">
+                        System
+                    </button>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    {{-- DESKTOP HEADER (Hidden Mobile) --}}
+    <div class="d-none d-lg-flex justify-content-between align-items-center mb-4 px-4 pt-4">
         <div>
             <h2 class="h3 mb-1 text-gray-800">Settings</h2>
             <p class="text-muted mb-0">Manage your store preferences.</p>
         </div>
-        <button class="btn btn-primary d-none d-lg-block" onclick="submitSettings()">
+        <button class="btn btn-primary" onclick="submitSettings()">
             <i class="fas fa-save me-1"></i> Save Changes
         </button>
     </div>
@@ -17,43 +63,29 @@
     <form action="{{ route('settings.update') }}" method="POST" id="settingsForm">
         @csrf
 
-        {{-- Navigation --}}
-        <div class="card shadow-sm mb-4">
-            <div class="card-header p-0 mx-3 mt-3 border-bottom-0 bg-white">
-                <ul class="nav nav-tabs card-header-tabs" id="settingsTab" role="tablist" style="flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden;">
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link active text-nowrap" id="store-tab" data-bs-toggle="tab" data-bs-target="#store" type="button" role="tab" aria-controls="store" aria-selected="true">
-                            <i class="fas fa-store me-2"></i>Store
-                        </button>
+        {{-- DESKTOP NAV TABS (Hidden Mobile) --}}
+        <div class="card shadow-sm mb-4 mx-lg-4 border-0 rounded-4">
+            <div class="card-header p-0 mx-3 mt-3 border-bottom-0 bg-white d-none d-lg-block">
+                <ul class="nav nav-tabs card-header-tabs" role="tablist">
+                    <li class="nav-item">
+                        <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#store" type="button"><i class="fas fa-store me-2"></i>Store</button>
                     </li>
-                    
                     @if(config('safety_flag_features.bir_tax_compliance'))
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link text-nowrap" id="tax-tab" data-bs-toggle="tab" data-bs-target="#tax" type="button" role="tab" aria-controls="tax" aria-selected="false">
-                            <i class="fas fa-file-invoice me-2"></i>Tax
-                        </button>
+                    <li class="nav-item">
+                        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tax" type="button">Tax</button>
                     </li>
                     @endif
-                    
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link text-nowrap" id="loyalty-tab" data-bs-toggle="tab" data-bs-target="#loyalty" type="button" role="tab" aria-controls="loyalty" aria-selected="false">
-                            <i class="fas fa-gift me-2"></i>Loyalty
-                        </button>
+                    <li class="nav-item">
+                        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#loyalty" type="button">Loyalty</button>
                     </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link text-nowrap" id="modules-tab" data-bs-toggle="tab" data-bs-target="#modules" type="button" role="tab" aria-controls="modules" aria-selected="false">
-                            <i class="fas fa-cube me-2"></i>Modules
-                        </button>
+                    <li class="nav-item">
+                        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#modules" type="button">Modules</button>
                     </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link text-nowrap" id="data-tab" data-bs-toggle="tab" data-bs-target="#data" type="button" role="tab" aria-controls="data" aria-selected="false">
-                            <i class="fas fa-database me-2"></i>Data
-                        </button>
+                    <li class="nav-item">
+                        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#data" type="button">Data</button>
                     </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link text-nowrap" id="system-tab" data-bs-toggle="tab" data-bs-target="#system" type="button" role="tab" aria-controls="system" aria-selected="false">
-                            <i class="fas fa-server me-2"></i>System
-                        </button>
+                    <li class="nav-item">
+                        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#system" type="button">System</button>
                     </li>
                 </ul>
             </div>

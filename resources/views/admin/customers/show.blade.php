@@ -3,8 +3,21 @@
 @section('content')
 <div class="container-fluid px-2 py-3 px-md-4 py-md-4">
     
-    {{-- HEADER --}}
-    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
+    {{-- MOBILE HEADER --}}
+    <div class="d-lg-none sticky-top bg-white border-bottom shadow-sm px-3 py-3 d-flex align-items-center justify-content-between z-3 mb-3" style="top: 0;">
+        <a href="{{ route('customers.index') }}" class="text-dark"><i class="fas fa-arrow-left fa-lg"></i></a>
+        <h6 class="m-0 fw-bold text-dark">Customer Profile</h6>
+        @if(auth()->user()->role !== 'auditor')
+        <a href="#" data-bs-toggle="modal" data-bs-target="#editCustomerModal-{{ $customer->id }}" class="text-warning">
+            <i class="fas fa-edit fa-lg"></i>
+        </a>
+        @else
+        <div style="width: 24px;"></div>
+        @endif
+    </div>
+
+    {{-- DESKTOP HEADER --}}
+    <div class="d-none d-lg-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
         <div>
             <a href="{{ route('customers.index') }}" class="btn btn-light border shadow-sm rounded-pill fw-bold mb-3 d-inline-block d-md-none">
                 <i class="fas fa-arrow-left me-1"></i> Back
@@ -31,8 +44,68 @@
         </a>
     </div>
 
-    {{-- STATS CARDS --}}
-    <div class="row g-3 mb-4">
+    {{-- MOBILE PROFILE SUMMARY --}}
+    <div class="d-lg-none mb-4">
+        <div class="text-center mb-4">
+            <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center mx-auto mb-2" 
+                 style="width: 70px; height: 70px; font-weight: bold; font-size: 2rem;">
+                {{ strtoupper(substr($customer->name, 0, 1)) }}
+            </div>
+            <h4 class="fw-bold mb-0">{{ $customer->name }}</h4>
+            <div class="text-muted small mt-1">
+                {{ $customer->contact ?? 'No contact info' }}
+            </div>
+            @if($customer->address)
+            <div class="text-muted small">
+                <i class="fas fa-map-marker-alt me-1 opacity-50"></i> {{ $customer->address }}
+            </div>
+            @endif
+        </div>
+
+        <div class="row g-2 mb-2">
+            <div class="col-6">
+                <div class="card border-0 shadow-sm rounded-4 h-100 bg-light">
+                    <div class="card-body p-3 text-center">
+                        <small class="text-secondary text-uppercase fw-bold" style="font-size: 0.65rem;">Current Debt</small>
+                        <h5 class="{{ $currentDebt > 0 ? 'text-danger' : 'text-success' }} fw-bold mb-0 mt-1">
+                            ₱{{ number_format($currentDebt, 2) }}
+                        </h5>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6">
+                <div class="card border-0 shadow-sm rounded-4 h-100 bg-light">
+                    <div class="card-body p-3 text-center">
+                        <small class="text-secondary text-uppercase fw-bold" style="font-size: 0.65rem;">Points</small>
+                        <h5 class="text-warning text-dark-emphasis fw-bold mb-0 mt-1">
+                            {{ number_format($customer->points) }}
+                        </h5>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row g-2">
+            <div class="col-6">
+                 <div class="card border-0 shadow-sm rounded-4 h-100 bg-white">
+                    <div class="card-body p-3 text-center">
+                        <small class="text-muted text-uppercase fw-bold" style="font-size: 0.65rem;">Lifetime Spend</small>
+                        <div class="fw-bold text-dark mt-1">₱{{ number_format($totalSpent, 0) }}</div>
+                    </div>
+                </div>
+            </div>
+             <div class="col-6">
+                 <div class="card border-0 shadow-sm rounded-4 h-100 bg-white">
+                    <div class="card-body p-3 text-center">
+                        <small class="text-muted text-uppercase fw-bold" style="font-size: 0.65rem;">Total Visits</small>
+                        <div class="fw-bold text-dark mt-1">{{ number_format($totalVisits) }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{-- DESKTOP STATS CARDS --}}
+    <div class="d-none d-lg-flex row g-3 mb-4">
         <div class="col-6 col-xl-3">
             <div class="card border-0 shadow-sm h-100 rounded-4" style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color: white;">
                 <div class="card-body p-3 p-md-4">
@@ -137,33 +210,33 @@
         </div>
 
         {{-- Mobile List View --}}
-        <div class="d-lg-none bg-light p-3">
-            @forelse($sales as $sale)
-            <div class="card border-0 shadow-sm mb-3 rounded-4">
-                <div class="card-body p-3">
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <span class="badge bg-light text-dark border rounded-pill">#{{ $sale->id }}</span>
-                        <span class="text-muted small">{{ $sale->created_at->format('M d, Y h:i A') }}</span>
+        <div class="d-lg-none">
+            <ul class="list-group list-group-flush">
+                @forelse($sales as $sale)
+                <li class="list-group-item p-3">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div>
+                            <span class="badge bg-light text-dark border rounded-pill mb-1">Receipt #{{ $sale->id }}</span>
+                            <div class="text-muted small">{{ $sale->created_at->format('M d, Y h:i A') }}</div>
+                        </div>
+                        <div class="text-end">
+                            <h6 class="fw-bold text-dark mb-0">₱{{ number_format($sale->total_amount, 2) }}</h6>
+                             <span class="badge {{ $sale->payment_method == 'credit' ? 'bg-danger-subtle text-danger' : 'bg-success-subtle text-success' }} text-uppercase rounded-pill px-2" style="font-size: 0.65rem;">
+                                {{ $sale->payment_method }}
+                            </span>
+                        </div>
                     </div>
-                    
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <span class="badge {{ $sale->payment_method == 'credit' ? 'bg-danger-subtle text-danger' : 'bg-success-subtle text-success' }} text-uppercase rounded-pill px-3">
-                            {{ $sale->payment_method }}
-                        </span>
-                        <div class="fw-bold fs-4 text-dark">₱{{ number_format($sale->total_amount, 2) }}</div>
-                    </div>
-
-                    <a href="{{ route('transactions.print', $sale->id) }}" target="_blank" class="btn btn-outline-primary w-100 rounded-pill fw-bold">
+                    <a href="{{ route('transactions.print', $sale->id) }}" target="_blank" class="btn btn-light btn-sm w-100 rounded-pill fw-bold border text-secondary">
                         <i class="fas fa-receipt me-1"></i> View Receipt
                     </a>
+                </li>
+                @empty
+                <div class="text-center py-5 text-muted">
+                    <i class="fas fa-receipt fa-3x mb-3 text-light-gray opacity-25"></i>
+                    <p>No transactions found.</p>
                 </div>
-            </div>
-            @empty
-            <div class="text-center py-5 text-muted">
-                <i class="fas fa-receipt fa-3x mb-3 text-light-gray opacity-25"></i>
-                <p>No transactions found.</p>
-            </div>
-            @endforelse
+                @endforelse
+            </ul>
         </div>
         
         @if($sales->hasPages())
@@ -172,5 +245,7 @@
         </div>
         @endif
     </div>
+    
+    @include('admin.customers.partials.edit-modal', ['customer' => $customer])
 </div>
 @endsection

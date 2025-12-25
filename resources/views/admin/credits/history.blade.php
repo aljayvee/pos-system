@@ -3,7 +3,15 @@
 @section('content')
 <div class="container-fluid px-2 py-3 px-md-4 py-md-4">
     
-    <div class="d-flex align-items-center justify-content-between mb-4">
+    {{-- MOBILE HEADER --}}
+    <div class="d-lg-none sticky-top bg-white border-bottom shadow-sm px-3 py-3 d-flex align-items-center justify-content-between z-3 mb-3" style="top: 0;">
+        <a href="{{ route('credits.index') }}" class="text-dark"><i class="fas fa-arrow-left fa-lg"></i></a>
+        <h6 class="m-0 fw-bold text-dark">History</h6>
+        <div style="width: 24px;"></div> {{-- Spacer --}}
+    </div>
+
+    {{-- DESKTOP HEADER --}}
+    <div class="d-none d-lg-flex align-items-center justify-content-between mb-4">
         <div>
             <h4 class="fw-bold text-dark mb-1">Credit History</h4>
             <p class="text-muted small mb-0">Transaction Log for <strong>{{ $credit->customer->name }}</strong></p>
@@ -98,28 +106,37 @@
                     </div>
                 </div>
 
-                {{-- Mobile List View --}}
-                <div class="card-body p-3 d-lg-none bg-light">
+                {{-- Mobile Timeline View --}}
+                <div class="card-body p-3 d-lg-none">
+                    <style>
+                        .timeline-item { position: relative; padding-left: 2rem; padding-bottom: 2rem; border-left: 2px solid #e9ecef; }
+                        .timeline-item:last-child { border-left: 2px solid transparent; }
+                        .timeline-dot { position: absolute; left: -9px; top: 0; width: 16px; height: 16px; border-radius: 50%; background: #fff; border: 4px solid #198754; }
+                    </style>
                      @forelse($payments as $payment)
-                    <div class="card border-0 shadow-sm mb-3 rounded-4">
-                        <div class="card-body p-3">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <span class="text-muted small"><i class="far fa-clock me-1"></i>{{ \Carbon\Carbon::parse($payment->payment_date)->format('M d, h:i A') }}</span>
-                                <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill">+ ₱{{ number_format($payment->amount, 2) }}</span>
-                            </div>
-                            
-                            <div class="d-flex align-items-center mt-3 bg-light rounded-3 p-2">
-                                <div class="bg-white rounded-circle d-flex align-items-center justify-content-center me-2 shadow-sm" style="width:24px; height:24px;">
-                                    <i class="fas fa-user-circle text-secondary" style="font-size: 0.8rem;"></i>
+                    <div class="timeline-item">
+                        <div class="timeline-dot"></div>
+                        <div class="card border-0 shadow-sm rounded-4">
+                            <div class="card-body p-3">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span class="text-muted small fw-bold">{{ \Carbon\Carbon::parse($payment->payment_date)->format('M d, Y') }}</span>
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill">+ ₱{{ number_format($payment->amount, 2) }}</span>
                                 </div>
-                                <small class="text-muted fw-bold">{{ $payment->user->name ?? 'System' }}</small>
+                                
+                                <div class="d-flex align-items-center mb-2">
+                                     <span class="text-muted small me-2">by</span>
+                                     <div class="d-flex align-items-center bg-light rounded-pill px-2 py-1">
+                                        <i class="fas fa-user-circle text-secondary me-1" style="font-size: 0.8rem;"></i>
+                                        <small class="text-dark fw-bold" style="font-size: 0.8rem;">{{ $payment->user->name ?? 'System' }}</small>
+                                     </div>
+                                </div>
+                                
+                                @if($payment->notes)
+                                <div class="small text-muted fst-italic bg-light p-2 rounded-3 mt-2">
+                                    "{{ $payment->notes }}"
+                                </div>
+                                @endif
                             </div>
-                            
-                            @if($payment->notes)
-                            <div class="mt-2 small text-muted fst-italic border-top pt-2">
-                                "{{ $payment->notes }}"
-                            </div>
-                            @endif
                         </div>
                     </div>
                     @empty

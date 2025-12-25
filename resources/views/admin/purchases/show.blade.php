@@ -3,7 +3,15 @@
 @section('content')
 <div class="container-fluid px-2 py-3 px-md-4 py-md-4">
     
-    <div class="d-flex align-items-center justify-content-between mb-4">
+    {{-- MOBILE HEADER --}}
+    <div class="d-lg-none sticky-top bg-white border-bottom shadow-sm px-3 py-3 d-flex align-items-center justify-content-between z-3 mb-3" style="top: 0;">
+        <a href="{{ route('purchases.index') }}" class="text-dark"><i class="fas fa-arrow-left"></i></a>
+        <h6 class="m-0 fw-bold text-dark">Stock In Details</h6>
+        <div style="width: 24px;"></div>
+    </div>
+
+    {{-- DESKTOP HEADER --}}
+    <div class="d-none d-lg-flex align-items-center justify-content-between mb-4">
         <div>
             <h4 class="fw-bold text-dark mb-1">Stock In Details</h4>
             <p class="text-muted small mb-0">Reference ID: #{{ $purchase->id }}</p>
@@ -13,13 +21,13 @@
         </a>
     </div>
 
-    <div class="row justify-content-center">
+    <div class="row justify-content-center mb-5 pb-5 mb-lg-0 pb-lg-0">
         <div class="col-lg-10">
             <div class="card shadow-sm border-0 rounded-4 overflow-hidden">
                 <div class="card-header bg-success bg-opacity-10 text-success py-3 d-flex justify-content-between align-items-center border-bottom-0">
-                    <h5 class="mb-0 fw-bold"><i class="fas fa-file-invoice me-2"></i>Stock In Reference #{{ $purchase->id }}</h5>
+                    <h5 class="mb-0 fw-bold"><i class="fas fa-file-invoice me-2"></i>Ref #{{ $purchase->id }}</h5>
                     <button class="btn btn-light text-success fw-bold shadow-sm rounded-pill px-3" onclick="window.print()">
-                        <i class="fas fa-print me-1"></i> Print
+                        <i class="fas fa-print me-1"></i> <span class="d-none d-md-inline">Print</span>
                     </button>
                 </div>
                 
@@ -41,7 +49,7 @@
                             </div>
                         </div>
                         <div class="col-12 col-md-6 text-md-end">
-                            <div class="bg-light rounded-4 p-3 d-inline-block text-start text-md-end" style="min-width: 200px;">
+                            <div class="bg-light rounded-4 p-3 d-inline-block text-start text-md-end w-100 w-md-auto">
                                 <label class="text-uppercase text-secondary small fw-bold d-block">Date Received</label>
                                 <h5 class="fw-bold text-dark mb-0">{{ $purchase->created_at->format('M d, Y') }}</h5>
                                 <small class="text-muted">{{ $purchase->created_at->format('h:i A') }}</small>
@@ -54,9 +62,10 @@
                         </div>
                     </div>
 
-                    {{-- ITEMS TABLE --}}
+                    {{-- ITEMS TABLE (Desktop) --}}
                     <h6 class="fw-bold text-secondary mb-3 text-uppercase small"><i class="fas fa-list me-2"></i>Items Received</h6>
-                    <div class="table-responsive rounded-4 border border-light overflow-hidden mb-4">
+                    
+                    <div class="table-responsive rounded-4 border border-light overflow-hidden mb-4 d-none d-md-block">
                         <table class="table table-hover align-middle mb-0">
                             <thead class="bg-light">
                                 <tr>
@@ -81,24 +90,44 @@
                                 </tr>
                                 @endforeach
                             </tbody>
-                            <tfoot class="bg-light">
-                                <tr>
-                                    <td colspan="3" class="text-end fw-bold text-uppercase py-4 text-secondary">Total Stock In Cost</td>
-                                    <td class="text-end fw-bold fs-3 text-success py-4 pe-4">₱{{ number_format($purchase->total_cost, 2) }}</td>
-                                </tr>
-                            </tfoot>
                         </table>
                     </div>
 
-                    {{-- ACTIONS --}}
-                    <div class="mt-4 pt-3 d-flex justify-content-between align-items-center">
-                        <small class="text-muted fst-italic"><i class="fas fa-info-circle me-1"></i>Transaction ID: {{ $purchase->id }}</small>
+                    {{-- MOBILE ITEMS LIST --}}
+                     <div class="d-md-none mb-4">
+                        <ul class="list-group list-group-flush rounded-4 overflow-hidden border">
+                             @foreach($purchase->purchaseItems as $item)
+                             <li class="list-group-item p-3">
+                                <div class="d-flex justify-content-between mb-1">
+                                    <span class="fw-bold text-dark">{{ $item->product->name ?? 'Deleted Item' }}</span>
+                                    <span class="fw-bold text-dark">₱{{ number_format($item->quantity * $item->unit_cost, 2) }}</span>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center small">
+                                    <span class="text-muted">{{ $item->quantity }} x ₱{{ number_format($item->unit_cost, 2) }}</span>
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle">+{{ $item->quantity }} units</span>
+                                </div>
+                             </li>
+                             @endforeach
+                        </ul>
+                    </div>
+
+
+                    {{-- TOTALS & ACTIONS --}}
+                    <div class="bg-light rounded-4 p-4 mb-4">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="fw-bold text-uppercase text-secondary">Total Cost</span>
+                            <span class="fw-bold fs-2 text-success">₱{{ number_format($purchase->total_cost, 2) }}</span>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center">
+                        <small class="text-muted fst-italic d-none d-md-block"><i class="fas fa-info-circle me-1"></i>Transaction ID: {{ $purchase->id }}</small>
                         
                         <form action="{{ route('purchases.destroy', $purchase->id) }}" method="POST" 
-                              onsubmit="return confirm('CRITICAL WARNING:\n\nThis will REMOVE the stock quantities added in this purchase from your inventory.\n\nAre you sure you want to void this?');">
+                              onsubmit="return confirm('CRITICAL WARNING:\n\nThis will REMOVE the stock quantities added in this purchase from your inventory.\n\nAre you sure you want to void this?');" class="w-100 w-md-auto">
                             @csrf
                             @method('DELETE')
-                            <button type="submit" class="btn btn-outline-danger rounded-pill fw-bold px-4 shadow-sm border-0 bg-danger-subtle text-danger">
+                            <button type="submit" class="btn btn-outline-danger rounded-pill fw-bold px-4 shadow-sm border-0 bg-danger-subtle text-danger w-100">
                                 <i class="fas fa-ban me-1"></i> Void Transaction
                             </button>
                         </form>

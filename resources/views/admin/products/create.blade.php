@@ -13,11 +13,12 @@
     }
 </style>
 
-<div class="container-fluid px-2 py-3 px-md-4 py-md-4">
-    {{-- Header --}}
-    <div class="d-flex justify-content-between align-items-center mb-4">
+<div class="container-fluid px-0 px-md-4 py-0 py-md-4 bg-light h-100">
+    
+    {{-- DESKTOP HEADER --}}
+    <div class="d-none d-lg-flex justify-content-between align-items-center mb-4 pt-4">
         <div>
-            <h3 class="fw-bold text-dark m-0 tracking-tight">Add Product</h3>
+            <h3 class="fw-bold text-dark m-0 tracking-tight">Add New Product</h3>
             <p class="text-muted small m-0">Create a new item in your inventory.</p>
         </div>
         <a href="{{ route('products.index') }}" class="btn btn-light border shadow-sm rounded-pill px-3">
@@ -25,141 +26,180 @@
         </a>
     </div>
 
-    <form id="addProductForm" action="{{ route('products.store') }}" method="POST" enctype="multipart/form-data">
+    {{-- MOBILE HEADER --}}
+    <div class="d-lg-none sticky-top bg-white border-bottom shadow-sm px-3 py-3 d-flex align-items-center justify-content-between z-3">
+        <a href="{{ route('products.index') }}" class="text-secondary fw-bold text-decoration-none small">Cancel</a>
+        <h6 class="m-0 fw-bold text-dark">New Product</h6>
+        <div style="width: 40px;"></div> {{-- Spacer --}}
+    </div>
+
+    <form id="addProductForm" action="{{ route('products.store') }}" method="POST" enctype="multipart/form-data" class="pb-5 mb-5 pb-lg-0 mb-lg-0">
         @csrf
 
-        <div class="row g-4">
+        <div class="row g-0 g-lg-4">
             {{-- Left Column: Details --}}
             <div class="col-lg-8">
-                <div class="card shadow-lg border-0 rounded-4 overflow-hidden mb-4">
-                    <div class="card-header bg-primary text-white py-3 border-0">
-                        <h5 class="mb-0 fw-bold"><i class="fas fa-box me-2"></i>Product Details</h5>
+                {{-- MOBILE: Image Upload (Top) --}}
+                <div class="d-lg-none bg-white p-4 text-center border-bottom mb-3">
+                    <div class="position-relative d-inline-block">
+                        <div class="rounded-4 d-flex align-items-center justify-content-center bg-light border" 
+                            style="width: 120px; height: 120px; overflow: hidden; cursor: pointer;" onclick="document.getElementById('mobileImageInput').click()">
+                            <img id="mobileImagePreview" src="#" alt="Preview" style="display: none; width: 100%; height: 100%; object-fit: cover;">
+                            <div id="mobilePlaceholderIcon" class="text-center">
+                                <i class="fas fa-camera text-secondary fa-2x opacity-50 mb-2"></i>
+                                <div class="small text-muted fw-bold" style="font-size: 0.7rem;">Add Photo</div>
+                            </div>
+                        </div>
+                    </div>
+                    <input type="file" id="mobileImageInput" name="image" class="d-none" accept="image/*" onchange="previewImage(this, 'mobileImagePreview', 'mobilePlaceholderIcon')">
+                </div>
+
+                {{-- Basic Info Card --}}
+                <div class="card shadow-sm border-0 rounded-0 rounded-lg-4 overflow-hidden mb-3 mb-lg-4 mx-0 mx-md-0">
+                    <div class="card-header bg-white py-3 border-bottom d-none d-lg-block">
+                        <h5 class="mb-0 fw-bold"><i class="fas fa-box me-2 text-primary"></i>Product Details</h5>
                     </div>
                     
-                    <div class="card-body p-4">
+                    <div class="card-body p-3 p-lg-4">
                         {{-- Name --}}
-                        <div class="mb-4">
-                            <label class="form-label fw-bold small text-uppercase text-secondary">Product Name <span class="text-danger">*</span></label>
-                            <input type="text" name="name" class="form-control bg-light border-0" placeholder="e.g. Bear Brand Swak" required>
+                        <div class="mb-3 mb-lg-4">
+                            <label class="form-label fw-bold small text-secondary d-none d-lg-block">PRODUCT NAME <span class="text-danger">*</span></label>
+                            <input type="text" name="name" class="form-control bg-light border-0 py-3 fw-bold text-dark fs-5" placeholder="Product Name" required>
                         </div>
 
-                        {{-- Category & Unit --}}
-                        <div class="row g-4 mb-4">
-                            <div class="col-12 col-md-6">
-                                <label class="form-label fw-bold small text-uppercase text-secondary">Category <span class="text-danger">*</span></label>
-                                <select name="category_id" class="form-select bg-light border-0 select2">
-                                    @foreach($categories as $category)
-                                        <option value="{{ $category->id }}">{{ $category->name }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-
-                            <div class="col-12 col-md-6">
-                                <label class="form-label fw-bold small text-uppercase text-secondary">Unit <span class="text-danger">*</span></label>
-                                <select name="unit" class="form-select bg-light border-0" required>
-                                    <option value="pc">Piece (pc)</option>
-                                    <option value="pack">Pack</option>
-                                    <option value="kg">Kilogram (kg)</option>
-                                    <option value="g">Gram (g)</option>
-                                    <option value="l">Liter (L)</option>
-                                    <option value="ml">Milliliter (ml)</option>
-                                    <option value="box">Box</option>
-                                    <option value="bottle">Bottle</option>
-                                    <option value="can">Can</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        {{-- Pricing Section --}}
-                        <div class="p-4 bg-primary bg-opacity-10 rounded-4 mt-4 mb-4 border border-primary border-opacity-10">
-                            <h6 class="fw-bold mb-3 text-primary"><i class="fas fa-tag me-2"></i>Pricing</h6>
-                            <div class="row g-3">
-                                <div class="col-12 col-md-6">
-                                    <label class="form-label fw-bold text-dark">Selling Price (SRP) <span class="text-danger">*</span></label>
-                                    <div class="input-group shadow-sm">
-                                        <span class="input-group-text bg-white border-0 text-success fw-bold">₱</span>
-                                        <input type="number" step="0.01" name="price" class="form-control border-0 fw-bold text-success" placeholder="0.00" required>
-                                    </div>
+                        {{-- Section: Categorization --}}
+                        <div class="row g-2 g-lg-4 mb-0 mb-lg-4">
+                            <div class="col-6">
+                                <label class="form-label fw-bold small text-secondary d-none d-lg-block">Category</label>
+                                <div class="form-floating form-floating-custom">
+                                    <select name="category_id" class="form-select bg-light border-0 fw-bold" id="categorySelect">
+                                        @foreach($categories as $category)
+                                            <option value="{{ $category->id }}">{{ $category->name }}</option>
+                                        @endforeach
+                                    </select>
+                                    <label for="categorySelect" class="d-lg-none">Category</label>
                                 </div>
-                                <div class="col-12 col-md-6">
-                                    <label class="form-label text-muted">Cost Price (Puhanan)</label>
-                                    <div class="input-group shadow-sm">
-                                        <span class="input-group-text bg-white border-0 text-muted">₱</span>
-                                        <input type="number" step="0.01" name="cost" class="form-control border-0 text-muted" placeholder="0.00">
-                                    </div>
+                            </div>
+
+                            <div class="col-6">
+                                <label class="form-label fw-bold small text-secondary d-none d-lg-block">Unit</label>
+                                <div class="form-floating form-floating-custom">
+                                    <select name="unit" class="form-select bg-light border-0 fw-bold" id="unitSelect" required>
+                                        <option value="pc">Piece (pc)</option>
+                                        <option value="pack">Pack</option>
+                                        <option value="kg">Kilogram (kg)</option>
+                                        <option value="g">Gram (g)</option>
+                                        <option value="l">Liter (L)</option>
+                                        <option value="ml">Milliliter (ml)</option>
+                                        <option value="box">Box</option>
+                                        <option value="bottle">Bottle</option>
+                                        <option value="can">Can</option>
+                                    </select>
+                                    <label for="unitSelect" class="d-lg-none">Unit</label>
                                 </div>
                             </div>
                         </div>
 
-                        {{-- Image Upload --}}
-                        <div class="mb-2">
+                        {{-- DESKTOP: Image Upload --}}
+                        <div class="mb-2 d-none d-lg-block mt-4">
                             <label class="form-label fw-bold small text-uppercase text-secondary">Product Image</label>
                             <div class="d-flex align-items-center gap-3 p-3 border-0 bg-light rounded-4">
                                 <div class="rounded-4 d-flex align-items-center justify-content-center bg-white shadow-sm" 
                                     style="width: 80px; height: 80px; overflow: hidden;">
-                                    <img id="imagePreview" src="#" alt="Preview" style="display: none; width: 100%; height: 100%; object-fit: cover;">
-                                    <i id="placeholderIcon" class="fas fa-image text-secondary fa-2x opacity-50"></i>
+                                    <img id="desktopImagePreview" src="#" alt="Preview" style="display: none; width: 100%; height: 100%; object-fit: cover;">
+                                    <i id="desktopPlaceholderIcon" class="fas fa-image text-secondary fa-2x opacity-50"></i>
                                 </div>
                                 <div class="flex-grow-1">
-                                    <input type="file" name="image" class="form-control bg-white border-0 shadow-sm" accept="image/*" onchange="previewImage(this)">
+                                    <input type="file" id="desktopImageInput" name="image" class="form-control bg-white border-0 shadow-sm" accept="image/*" onchange="previewImage(this, 'desktopImagePreview', 'desktopPlaceholderIcon')">
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Pricing Card --}}
+                <div class="card shadow-sm border-0 rounded-0 rounded-lg-4 overflow-hidden mb-3 mb-lg-4">
+                    <div class="card-header bg-white py-3 border-bottom d-none d-lg-block">
+                        <h6 class="fw-bold mb-0 text-dark"><i class="fas fa-tag me-2 text-success"></i>Pricing</h6>
+                    </div>
+                    <div class="card-body p-3 p-lg-4">
+                        <div class="row g-3">
+                            <div class="col-12 col-md-6">
+                                <label class="form-label fw-bold text-dark d-none d-lg-block">Selling Price (SRP) <span class="text-danger">*</span></label>
+                                <div class="input-group input-group-lg shadow-sm rounded-3 overflow-hidden border-0">
+                                    <span class="input-group-text bg-success bg-opacity-10 text-success fw-bold border-0 fs-5">₱</span>
+                                    <input type="number" step="0.01" name="price" class="form-control bg-light border-0 fw-bold fs-4 text-dark" placeholder="0.00" required>
+                                </div>
+                                <div class="form-text small d-lg-none ms-1">Selling Price</div>
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label class="form-label text-muted d-none d-lg-block">Cost Price</label>
+                                <div class="input-group input-group-lg shadow-sm rounded-3 overflow-hidden border-0">
+                                    <span class="input-group-text bg-light text-muted border-0 fs-5">₱</span>
+                                    <input type="number" step="0.01" name="cost" class="form-control bg-light border-0 fw-bold fs-4 text-secondary" placeholder="0.00">
+                                </div>
+                                <div class="form-text small d-lg-none ms-1">Cost Price (Optional)</div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            {{-- Right Column: Inventory & Barcode --}}
+            {{-- Right Column --}}
             <div class="col-lg-4">
-                
                 {{-- Barcode Card --}}
-                <div class="card shadow-sm border-0 rounded-4 mb-4">
-                    <div class="card-header bg-white py-3 border-bottom-0">
-                        <h5 class="mb-0 text-dark fw-bold"><i class="fas fa-barcode me-2 text-secondary"></i>Barcode</h5>
-                    </div>
-                    <div class="card-body pt-0">
-                        <div class="mb-3">
-                            <label class="form-label small text-muted">Scan or manually input code</label>
-                            <div class="input-group shadow-sm rounded-3 overflow-hidden">
-                                <span class="input-group-text bg-white border-0"><i class="fas fa-qrcode text-muted"></i></span>
-                                <input type="text" id="sku" name="sku" class="form-control bg-white border-0 fw-bold" placeholder="e.g. 01234567890">
-                            </div>
+                <div class="card shadow-sm border-0 rounded-0 rounded-lg-4 mb-3 mb-lg-4">
+                    <div class="card-body p-3 p-lg-4">
+                        <h6 class="fw-bold mb-3 d-flex align-items-center">
+                            <i class="fas fa-barcode me-2 text-secondary"></i> Barcode / SKU
+                        </h6>
+                        <div class="input-group shadow-sm rounded-3 overflow-hidden d-flex mb-3">
+                            <input type="text" id="sku" name="sku" class="form-control bg-light border-0 fw-bold py-3" placeholder="Scan or type...">
+                            <button type="button" class="btn btn-dark px-3" onclick="openScanner()">
+                                <i class="fas fa-camera"></i>
+                            </button>
                         </div>
-                        <button type="button" class="btn btn-dark w-100 py-2 rounded-pill shadow-sm" onclick="openScanner()">
-                            <i class="fas fa-camera me-2"></i> Scan Barcode
-                        </button>
                     </div>
                 </div>
 
                 {{-- Inventory Card --}}
-                <div class="card shadow-sm border-0 rounded-4 mb-4">
-                    <div class="card-header bg-white py-3 border-bottom-0">
+                <div class="card shadow-sm border-0 rounded-0 rounded-lg-4 mb-3 mb-lg-4">
+                    <div class="card-header bg-white py-3 border-bottom d-none d-lg-block">
                         <h5 class="mb-0 text-dark fw-bold"><i class="fas fa-warehouse me-2 text-warning"></i>Inventory</h5>
                     </div>
-                    <div class="card-body pt-0">
-                        <div class="mb-3">
-                            <label class="form-label fw-bold small text-secondary">Initial Stock</label>
-                            <input type="number" name="stock" class="form-control bg-light border-0" value="0">
+                    <div class="card-body p-3 p-lg-4">
+                        <div class="row g-2">
+                             <div class="col-6 mb-3">
+                                <label class="form-label fw-bold small text-secondary">Stock</label>
+                                <input type="number" name="stock" class="form-control bg-light border-0 p-3 fw-bold" value="0">
+                            </div>
+                            <div class="col-6 mb-3">
+                                <label class="form-label fw-bold small text-secondary">Reorder Pt</label>
+                                <input type="number" name="reorder_point" class="form-control bg-light border-0 p-3 fw-bold" value="0">
+                            </div>
                         </div>
-                        <div class="mb-3">
-                            <label class="form-label fw-bold small text-secondary">Reorder Point</label>
-                            <input type="number" name="reorder_point" class="form-control bg-light border-0" value="0">
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label fw-bold small text-secondary">Expiration Date</label>
-                            <input type="date" name="expiration_date" class="form-control bg-light border-0">
+                        <div class="mb-0">
+                            <label class="form-label fw-bold small text-secondary">Expiration</label>
+                            <input type="date" name="expiration_date" class="form-control bg-light border-0 p-3">
                         </div>
                     </div>
                 </div>
 
-                {{-- Submit Button --}}
-                <div class="d-grid mt-4">
+                {{-- DESKTOP: Submit Button --}}
+                <div class="d-none d-lg-grid mt-4">
                     <button type="button" onclick="validateAndSubmit()" class="btn btn-primary btn-lg shadow-lg rounded-pill fw-bold">
                         <i class="fas fa-save me-2"></i> Save Product
                     </button>
                 </div>
 
             </div>
+        </div>
+
+        {{-- MOBILE: Sticky Bottom Bar --}}
+        <div class="d-lg-none fixed-bottom bg-white border-top p-3 shadow-lg pb-4 pb-md-3">
+            <button type="button" onclick="validateAndSubmit()" class="btn btn-primary w-100 rounded-pill fw-bold py-3 text-uppercase ls-1">
+                Save Product
+            </button>
         </div>
     </form>
 </div>
@@ -224,6 +264,23 @@
             _token: document.querySelector('input[name="_token"]').value
         };
 
+        // Handle Image Input Conflict (Mobile vs Desktop)
+        const mobileInput = document.getElementById('mobileImageInput');
+        const desktopInput = document.getElementById('desktopImageInput');
+
+        // Reset names first to avoid confusion
+        mobileInput.removeAttribute('name');
+        desktopInput.removeAttribute('name');
+
+        if (mobileInput.files.length > 0) {
+            mobileInput.setAttribute('name', 'image');
+        } else if (desktopInput.files.length > 0) {
+            desktopInput.setAttribute('name', 'image');
+        } else {
+            // If neither has a file, default to desktop (or whichever) so backend sees 'image' => null
+            desktopInput.setAttribute('name', 'image');
+        }
+
         try {
             const response = await fetch("{{ route('products.check_duplicate') }}", {
                 method: "POST",
@@ -282,9 +339,9 @@
         }
     }
 
-    function previewImage(input) {
-        const preview = document.getElementById('imagePreview');
-        const placeholder = document.getElementById('placeholderIcon');
+    function previewImage(input, previewId, placeholderId) {
+        const preview = document.getElementById(previewId);
+        const placeholder = document.getElementById(placeholderId);
         if (input.files && input.files[0]) {
             const reader = new FileReader();
             reader.onload = function(e) { preview.src = e.target.result; preview.style.display = 'block'; placeholder.style.display = 'none'; }

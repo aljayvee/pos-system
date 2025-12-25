@@ -2,8 +2,15 @@
 
 @section('content')
 <div class="container-fluid px-2 py-3 px-md-4 py-md-4">
+    {{-- MOBILE HEADER --}}
+    <div class="d-lg-none sticky-top bg-white border-bottom shadow-sm px-3 py-3 d-flex align-items-center justify-content-between z-3 mb-3" style="top: 0;">
+        <div style="width: 40px;"></div>
+        <h6 class="m-0 fw-bold text-dark">Stock History</h6>
+        <div style="width: 40px;"></div>
+    </div>
+
     {{-- HEADER --}}
-    <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center mb-4 gap-2">
+    <div class="d-none d-lg-flex flex-column flex-sm-row justify-content-between align-items-sm-center mb-4 gap-2">
         <h4 class="fw-bold text-dark mb-1">
             <i class="fas fa-truck-loading text-success me-2"></i>Stock In History
         </h4>
@@ -79,37 +86,49 @@
         @endif
     </div>
 
-    {{-- === MOBILE NATIVE VIEW === --}}
-    <div class="d-lg-none">
-        @forelse($purchases as $purchase)
-        <a href="{{ route('purchases.show', $purchase->id) }}" class="text-decoration-none text-dark">
-            <div class="card shadow-sm border-0 mb-3 rounded-4">
-                <div class="card-body p-3">
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <span class="badge bg-light text-secondary border rounded-pill">Ref #{{ $purchase->id }}</span>
-                        <small class="text-muted"><i class="far fa-clock me-1"></i>{{ \Carbon\Carbon::parse($purchase->purchase_date)->format('M d, Y') }}</small>
+    {{-- === MOBILE NATIVE VIEW (List) === --}}
+    <div class="d-lg-none card shadow-sm border-0 rounded-4 overflow-hidden mb-5">
+        <ul class="list-group list-group-flush">
+            @forelse($purchases as $purchase)
+            <li class="list-group-item p-3 border-bottom-0 hover-bg-light">
+                <a href="{{ route('purchases.show', $purchase->id) }}" class="text-decoration-none text-dark d-flex align-items-center gap-3">
+                    <div class="bg-light rounded-3 d-flex align-items-center justify-content-center flex-shrink-0" style="width: 50px; height: 50px;">
+                        <i class="fas fa-truck text-secondary fa-lg"></i>
                     </div>
-                    
-                    <h6 class="fw-bold text-dark mb-1 d-flex align-items-center">
-                        <i class="fas fa-truck text-muted me-2"></i>{{ $purchase->supplier->name ?? 'Unknown Supplier' }}
-                    </h6>
-                    <div class="small text-muted mb-3 ps-4 d-block">{{ $purchase->items->count() }} Items Restocked</div>
-
-                    <div class="d-flex justify-content-between align-items-center pt-3 border-top">
-                        <span class="small text-uppercase text-muted fw-bold">Total Cost</span>
-                        <span class="fw-bold text-success fs-5">₱{{ number_format($purchase->total_cost, 2) }}</span>
+                    <div class="flex-grow-1">
+                        <div class="d-flex justify-content-between align-items-start mb-1">
+                            <h6 class="fw-bold text-dark mb-0">{{ $purchase->supplier->name ?? 'Unknown' }}</h6>
+                            <span class="fw-bold text-success">₱{{ number_format($purchase->total_cost, 2) }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <small class="text-muted d-block">{{ \Carbon\Carbon::parse($purchase->purchase_date)->format('M d, Y') }}</small>
+                            </div>
+                            <span class="badge bg-light text-secondary border rounded-pill small">{{ $purchase->items->count() }} Items</span>
+                        </div>
                     </div>
-                </div>
+                    <i class="fas fa-chevron-right text-muted small"></i>
+                </a>
+            </li>
+            @empty
+            <div class="text-center py-5 text-muted">
+                <i class="fas fa-box-open fa-3x mb-3 opacity-25 text-light-gray"></i>
+                <p>No records found.</p>
             </div>
-        </a>
-        @empty
-        <div class="text-center py-5 text-muted">
-            <i class="fas fa-box-open fa-3x mb-3 opacity-25 text-light-gray"></i>
-            <p>No records found.</p>
+            @endforelse
+        </ul>
+        @if($purchases->hasPages())
+        <div class="p-3 border-top">
+            {{ $purchases->links() }}
         </div>
-        @endforelse
-        
-        <div class="mt-4 d-flex justify-content-center">{{ $purchases->links() }}</div>
+        @endif
+    </div>
+
+    {{-- MOBILE FAB --}}
+    <div class="d-lg-none position-fixed p-3 z-3 end-0" style="bottom: 80px;">
+        <a href="{{ route('purchases.create') }}" class="btn btn-success shadow-lg rounded-circle d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+            <i class="fas fa-plus fa-lg"></i>
+        </a>
     </div>
 </div>
 @endsection

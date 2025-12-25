@@ -12,39 +12,62 @@
     {{-- 1. MODERN VUE STATS GRID --}}
     <div class="row g-4 mb-5">
         
-        <div class="col-12 col-sm-6 col-lg-3">
+        {{-- ROW 1: CASH FLOW METRICS (TODAY) --}}
+        <div class="col-12 col-sm-6 col-lg-4">
             <stats-card 
                 title="Today's Sales" 
                 value="₱{{ number_format($salesToday, 2) }}" 
-                subtitle="{{ $transactionCountToday }} Transactions"
+                subtitle="{{ $transactionCountToday }} Transactions (Net)"
                 icon="fas fa-cash-register"
                 color="primary"
             ></stats-card>
         </div>
 
-        <div class="col-12 col-sm-6 col-lg-3">
+        <div class="col-12 col-sm-6 col-lg-4">
             <stats-card 
-                title="Profit" 
+                title="Debt Collections" 
+                value="₱{{ number_format($debtCollectionsToday, 2) }}" 
+                subtitle="Collected Today"
+                icon="fas fa-hand-holding-usd"
+                color="info"
+            ></stats-card>
+        </div>
+
+        <div class="col-12 col-sm-6 col-lg-4">
+            <stats-card 
+                title="Cash in Drawer" 
+                value="₱{{ number_format($estCashInDrawer, 2) }}" 
+                subtitle="Sales + Collections - Refunds"
+                icon="fas fa-wallet"
+                color="success text-white" 
+                :gradient="true"
+            ></stats-card>
+        </div>
+
+        {{-- ROW 2: PERFORMANCE & STATUS --}}
+        <div class="col-12 col-sm-6 col-lg-4">
+            <stats-card 
+                title="Profit (Today)" 
                 value="₱{{ number_format($profitToday, 2) }}" 
-                subtitle="Net Income Today"
+                subtitle="Net Income"
                 icon="fas fa-coins"
                 color="success"
             ></stats-card>
         </div>
 
-        <div class="col-12 col-sm-6 col-lg-3">
+        <div class="col-12 col-sm-6 col-lg-4">
             <stats-card 
                 title="Monthly Revenue" 
                 value="₱{{ number_format($salesMonth, 2) }}" 
-                subtitle="Current Month Total"
+                subtitle="Current Month Net"
                 icon="fas fa-chart-line"
-                color="info"
+                color="primary"
             ></stats-card>
         </div>
 
-        <div class="col-12 col-sm-6 col-lg-3">
+        <div class="col-12 col-sm-6 col-lg-4">
             <stats-card 
-                title="Collectibles" 
+                title="Total Collectibles" 
                 value="₱{{ number_format($totalCredits, 2) }}" 
                 subtitle="Unpaid Customer Debts"
                 icon="fas fa-file-invoice-dollar"

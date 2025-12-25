@@ -11,8 +11,22 @@ class CategoryController extends Controller
     // 1. Show the list of categories
     public function index()
     {
-        $categories = Category::all();
+        $categories = Category::withCount('products')->get();
         return view('admin.categories.index', compact('categories'));
+    }
+
+    // New: Get products for a category (AJAX)
+    public function getProducts(Category $category)
+    {
+        return response()->json($category->products()
+            ->select('id', 'name', 'price', 'image') 
+            ->get()->map(function($p) {
+                return [
+                    'name' => $p->name,
+                    'price' => number_format($p->price, 2),
+                    'image' => $p->image ? asset('storage/' . $p->image) : null
+                ];
+            }));
     }
 
     // 2. Save a new category

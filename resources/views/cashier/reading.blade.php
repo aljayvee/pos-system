@@ -5,8 +5,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ $data['type'] }} Report</title>
     <style>
-        body { font-family: 'Courier New', Courier, monospace; font-size: 12px; margin: 0; padding: 10px; background: #fff; color: #000; }
-        .receipt { max-width: 300px; margin: 0 auto; }
+        @page { margin: 0; padding: 0; }
+        body { 
+            font-family: 'Courier New', Courier, monospace; 
+            font-size: 12px; 
+            line-height: 1.2;
+            margin: 0; 
+            padding: 10px; 
+            background: #fff; 
+            color: #000;
+        }
+        .receipt { 
+            width: 100%; 
+            max-width: 380px; 
+            margin: 0 auto; 
+        }
         .text-center { text-align: center; }
         .text-right { text-align: right; }
         .fw-bold { font-weight: bold; }
@@ -14,7 +27,8 @@
         .row { display: flex; justify-content: space-between; }
         @media print {
             .no-print { display: none; }
-            body { padding: 0; }
+            body { padding: 0; width: 100%; }
+            .receipt { max-width: 100%; }
         }
     </style>
 </head>

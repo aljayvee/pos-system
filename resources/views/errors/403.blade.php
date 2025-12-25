@@ -36,7 +36,7 @@
             <p class="text-muted mb-4 fs-5">
                 You do not have permission to access this resource. 
                 <br>
-                Please contact your administrator for assistance.
+                Please contact the administrator for assistance.
             </p>
 
             <div class="d-grid gap-2 col-md-8 mx-auto">

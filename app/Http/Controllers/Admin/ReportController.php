@@ -61,7 +61,10 @@ class ReportController extends Controller
 
         // 4. Calculate Financials (NET SALES LOGIC)
         $gross_sales = $sales->sum('total_amount');
-        $total_returns = $returnQuery->sum('refund_amount');
+        
+        // Fetch returns with necessary relations for cost calculation
+        $returns = $returnQuery->with(['sale.saleItems', 'product'])->get();
+        $total_returns = $returns->sum('refund_amount');
         $total_sales = $gross_sales - $total_returns; // Net Sales
 
         $total_transactions = $sales->count();
@@ -80,8 +83,32 @@ class ReportController extends Controller
             $itemCost = ($item->cost > 0) ? $item->cost : ($item->product->cost ?? 0);
             $total_cost += ($itemCost * $item->quantity);
         }
-        // Assuming returns are put back to stock or written off, simpler to deduct refund amount from profit for now
-        $gross_profit = $total_sales - $total_cost; 
+
+        // Calculate Cost of Returns to deduct from Total Cost (Recovered Inventory Value)
+        $cost_of_returns = 0;
+        foreach ($returns as $ret) {
+            // Find original cost from the specific sale item if available
+            $originalItem = null;
+            if ($ret->sale && $ret->sale->saleItems) {
+                $originalItem = $ret->sale->saleItems->where('product_id', $ret->product_id)->first();
+            }
+            
+            // Use original sale cost, or current product cost as fallback
+            $returnUnitCost = 0;
+            if ($originalItem && $originalItem->cost > 0) {
+                $returnUnitCost = $originalItem->cost;
+            } else {
+                $returnUnitCost = $ret->product->cost ?? 0;
+            }
+
+            $cost_of_returns += ($returnUnitCost * $ret->quantity);
+        }
+
+        // Net Cost = Cost of Sales - Cost of Returns
+        $net_cost = $total_cost - $cost_of_returns;
+        
+        // Gross Profit = Net Sales - Net Cost
+        $gross_profit = $total_sales - $net_cost; 
 
         // 5. Analytics Data
         // 5. Analytics Data (NET Basis)
@@ -113,6 +140,7 @@ class ReportController extends Controller
                     'total_revenue' => max(0, $netRev)
                 ];
             })
+            ->filter(fn($item) => $item->total_qty > 0) // Filter out items with 0 net sales
             ->sortByDesc('total_qty') // Re-sort by NET quantity
             ->take(10);
 

@@ -3,8 +3,15 @@
 @section('content')
 <div class="container-fluid px-2 py-3 px-md-4 py-md-4">
     
-    {{-- HEADER --}}
-    <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center mb-4 gap-2">
+    {{-- MOBILE HEADER --}}
+    <div class="d-lg-none sticky-top bg-white border-bottom shadow-sm px-3 py-3 d-flex align-items-center justify-content-between z-3 mb-3" style="top: 0;">
+        <a href="{{ route('credits.index') }}" class="text-dark"><i class="fas fa-arrow-left fa-lg"></i></a>
+        <h6 class="m-0 fw-bold text-dark">Payment Logs</h6>
+         <div style="width: 24px;"></div> {{-- Spacer --}}
+    </div>
+
+    {{-- DESKTOP HEADER --}}
+    <div class="d-none d-lg-flex flex-column flex-sm-row justify-content-between align-items-sm-center mb-4 gap-2">
         <h4 class="fw-bold text-dark mb-1">
             <i class="fas fa-history text-success me-2"></i>Payment Logs
         </h4>
@@ -74,39 +81,40 @@
 
     {{-- MOBILE/PHABLET VIEW: CARDS --}}
     <div class="d-lg-none">
-        <div class="row g-3">
+        <div class="vstack gap-3">
             @forelse($payments as $payment)
-            <div class="col-12 col-md-6">
-                <div class="card shadow-sm border-0 h-100 rounded-4">
-                    <div class="card-body p-3">
-                        {{-- Top Row: Customer & Amount --}}
-                        <div class="d-flex justify-content-between align-items-start mb-2">
-                            <div>
-                                <h6 class="fw-bold text-dark mb-0 d-flex align-items-center">
-                                    <i class="fas fa-user-circle me-2 text-muted"></i>{{ $payment->credit->customer->name ?? 'Unknown' }}
-                                </h6>
-                                <small class="text-muted ps-4" style="font-size: 0.75rem;">Credit #{{ $payment->customer_credit_id }}</small>
-                            </div>
-                            <div class="text-end">
-                                <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill">+ ₱{{ number_format($payment->amount, 2) }}</span>
-                            </div>
+            <div class="card shadow-sm border-0 rounded-4">
+                <div class="card-body p-3">
+                    {{-- Top Row: Customer & Amount --}}
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div>
+                            <h6 class="fw-bold text-dark mb-0 d-flex align-items-center">
+                                {{ $payment->credit->customer->name ?? 'Unknown' }}
+                            </h6>
+                            <small class="text-muted" style="font-size: 0.75rem;">Credit #{{ $payment->customer_credit_id }}</small>
                         </div>
-                        
-                        {{-- Middle Row: Info Box --}}
-                        <div class="d-flex justify-content-between align-items-center bg-light rounded-3 p-2 mb-2 mt-3">
-                             <small class="text-muted"><i class="far fa-clock me-1"></i> {{ \Carbon\Carbon::parse($payment->payment_date)->format('M d, Y') }}</small>
-                             <div class="d-flex align-items-center">
-                                 <small class="text-dark fw-bold">{{ $payment->user->name ?? 'System' }}</small>
-                             </div>
+                        <div class="text-end">
+                            <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill">+ ₱{{ number_format($payment->amount, 2) }}</span>
+                            <div class="text-muted small mt-1" style="font-size: 0.7rem;">{{ \Carbon\Carbon::parse($payment->payment_date)->format('M d, h:i A') }}</div>
                         </div>
-
-                        {{-- Bottom Row: Notes --}}
-                        @if($payment->notes)
-                            <div class="small text-muted fst-italic mt-2 border-top pt-2">
-                                <i class="fas fa-sticky-note me-1 text-warning"></i> {{ $payment->notes }}
-                            </div>
-                        @endif
                     </div>
+                    
+                    {{-- Middle Row: Info Box --}}
+                    <div class="d-flex justify-content-between align-items-center bg-light rounded-3 p-2 mt-2">
+                         <div class="d-flex align-items-center">
+                             <div class="bg-white rounded-circle d-flex align-items-center justify-content-center me-2 shadow-sm" style="width:24px; height:24px;">
+                                <i class="fas fa-user-tie text-secondary small"></i>
+                             </div>
+                             <small class="text-dark fw-bold">{{ $payment->user->name ?? 'System' }}</small>
+                         </div>
+                    </div>
+
+                    {{-- Bottom Row: Notes --}}
+                    @if($payment->notes)
+                        <div class="small text-muted fst-italic mt-2 pt-2 border-top">
+                            <i class="fas fa-sticky-note me-1 text-warning"></i> {{ $payment->notes }}
+                        </div>
+                    @endif
                 </div>
             </div>
             @empty

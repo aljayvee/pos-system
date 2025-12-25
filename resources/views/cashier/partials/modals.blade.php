@@ -81,37 +81,40 @@
                 {{-- FIND THIS SECTION IN modals.blade.php --}}
 <div id="flow-credit" style="display:none;">
     <div class="bg-light p-3 rounded-3 border">
-        <h6 class="fw-bold text-primary mb-3"><i class="fas fa-user-plus me-2"></i>New Debtor Details</h6>
         
-        <div class="form-floating mb-2">
-            <input type="text" id="credit-name" class="form-control fw-bold" placeholder="Customer Name">
-            <label>Full Name <span class="text-danger">*</span></label>
+        {{-- Conditional Fields for New Profile --}}
+        <div id="new-debtor-fields">
+            <h6 class="fw-bold text-primary mb-3"><i class="fas fa-user-plus me-2"></i>New Debtor Details</h6>
+            
+            <div class="form-floating mb-2">
+                <input type="text" id="credit-name" class="form-control fw-bold" placeholder="Customer Name">
+                <label>Full Name <span class="text-danger">*</span></label>
+            </div>
+
+            <div class="form-floating mb-2">
+                <input type="text" id="credit-contact" class="form-control" placeholder="Mobile No.">
+                <label>Mobile Number</label>
+            </div>
+
+            <div class="form-floating mb-2">
+                <textarea id="credit-address" class="form-control" placeholder="Address" style="height: 60px"></textarea>
+                <label>Full Address</label>
+            </div>
+            
+            <hr class="my-3">
         </div>
 
-        <div class="row g-2 mb-2">
-            <div class="col-6">
-                <div class="form-floating">
-                    <input type="text" id="credit-contact" class="form-control" placeholder="Mobile No.">
-                    <label>Mobile Number</label>
-                </div>
-            </div>
-            <div class="col-6">
-                <div class="form-floating">
-                    <input type="date" id="credit-due-date" class="form-control" placeholder="Due Date">
-                    <label>Due Date <span class="text-danger">*</span></label>
-                </div>
-            </div>
-        </div>
-
+        {{-- Always Visible Due Date --}}
         <div class="form-floating">
-            <textarea id="credit-address" class="form-control" placeholder="Address" style="height: 80px"></textarea>
-            <label>Full Address</label>
+            <input type="date" id="credit-due-date" class="form-control fw-bold" placeholder="Due Date">
+            <label class="fw-bold text-dark">Due Date <span class="text-danger">*</span></label>
         </div>
+        
     </div>
 </div>
             </div>
             <div class="modal-footer border-0">
-                <button class="btn btn-dark w-100 py-3 rounded-3 fw-bold fs-5" onclick="processPayment()">COMPLETE</button>
+                <button type="button" class="btn btn-dark w-100 py-3 rounded-3 fw-bold fs-5" onclick="processPayment()">COMPLETE</button>
             </div>
         </div>
     </div>
@@ -202,3 +205,69 @@
         </div>
     </div>
 </div>
+{{-- 6. CUSTOMER SELECTION MODAL (Bottom Sheet Style) --}}
+<div class="modal fade" id="customerSelectionModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-bottom modal-dialog-scrollable" style="z-index: 1060;">
+        <div class="modal-content rounded-top-4 border-0 shadow-lg" style="max-height: 85vh;">
+            <div class="modal-header border-bottom-0 pb-0">
+                <h5 class="modal-title fw-bold">Select Customer</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0">
+                <div class="p-3 sticky-top bg-white border-bottom">
+                    <div class="position-relative">
+                        <i class="fas fa-search text-muted position-absolute top-50 start-0 translate-middle-y ms-3"></i>
+                        <input type="text" id="customer-modal-search" class="form-control form-control-lg bg-light border-0 ps-5 rounded-pill" placeholder="Search customer...">
+                    </div>
+                </div>
+                
+                <div class="list-group list-group-flush" id="customer-modal-list">
+                    {{-- Default Options --}}
+                    <button class="list-group-item list-group-item-action py-3 px-4 d-flex align-items-center justify-content-between" onclick="selectCustomer('walk-in', 'Walk-in Customer', 0)">
+                        <span class="fw-bold text-dark">Walk-in Customer</span>
+                        <i class="fas fa-check text-primary d-none header-check" id="check-walk-in"></i>
+                    </button>
+                    
+                    <button class="list-group-item list-group-item-action py-3 px-4 d-flex align-items-center justify-content-between text-primary bg-light" onclick="selectCustomer('new', '+ Create New Profile', 0)">
+                        <span class="fw-bold"><i class="fas fa-user-plus me-2"></i>Create New Profile</span>
+                    </button>
+
+                    <div class="px-4 py-2 bg-light text-muted small fw-bold text-uppercase">Registered Customers</div>
+
+                    {{-- Dynamic List --}}
+                    @foreach($customers as $c)
+                    <button class="list-group-item list-group-item-action py-3 px-4 d-flex align-items-center justify-content-between customer-item" 
+                            data-name="{{ strtolower($c->name) }}" 
+                            onclick="selectCustomer('{{ $c->id }}', '{{ $c->name }}', {{ $c->balance ?? 0 }})">
+                        <div class="d-flex flex-column">
+                            <span class="fw-bold text-dark">{{ $c->name }}</span>
+                            @if(($c->balance ?? 0) > 0)
+                                <small class="text-danger">Debt: ₱{{ number_format($c->balance, 2) }}</small>
+                            @endif
+                        </div>
+                        <i class="fas fa-check text-primary d-none header-check" id="check-{{ $c->id }}"></i>
+                    </button>
+                    @endforeach
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Bottom Sheet Animation */
+    .modal-dialog-bottom {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        margin: 0;
+        width: 100%;
+        max-width: 100%;
+        transform: translate3d(0, 100%, 0);
+        transition: transform 0.3s ease-out;
+    }
+    .modal.show .modal-dialog-bottom {
+        transform: translate3d(0, 0, 0);
+    }
+</style>

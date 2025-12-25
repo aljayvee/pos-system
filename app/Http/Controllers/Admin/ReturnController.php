@@ -25,6 +25,11 @@ class ReturnController extends Controller
 
     public function store(Request $request, $saleId)
     {
+        // ADVANCED PERMISSION CHECK: refund.approve
+        if (!auth()->user()->hasPermission(\App\Enums\Permission::REFUND_APPROVE)) {
+            abort(403, 'You do not have permission to approve refunds.');
+        }
+
         $request->validate([
             'items' => 'required|array',
             'items.*.product_id' => 'required|exists:products,id',

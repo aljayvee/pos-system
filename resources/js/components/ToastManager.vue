@@ -1,5 +1,5 @@
 <template>
-  <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 1080;">
+  <div class="toast-container position-fixed end-0 p-3" style="z-index: 2000; top: 85px;">
      <transition-group name="toast-list">
         <Toast 
             v-for="toast in toasts" 

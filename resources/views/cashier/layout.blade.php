@@ -93,101 +93,123 @@
         });
     }
 </script>
-<body>
+<body class="d-flex flex-column h-100">
 
     {{-- NAVBAR --}}
-    <nav class="navbar navbar-expand-lg navbar-dark shadow-sm py-2 sticky-top">
-        <div class="container-fluid">
+    <nav class="navbar navbar-dark shadow-sm py-2 sticky-top d-none d-lg-block">
+        <div class="container-fluid d-flex align-items-center justify-content-between">
             
             {{-- BRAND --}}
-            <a class="navbar-brand fw-bold d-flex align-items-center me-auto" href="#">
+            <a class="navbar-brand fw-bold d-flex align-items-center" href="#">
                 <div class="bg-warning text-dark rounded-3 d-flex align-items-center justify-content-center me-2" style="width: 32px; height: 32px;">
                     <i class="fas fa-cash-register small"></i>
                 </div>
-                <span style="letter-spacing: -0.5px;">SariPOS</span>
+                <span style="letter-spacing: -0.5px;">VeraPOS</span>
             </a>
 
-            {{-- MOBILE ADMIN LINK --}}
-            @if(Auth::user()->role === 'admin')
-                <a class="btn btn-outline-warning btn-sm fw-bold me-3 d-lg-none rounded-pill px-3" href="{{ route('admin.dashboard') }}">
-                    Admin
-                </a>
-            @endif
-            
-            {{-- HAMBURGER --}}
-            <button class="navbar-toggler border-0 p-1" type="button" data-bs-toggle="collapse" data-bs-target="#mobileMenu">
+            {{-- DESKTOP MENU (Hidden on Mobile) --}}
+            <ul class="navbar-nav ms-auto d-none d-lg-flex flex-row align-items-center gap-3">
+                @if(Auth::user()->role !== 'cashier')
+                <li class="nav-item">
+                    <a class="btn btn-outline-light btn-sm fw-medium rounded-pill px-3 opacity-75 hover-opacity-100" href="{{ route('admin.dashboard') }}">
+                        Back to Admin
+                    </a>
+                </li>
+                @endif
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle text-white fw-medium d-flex align-items-center gap-2" href="#" role="button" data-bs-toggle="dropdown">
+                        <div class="bg-primary-subtle text-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
+                            <span class="small fw-bold">{{ substr(Auth::user()->name, 0, 1) }}</span>
+                        </div>
+                        {{ Auth::user()->name }}
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 rounded-4 mt-2 p-2">
+                        <li><a class="dropdown-item rounded-3" href="{{ route('profile.edit', ['context' => 'cashier']) }}">Profile Settings</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <form action="{{ route('logout') }}" method="POST">
+                                @csrf
+                                <button class="dropdown-item text-danger fw-bold rounded-3">Logout</button>
+                            </form>
+                        </li>
+                    </ul>
+                </li>
+            </ul>
+
+            {{-- HAMBURGER (Mobile Only) --}}
+            <button class="navbar-toggler border-0 p-1 d-lg-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#mobileNavDrawer">
                 <span class="navbar-toggler-icon"></span>
             </button>
-
-            {{-- MENU --}}
-            <div class="collapse navbar-collapse" id="mobileMenu">
-                
-                {{-- MOBILE CONTROL PANEL --}}
-                <div class="d-lg-none bg-white rounded-4 shadow-lg p-3 mt-3 border-top border-4 border-warning">
-                    <div class="d-flex align-items-center mb-4 p-2 bg-light rounded-3">
-                        <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 45px; height: 45px;">
-                            <span class="fw-bold">{{ substr(Auth::user()->name, 0, 1) }}</span>
-                        </div>
-                        <div>
-                            <div class="fw-bold text-dark">{{ Auth::user()->name }}</div>
-                            <div class="small text-muted">{{ Auth::user()->email }}</div>
-                        </div>
-                    </div>
-
-                    <div class="d-grid gap-2 mb-3">
-                        <button class="btn btn-light border py-2 text-start fw-bold text-secondary" onclick="openDebtorList()">
-                            <i class="fas fa-hand-holding-usd me-2 text-danger"></i> Pay Debt
-                        </button>
-                        <button class="btn btn-light border py-2 text-start fw-bold text-secondary" onclick="openReturnModal()">
-                            <i class="fas fa-undo me-2 text-warning"></i> Process Return
-                        </button>
-
-                        {{-- === ADDED: PROFILE SETTINGS BUTTON === --}}
-                        <a href="{{ route('profile.edit', ['context' => 'cashier']) }}" class="btn btn-light border py-2 text-start fw-bold text-secondary">
-                            <i class="fas fa-user-cog me-2 text-primary"></i> Profile Settings
-                        </a>
-                    </div>
-
-                    <form action="{{ route('logout') }}" method="POST">
-                        @csrf
-                        <button class="btn btn-danger w-100 rounded-pill fw-bold">Logout</button>
-                    </form>
-                </div>
-
-                {{-- DESKTOP MENU --}}
-                <ul class="navbar-nav ms-auto mb-2 mb-lg-0 d-none d-lg-flex align-items-center gap-3">
-                    @if(Auth::user()->role === 'admin')
-                    <li class="nav-item">
-                        <a class="btn btn-outline-light btn-sm fw-medium rounded-pill px-3 opacity-75 hover-opacity-100" href="{{ route('admin.dashboard') }}">
-                            Back to Admin
-                        </a>
-                    </li>
-                    @endif
-
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle text-white fw-medium d-flex align-items-center" href="#" role="button" data-bs-toggle="dropdown">
-                            <div class="bg-primary-subtle text-primary rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 32px; height: 32px;">
-                                <span class="small fw-bold">{{ substr(Auth::user()->name, 0, 1) }}</span>
-                            </div>
-                            {{ Auth::user()->name }}
-                        </a>
-                        <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 rounded-4 mt-2 p-2">
-                            <li><a class="dropdown-item rounded-3" href="{{ route('profile.edit', ['context' => 'cashier']) }}">Profile Settings</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li>
-                                <form action="{{ route('logout') }}" method="POST">
-                                    @csrf
-                                    <button class="dropdown-item text-danger fw-bold rounded-3">Logout</button>
-                                </form>
-                            </li>
-                        </ul>
-                    </li>
-                </ul>
-            </div>
         </div>
     </nav>
 
-    <div>@yield('content')</div>
+    {{-- MOBILE NAVIGATION DRAWER (Offcanvas) --}}
+    <div class="offcanvas offcanvas-start border-0" tabindex="-1" id="mobileNavDrawer" style="width: 80%; max-width: 320px;">
+        
+        {{-- Drawer Header: User Profile --}}
+        <div class="offcanvas-header bg-white border-bottom p-4 d-flex align-items-center justify-content-start gap-3">
+            <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center shadow-sm flex-shrink-0" style="width: 50px; height: 50px; font-size: 1.25rem;">
+                <span class="fw-bold">{{ substr(Auth::user()->name, 0, 1) }}</span>
+            </div>
+            <div class="d-flex flex-column overflow-hidden">
+                <h6 class="fw-bold mb-1 text-truncate text-dark">{{ Auth::user()->name }}</h6>
+                <small class="text-muted text-truncate">{{ Auth::user()->email }}</small>
+            </div>
+            
+        </div>
+
+        {{-- Drawer Body: Navigation Links --}}
+        <div class="offcanvas-body p-0 bg-light d-flex flex-column">
+            <div class="list-group list-group-flush bg-transparent mt-2">
+                
+                <a href="{{ route('profile.edit', ['context' => 'cashier']) }}" class="list-group-item list-group-item-action py-3 px-4 border-0 bg-transparent d-flex align-items-center gap-3">
+                    <i class="fas fa-user-cog text-secondary w-25px text-center"></i>
+                    <span class="fw-medium text-dark">Profile Settings</span>
+                </a>
+
+                <button class="list-group-item list-group-item-action py-3 px-4 border-0 bg-transparent d-flex align-items-center gap-3" onclick="bootstrap.Offcanvas.getInstance(document.getElementById('mobileNavDrawer')).hide(); requestAdminAuth(openDebtorList);">
+                   <i class="fas fa-hand-holding-usd text-secondary w-25px text-center"></i>
+                    <span class="fw-medium text-dark">Pay Debt</span>
+                </button>
+                
+                <button class="list-group-item list-group-item-action py-3 px-4 border-0 bg-transparent d-flex align-items-center gap-3" onclick="bootstrap.Offcanvas.getInstance(document.getElementById('mobileNavDrawer')).hide(); requestAdminAuth(openReturnModal);">
+                    <i class="fas fa-undo text-secondary w-25px text-center"></i>
+                    <span class="fw-medium text-dark">Return Items</span>
+                </button>
+
+            </div>
+
+             <div class="my-2 border-top"></div>
+
+            <div class="list-group list-group-flush bg-transparent">
+                 @if(Auth::user()->role !== 'cashier')
+                <a href="{{ route('admin.dashboard') }}" class="list-group-item list-group-item-action py-3 px-4 border-0 bg-transparent d-flex align-items-center gap-3">
+                    <i class="fas fa-th-large text-secondary w-25px text-center"></i>
+                    <span class="fw-medium text-dark">Back to Dashboard</span>
+                </a>
+                <div class="my-2 border-top"></div>
+                @endif
+                
+                 <form action="{{ route('logout') }}" method="POST" class="w-100">
+                    @csrf
+                     <button class="list-group-item list-group-item-action py-3 px-4 border-0 bg-transparent d-flex align-items-center gap-3 text-danger w-100">
+                        <i class="fas fa-sign-out-alt w-25px text-center"></i>
+                        <span class="fw-bold">Logout</span>
+                    </button>
+                </form>
+
+            </div>
+
+             {{-- Version/Footer --}}
+            <div class="mt-auto p-4 text-center text-muted opacity-50 small">
+                VeraPOS v{{ config('version.full') }}
+            </div>
+        </div>
+    </div>
+
+    <div class="flex-grow-1 overflow-hidden">@yield('content')</div>
+
+    @stack('modals')
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>

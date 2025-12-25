@@ -3,7 +3,15 @@
 @section('content')
 <div class="container-fluid px-2 py-3 px-md-4">
     
-    <div class="d-flex align-items-center justify-content-between mb-4">
+    {{-- MOBILE HEADER --}}
+    <div class="d-lg-none sticky-top bg-white border-bottom shadow-sm px-3 py-3 d-flex align-items-center justify-content-between z-3 mb-3" style="top: 0;">
+        <a href="{{ route('purchases.index') }}" class="text-dark"><i class="fas fa-times"></i></a>
+        <h6 class="m-0 fw-bold text-dark">New Stock In</h6>
+        <div style="width: 24px;"></div>
+    </div>
+
+    {{-- DESKTOP HEADER --}}
+    <div class="d-none d-lg-flex align-items-center justify-content-between mb-4">
         <h4 class="fw-bold text-dark mb-0"><i class="fas fa-cart-plus text-success me-2"></i>Restock Inventory</h4>
         <a href="{{ route('purchases.index') }}" class="btn btn-light border shadow-sm rounded-pill fw-bold">
             <i class="fas fa-times me-1"></i> Cancel
@@ -13,7 +21,7 @@
     <form action="{{ route('purchases.store') }}" method="POST" id="purchaseForm">
         @csrf
 
-        <div class="row g-4">
+        <div class="row g-4 mb-5 pb-5 mb-lg-0 pb-lg-0">
             
             {{-- SUPPLIER & DETAILS CARD --}}
             <div class="col-12">
@@ -33,13 +41,13 @@
                         <div class="row g-4">
                             <div class="col-md-4">
                                 <label class="form-label fw-bold small text-uppercase text-secondary">Purchase Date</label>
-                                <input type="date" name="purchase_date" class="form-control bg-light border-0" value="{{ date('Y-m-d') }}" required>
+                                <input type="date" name="purchase_date" class="form-control bg-light border-0 py-3" value="{{ date('Y-m-d') }}" required>
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label fw-bold small text-uppercase text-secondary">Select Supplier</label>
                                 <div class="input-group shadow-sm rounded-4 overflow-hidden">
                                     <span class="input-group-text bg-white border-0 ps-3"><i class="fas fa-user-tie text-secondary"></i></span>
-                                    <select name="supplier_id" id="supplier_select" class="form-select border-0 bg-white shadow-none">
+                                    <select name="supplier_id" id="supplier_select" class="form-select border-0 bg-white shadow-none py-3">
                                         <option value="">-- Choose Existing --</option>
                                         @foreach($suppliers as $supplier)
                                             <option value="{{ $supplier->id }}">{{ $supplier->name }}</option>
@@ -49,7 +57,7 @@
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label fw-bold small text-uppercase text-secondary">Or New Supplier</label>
-                                <input type="text" name="new_supplier_name" class="form-control bg-light border-0" placeholder="Type to create new...">
+                                <input type="text" name="new_supplier_name" class="form-control bg-light border-0 py-3" placeholder="Type to create new...">
                             </div>
                         </div>
                     </div>
@@ -69,7 +77,7 @@
                     <div class="card-body p-0 p-md-4 bg-light">
                         
                         {{-- HEADERS (Hidden on Mobile) --}}
-                        <div class="d-none d-md-flex row g-2 px-3 mb-2 fw-bold text-secondary small text-uppercase items-header">
+                        <div class="d-none d-lg-flex row g-2 px-3 mb-2 fw-bold text-secondary small text-uppercase items-header">
                             <div class="col-5">Product</div>
                             <div class="col-3">Quantity</div>
                             <div class="col-3">Unit Cost</div>
@@ -79,11 +87,11 @@
                         <div id="items_container">
                             {{-- Row 0 --}}
                             <div class="item-row card card-body shadow-sm border-0 mb-3 rounded-4 px-3 py-4" id="row_0">
-                                <div class="row g-3 align-items-end align-items-md-center">
+                                <div class="row g-3 align-items-end align-items-lg-center">
                                     {{-- Product --}}
-                                    <div class="col-12 col-md-5">
-                                        <label class="form-label d-md-none fw-bold small text-secondary">Product</label>
-                                        <select name="items[0][product_id]" class="form-select bg-light border-0 product-select" required onchange="updateCost(this)">
+                                    <div class="col-12 col-lg-5">
+                                        <label class="form-label d-lg-none fw-bold small text-secondary text-uppercase">Product</label>
+                                        <select name="items[0][product_id]" class="form-select bg-light border-0 product-select py-3" required onchange="updateCost(this)">
                                             <option value="" data-cost="0">Select Product...</option>
                                             @foreach($products as $product)
                                                 <option value="{{ $product->id }}" data-cost="{{ $product->cost ?? 0 }}">
@@ -93,22 +101,22 @@
                                         </select>
                                     </div>
                                     {{-- Qty --}}
-                                    <div class="col-6 col-md-3">
-                                        <label class="form-label d-md-none fw-bold small text-secondary">Quantity</label>
-                                        <input type="number" name="items[0][quantity]" class="form-control bg-light border-0 qty-input fw-bold text-center" placeholder="0" min="1" required oninput="calculateTotal()">
+                                    <div class="col-6 col-lg-3">
+                                        <label class="form-label d-lg-none fw-bold small text-secondary text-uppercase">Quantity</label>
+                                        <input type="number" name="items[0][quantity]" class="form-control bg-light border-0 qty-input fw-bold text-center py-3" placeholder="0" min="1" required oninput="calculateTotal()" inputmode="numeric">
                                     </div>
                                     {{-- Cost --}}
-                                    <div class="col-6 col-md-3">
-                                        <label class="form-label d-md-none fw-bold small text-secondary">Unit Cost</label>
+                                    <div class="col-6 col-lg-3">
+                                        <label class="form-label d-lg-none fw-bold small text-secondary text-uppercase">Unit Cost</label>
                                         <div class="input-group shadow-sm rounded-4 overflow-hidden">
                                             <span class="input-group-text bg-white border-0 px-3 text-secondary">₱</span>
-                                            <input type="number" name="items[0][unit_cost]" class="form-control bg-white border-0 cost-input fw-bold" placeholder="0.00" step="0.01" min="0" required oninput="calculateTotal()">
+                                            <input type="number" name="items[0][unit_cost]" class="form-control bg-white border-0 cost-input fw-bold py-3" placeholder="0.00" step="0.01" min="0" required oninput="calculateTotal()" inputmode="decimal">
                                         </div>
                                     </div>
                                     {{-- Remove --}}
-                                    <div class="col-12 col-md-1 text-end text-md-center">
-                                        <button type="button" class="btn btn-outline-danger w-100 w-md-auto rounded-pill border-0 bg-danger-subtle text-danger" onclick="removeRow(this)" disabled>
-                                            <i class="fas fa-trash"></i> <span class="d-md-none ms-2">Remove</span>
+                                    <div class="col-12 col-lg-1 text-end text-lg-center">
+                                        <button type="button" class="btn btn-outline-danger w-100 w-lg-auto rounded-pill border-0 bg-danger-subtle text-danger py-2" onclick="removeRow(this)" disabled>
+                                            <i class="fas fa-trash"></i> <span class="d-lg-none ms-2">Remove Item</span>
                                         </button>
                                     </div>
                                 </div>
@@ -122,7 +130,9 @@
                         </div>
 
                     </div>
-                    <div class="card-footer bg-white py-4 border-top-0 d-flex justify-content-end">
+                    
+                    {{-- DESKTOP FOOTER --}}
+                    <div class="card-footer bg-white py-4 border-top-0 d-none d-lg-flex justify-content-end">
                         <button type="submit" class="btn btn-success rounded-pill px-5 py-3 fw-bold shadow-lg text-uppercase tracking-wide">
                             <i class="fas fa-check-circle me-2"></i> Confirm Stock In
                         </button>
@@ -130,6 +140,13 @@
                 </div>
             </div>
 
+        </div>
+
+        {{-- MOBILE STICKY BOTTOM BAR --}}
+        <div class="d-lg-none position-fixed bottom-0 start-0 w-100 bg-white border-top p-3 z-3 shadow-lg">
+            <button type="submit" class="btn btn-dark w-100 py-3 rounded-pill fw-bold shadow-lg">
+                <i class="fas fa-check-circle me-2"></i> Confirm Stock In
+            </button>
         </div>
     </form>
 </div>
@@ -142,10 +159,10 @@
         const container = document.getElementById('items_container');
         const newRowHTML = `
             <div class="item-row card card-body shadow-sm border-0 mb-3 rounded-4 px-3 py-4 animate__animated animate__fadeIn" id="row_${rowCount}">
-                <div class="row g-3 align-items-end align-items-md-center">
-                    <div class="col-12 col-md-5">
-                        <label class="form-label d-md-none fw-bold small text-secondary">Product</label>
-                        <select name="items[${rowCount}][product_id]" class="form-select bg-light border-0 product-select" required onchange="updateCost(this)">
+                <div class="row g-3 align-items-end align-items-lg-center">
+                    <div class="col-12 col-lg-5">
+                        <label class="form-label d-lg-none fw-bold small text-secondary text-uppercase">Product</label>
+                        <select name="items[${rowCount}][product_id]" class="form-select bg-light border-0 product-select py-3" required onchange="updateCost(this)">
                             <option value="" data-cost="0">Select Product...</option>
                             @foreach($products as $product)
                                 <option value="{{ $product->id }}" data-cost="{{ $product->cost ?? 0 }}">
@@ -154,20 +171,20 @@
                             @endforeach
                         </select>
                     </div>
-                    <div class="col-6 col-md-3">
-                        <label class="form-label d-md-none fw-bold small text-secondary">Quantity</label>
-                        <input type="number" name="items[${rowCount}][quantity]" class="form-control bg-light border-0 qty-input fw-bold text-center" placeholder="0" min="1" required oninput="calculateTotal()">
+                    <div class="col-6 col-lg-3">
+                        <label class="form-label d-lg-none fw-bold small text-secondary text-uppercase">Quantity</label>
+                        <input type="number" name="items[${rowCount}][quantity]" class="form-control bg-light border-0 qty-input fw-bold text-center py-3" placeholder="0" min="1" required oninput="calculateTotal()" inputmode="numeric">
                     </div>
-                    <div class="col-6 col-md-3">
-                        <label class="form-label d-md-none fw-bold small text-secondary">Unit Cost</label>
+                    <div class="col-6 col-lg-3">
+                        <label class="form-label d-lg-none fw-bold small text-secondary text-uppercase">Unit Cost</label>
                         <div class="input-group shadow-sm rounded-4 overflow-hidden">
                             <span class="input-group-text bg-white border-0 px-3 text-secondary">₱</span>
-                            <input type="number" name="items[${rowCount}][unit_cost]" class="form-control bg-white border-0 cost-input fw-bold" placeholder="0.00" step="0.01" min="0" required oninput="calculateTotal()">
+                            <input type="number" name="items[${rowCount}][unit_cost]" class="form-control bg-white border-0 cost-input fw-bold py-3" placeholder="0.00" step="0.01" min="0" required oninput="calculateTotal()" inputmode="decimal">
                         </div>
                     </div>
-                    <div class="col-12 col-md-1 text-end text-md-center">
-                        <button type="button" class="btn btn-outline-danger w-100 w-md-auto rounded-pill border-0 bg-danger-subtle text-danger" onclick="removeRow(this)">
-                            <i class="fas fa-trash"></i> <span class="d-md-none ms-2">Remove</span>
+                    <div class="col-12 col-lg-1 text-end text-lg-center">
+                        <button type="button" class="btn btn-outline-danger w-100 w-lg-auto rounded-pill border-0 bg-danger-subtle text-danger py-2" onclick="removeRow(this)">
+                            <i class="fas fa-trash"></i> <span class="d-lg-none ms-2">Remove Item</span>
                         </button>
                     </div>
                 </div>

@@ -21,19 +21,26 @@
     {{-- 3. FOOTER --}}
     <div class="p-4 bg-white border-top flex-shrink-0" style="box-shadow: 0 -4px 12px rgba(0,0,0,0.02);">
         
-        {{-- Customer Selector --}}
+        {{-- Customer Selector (Button Trigger) --}}
         <div class="mb-3">
             <label class="small fw-bold text-muted text-uppercase mb-1" style="font-size: 0.7rem;">Customer</label>
-            <div class="input-group">
-                <span class="input-group-text bg-light border border-end-0"><i class="fas fa-user text-secondary"></i></span>
-                <select id="customer-id" class="form-select border bg-light fw-semibold text-dark py-2 shadow-none">
-                    <option value="walk-in" data-points="0" data-balance="0">Walk-in Customer</option>
-                    <option value="new">+ Create New Profile</option>
-                    @foreach($customers as $c)
-                        <option value="{{ $c->id }}" data-balance="{{ $c->balance ?? 0 }}">{{ $c->name }}</option>
-                    @endforeach
-                </select>
-            </div>
+            
+            <button class="btn btn-light border w-100 py-2 d-flex align-items-center justify-content-between shadow-sm rounded-3 bg-white customer-trigger-btn" 
+                    onclick="openCustomerModal()">
+                <div class="d-flex align-items-center overflow-hidden">
+                    <div class="bg-primary-subtle text-primary rounded-circle d-flex align-items-center justify-content-center me-2 flex-shrink-0" style="width: 32px; height: 32px;">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div class="d-flex flex-column align-items-start text-truncate">
+                        <span class="fw-bold text-dark lh-1 text-truncate" id="selected-customer-name">Walk-in Customer</span>
+                        <small class="text-muted" style="font-size: 0.7rem;">Select Profile</small>
+                    </div>
+                </div>
+                <i class="fas fa-chevron-right text-muted small ms-2"></i>
+            </button>
+            
+            {{-- Hidden Input for Logic Compatibility --}}
+            <input type="hidden" id="customer-id" value="walk-in">
         </div>
 
         {{-- Totals --}}

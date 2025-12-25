@@ -159,6 +159,11 @@
                     if (!form.checkValidity()) {
                         return;
                     }
+
+                    // Check if default was prevented (e.g. by onsubmit="return confirm(...)")
+                    if (e.defaultPrevented) {
+                        return;
+                    }
                     
                     // Allow preventing the loading screen if the form has a specific class, e.g. 'no-loading'
                     if (form.classList.contains('no-loading')) {

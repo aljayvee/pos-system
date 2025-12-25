@@ -35,16 +35,7 @@ Route::middleware(['auth', 'role:admin,manager,supervisor,stock_clerk,auditor'])
     // 1. INVENTORY MANAGEMENT
     // 1. INVENTORY MANAGEMENT
     Route::middleware(['role:inventory.view'])->group(function () {
-        // Read-Only Access
-        Route::resource('categories', CategoryController::class)->only(['index', 'show']);
-        Route::resource('products', ProductController::class)->only(['index', 'show']);
-        Route::get('/products/{product}/barcode', [ProductController::class, 'printBarcode'])->name('products.barcode'); // Print is read-only?
-        Route::resource('purchases', \App\Http\Controllers\Admin\PurchaseController::class)->only(['index', 'show']);
         
-        Route::get('/inventory', [InventoryController::class, 'index'])->name('inventory.index');
-        Route::get('/inventory/history', [InventoryController::class, 'history'])->name('inventory.history');
-        Route::get('/inventory/export', [InventoryController::class, 'export'])->name('inventory.export');
-
         // Write Access Restricted to 'inventory.edit'
         Route::middleware(['role:inventory.edit'])->group(function() {
              Route::resource('categories', CategoryController::class)->except(['index', 'show']);
@@ -58,6 +49,17 @@ Route::middleware(['auth', 'role:admin,manager,supervisor,stock_clerk,auditor'])
              Route::resource('purchases', \App\Http\Controllers\Admin\PurchaseController::class)->only(['create', 'store', 'destroy']);
         });
 
+        // Read-Only Access
+        Route::resource('categories', CategoryController::class)->only(['index', 'show']);
+        Route::get('/categories/{category}/products', [CategoryController::class, 'getProducts'])->name('categories.products');
+        Route::resource('products', ProductController::class)->only(['index', 'show']);
+        Route::get('/products/{product}/barcode', [ProductController::class, 'printBarcode'])->name('products.barcode'); // Print is read-only?
+        Route::resource('purchases', \App\Http\Controllers\Admin\PurchaseController::class)->only(['index', 'show']);
+        
+        Route::get('/inventory', [InventoryController::class, 'index'])->name('inventory.index');
+        Route::get('/inventory/history', [InventoryController::class, 'history'])->name('inventory.history');
+        Route::get('/inventory/export', [InventoryController::class, 'export'])->name('inventory.export');
+
         // Restrict Adjustment VIEW and ACTION to 'inventory.adjust' permission
         Route::middleware(['role:inventory.adjust'])->group(function() {
             Route::get('/inventory/adjust', [InventoryController::class, 'adjust'])->name('inventory.adjust');
@@ -68,6 +70,15 @@ Route::middleware(['auth', 'role:admin,manager,supervisor,stock_clerk,auditor'])
     // 2. FINANCE & CUSTOMERS (Using sales.view as base)
     // Customers/Suppliers/Credits usually linked to Sales
     Route::middleware(['role:sales.view,reports.view'])->group(function () {
+        
+        // WRITE Access (Admin & Manager Only)
+        // Adjust/Pay/Create/Edit/Delete
+        Route::middleware(['role:admin,manager'])->group(function() {
+            Route::resource('customers', \App\Http\Controllers\Admin\CustomerController::class)->except(['index', 'show']);
+            Route::resource('suppliers', \App\Http\Controllers\Admin\SupplierController::class)->except(['index', 'show']);
+            Route::post('/credits/{credit}/pay', [CreditController::class, 'storePayment'])->name('credits.pay'); 
+        });
+
         // READ-ONLY Access (Auditors, Supervisors, etc.)
         Route::resource('customers', \App\Http\Controllers\Admin\CustomerController::class)->only(['index', 'show']);
         Route::resource('suppliers', \App\Http\Controllers\Admin\SupplierController::class)->only(['index', 'show']);
@@ -76,14 +87,6 @@ Route::middleware(['auth', 'role:admin,manager,supervisor,stock_clerk,auditor'])
         Route::get('/credits/export', [CreditController::class, 'export'])->name('credits.export');
         Route::get('/credits/{credit}/history', [CreditController::class, 'history'])->name('credits.history');
         Route::get('/credits/payment-logs', [CreditController::class, 'paymentLogs'])->name('credits.logs');
-
-        // WRITE Access (Admin & Manager Only)
-        // Adjust/Pay/Create/Edit/Delete
-        Route::middleware(['role:admin,manager'])->group(function() {
-            Route::resource('customers', \App\Http\Controllers\Admin\CustomerController::class)->except(['index', 'show']);
-            Route::resource('suppliers', \App\Http\Controllers\Admin\SupplierController::class)->except(['index', 'show']);
-            Route::post('/credits/{credit}/pay', [CreditController::class, 'storePayment'])->name('credits.pay'); 
-        });
     });
 
     // 3. USER MANAGEMENT
@@ -110,6 +113,12 @@ Route::middleware(['auth', 'role:admin,manager,supervisor,stock_clerk,auditor'])
             
             Route::resource('users', UserController::class)->except(['index', 'show']);
         });
+    });
+
+    // CASH CONTROL (Admin/Manager)
+    Route::middleware(['role:admin,manager'])->group(function() {
+        Route::get('/adjustments', [\App\Http\Controllers\Admin\CashRegisterController::class, 'index'])->name('admin.adjustments');
+        Route::post('/register/approve/{id}', [\App\Http\Controllers\Cashier\CashRegisterController::class, 'processAdjustment'])->name('admin.register.approve');
     });
 
     // 4. REPORTS & ANALYTICS
@@ -153,8 +162,19 @@ Route::middleware(['auth', 'role:admin,manager,supervisor,stock_clerk,auditor'])
 
 });
 
+// CASH REGISTER ROUTES
+Route::middleware(['auth'])->group(function () {
+    Route::get('/cashier/register/status', [\App\Http\Controllers\Cashier\CashRegisterController::class, 'status']);
+    Route::post('/cashier/register/open', [\App\Http\Controllers\Cashier\CashRegisterController::class, 'open']);
+    Route::post('/cashier/register/close', [\App\Http\Controllers\Cashier\CashRegisterController::class, 'close']);
+    
+    // Manager/Admin Adjustments
+    Route::post('/admin/register/adjust', [\App\Http\Controllers\Cashier\CashRegisterController::class, 'requestAdjustment']);
+    Route::post('/admin/register/approve/{id}', [\App\Http\Controllers\Cashier\CashRegisterController::class, 'processAdjustment']);
+});
+
 // CASHIER Routes (Protected)
-Route::middleware(['auth', 'role:cashier,admin'])->prefix('cashier')->group(function () {
+Route::middleware(['auth', 'role:pos.access'])->prefix('cashier')->group(function () {
     Route::get('/pos', [POSController::class, 'index'])->name('cashier.pos');
     Route::post('/transaction', [POSController::class, 'store'])->name('cashier.store');
     Route::get('/receipt/{sale}', [POSController::class, 'showReceipt'])->name('cashier.receipt');

@@ -1,9 +1,9 @@
 @extends('admin.layout')
 
 @section('content')
-<div class="container-fluid px-2 py-3 px-md-4 py-md-4">
-    {{-- Header --}}
-    <div class="d-flex justify-content-between align-items-center mb-4">
+<div class="container-fluid px-0 px-md-4 py-0 py-md-4 bg-light h-100">
+    {{-- DESKTOP HEADER --}}
+    <div class="d-none d-lg-flex justify-content-between align-items-center mb-4 pt-4">
         <div>
             <h3 class="fw-bold text-dark m-0 tracking-tight">Edit Product</h3>
             <p class="text-muted small m-0">Updating details for: <strong>{{ $product->name }}</strong></p>
@@ -13,83 +13,123 @@
         </a>
     </div>
 
-    <form id="editProductForm" action="{{ route('products.update', $product->id) }}" method="POST" enctype="multipart/form-data">
+    {{-- MOBILE HEADER --}}
+    <div class="d-lg-none sticky-top bg-white border-bottom shadow-sm px-3 py-3 d-flex align-items-center justify-content-between z-3">
+        <a href="{{ route('products.index') }}" class="text-secondary fw-bold text-decoration-none small">Cancel</a>
+        <h6 class="m-0 fw-bold text-dark">Edit Product</h6>
+        <div style="width: 40px;"></div>
+    </div>
+
+    <form id="editProductForm" action="{{ route('products.update', $product->id) }}" method="POST" enctype="multipart/form-data" class="pb-5 mb-5 pb-lg-0 mb-lg-0">
         @csrf
         @method('PUT')
 
-        <div class="row g-4">
+        <div class="row g-0 g-lg-4">
             {{-- Left Column: Product Details --}}
             <div class="col-lg-8">
-                <div class="card shadow-lg border-0 rounded-4 mb-4">
-                    <div class="card-header bg-warning text-dark py-3 border-0">
+                
+                {{-- MOBILE: Image Upload (Top) --}}
+                <div class="d-lg-none bg-white p-4 text-center border-bottom mb-3">
+                    <div class="position-relative d-inline-block">
+                        <div class="rounded-4 d-flex align-items-center justify-content-center bg-light border" 
+                            style="width: 120px; height: 120px; overflow: hidden; cursor: pointer;" onclick="document.getElementById('mobileImageInput').click()">
+                            @if($product->image)
+                                <img id="mobileImagePreview" src="{{ asset('storage/' . $product->image) }}" alt="Preview" style="width: 100%; height: 100%; object-fit: cover;">
+                                <div id="mobilePlaceholderIcon" class="text-center" style="display: none;">
+                                    <i class="fas fa-camera text-secondary fa-2x opacity-50 mb-2"></i>
+                                    <div class="small text-muted fw-bold" style="font-size: 0.7rem;">Change Photo</div>
+                                </div>
+                            @else
+                                <img id="mobileImagePreview" src="#" alt="Preview" style="display: none; width: 100%; height: 100%; object-fit: cover;">
+                                <div id="mobilePlaceholderIcon" class="text-center">
+                                    <i class="fas fa-camera text-secondary fa-2x opacity-50 mb-2"></i>
+                                    <div class="small text-muted fw-bold" style="font-size: 0.7rem;">Add Photo</div>
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+                    <input type="file" id="mobileImageInput" name="image" class="d-none" accept="image/*" onchange="previewImage(this, 'mobileImagePreview', 'mobilePlaceholderIcon')">
+                </div>
+
+                {{-- Basic Info Card --}}
+                <div class="card shadow-sm border-0 rounded-0 rounded-lg-4 overflow-hidden mb-3 mb-lg-4 mx-0 mx-md-0">
+                    <div class="card-header bg-warning text-dark py-3 border-bottom d-none d-lg-block">
                         <h5 class="mb-0 fw-bold"><i class="fas fa-edit me-2"></i>Product Information</h5>
                     </div>
-                    <div class="card-body p-4">
+                    <div class="card-body p-3 p-lg-4">
                         {{-- Name --}}
-                        <div class="mb-4">
-                            <label class="form-label fw-bold small text-uppercase text-secondary">Product Name <span class="text-danger">*</span></label>
-                            <input type="text" name="name" class="form-control bg-light border-0" value="{{ $product->name }}" required>
+                        <div class="mb-3 mb-lg-4">
+                            <label class="form-label fw-bold small text-secondary d-none d-lg-block">PRODUCT NAME <span class="text-danger">*</span></label>
+                            <input type="text" name="name" class="form-control bg-light border-0 py-3 fw-bold text-dark fs-5" value="{{ $product->name }}" required>
                         </div>
 
                         {{-- Category & Unit --}}
-                        <div class="row g-4 mb-4">
-                            <div class="col-12 col-md-6">
-                                <label class="form-label fw-bold small text-uppercase text-secondary">Category <span class="text-danger">*</span></label>
-                                <select name="category_id" class="form-select bg-light border-0">
-                                    @foreach($categories as $cat)
-                                        <option value="{{ $cat->id }}" {{ $product->category_id == $cat->id ? 'selected' : '' }}>
-                                            {{ $cat->name }}
-                                        </option>
-                                    @endforeach
-                                </select>
+                        <div class="row g-2 g-lg-4 mb-0 mb-lg-4">
+                            <div class="col-6">
+                                <label class="form-label fw-bold small text-secondary d-none d-lg-block">Category <span class="text-danger">*</span></label>
+                                <div class="form-floating form-floating-custom">
+                                    <select name="category_id" class="form-select bg-light border-0 fw-bold" id="categorySelect">
+                                        @foreach($categories as $cat)
+                                            <option value="{{ $cat->id }}" {{ $product->category_id == $cat->id ? 'selected' : '' }}>
+                                                {{ $cat->name }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                    <label for="categorySelect" class="d-lg-none">Category</label>
+                                </div>
                             </div>
-                            <div class="col-12 col-md-6">
-                                <label class="form-label fw-bold small text-uppercase text-secondary">Unit <span class="text-danger">*</span></label>
-                                <select name="unit" class="form-select bg-light border-0" required>
-                                    @foreach(['pc','pack','kg','g','l','ml','box','bottle','can'] as $u)
-                                        <option value="{{ $u }}" {{ $product->unit == $u ? 'selected' : '' }}>{{ ucfirst($u) }}</option>
-                                    @endforeach
-                                </select>
+                            <div class="col-6">
+                                <label class="form-label fw-bold small text-secondary d-none d-lg-block">Unit <span class="text-danger">*</span></label>
+                                <div class="form-floating form-floating-custom">
+                                    <select name="unit" class="form-select bg-light border-0 fw-bold" id="unitSelect" required>
+                                        @foreach(['pc','pack','kg','g','l','ml','box','bottle','can'] as $u)
+                                            <option value="{{ $u }}" {{ $product->unit == $u ? 'selected' : '' }}>{{ ucfirst($u) }}</option>
+                                        @endforeach
+                                    </select>
+                                    <label for="unitSelect" class="d-lg-none">Unit</label>
+                                </div>
                             </div>
                         </div>
 
                         {{-- Pricing Section --}}
-                        <div class="p-4 bg-light rounded-4 mt-4 mb-4 border">
-                            <h6 class="fw-bold mb-3 text-dark"><i class="fas fa-tag me-2"></i>Pricing</h6>
+                        <div class="p-0 p-lg-4 bg-transparent bg-lg-light rounded-4 mt-3 mt-lg-4 mb-0 mb-lg-4 border-lg">
+                            <h6 class="fw-bold mb-3 text-dark d-none d-lg-block"><i class="fas fa-tag me-2"></i>Pricing</h6>
                             <div class="row g-3">
                                 <div class="col-12 col-md-6">
-                                    <label class="form-label fw-bold text-dark">Selling Price (SRP) <span class="text-danger">*</span></label>
-                                    <div class="input-group shadow-sm">
-                                        <span class="input-group-text bg-white border-0 text-success fw-bold">₱</span>
-                                        <input type="number" step="0.01" name="price" class="form-control border-0 fw-bold text-success" value="{{ $product->price }}" required>
+                                    <label class="form-label fw-bold text-dark d-none d-lg-block">Selling Price (SRP) <span class="text-danger">*</span></label>
+                                    <div class="input-group input-group-lg shadow-sm rounded-3 overflow-hidden border-0">
+                                        <span class="input-group-text bg-success bg-opacity-10 text-success fw-bold border-0 fs-5">₱</span>
+                                        <input type="number" step="0.01" name="price" class="form-control bg-light border-0 fw-bold fs-4 text-dark" value="{{ $product->price }}" required>
                                     </div>
+                                    <div class="form-text small d-lg-none ms-1">Selling Price</div>
                                 </div>
                                 <div class="col-12 col-md-6">
-                                    <label class="form-label text-muted">Cost Price (Puhanan)</label>
-                                    <div class="input-group shadow-sm">
-                                        <span class="input-group-text bg-white border-0 text-muted">₱</span>
-                                        <input type="number" step="0.01" name="cost" class="form-control border-0 text-muted" value="{{ $product->cost }}">
+                                    <label class="form-label text-muted d-none d-lg-block">Cost Price (Puhanan)</label>
+                                    <div class="input-group input-group-lg shadow-sm rounded-3 overflow-hidden border-0">
+                                        <span class="input-group-text bg-light border-0 text-muted fs-5">₱</span>
+                                        <input type="number" step="0.01" name="cost" class="form-control bg-light border-0 fw-bold fs-4 text-secondary" value="{{ $product->cost }}">
                                     </div>
+                                    <div class="form-text small d-lg-none ms-1">Cost Price (Optional)</div>
                                 </div>
                             </div>
                         </div>
 
-                        {{-- Image Upload --}}
-                        <div class="mb-2">
+                        {{-- DESKTOP: Image Upload --}}
+                        <div class="mb-2 d-none d-lg-block mt-4">
                             <label class="form-label fw-bold small text-uppercase text-secondary">Product Image</label>
                             <div class="d-flex align-items-center gap-3 p-3 border-0 bg-light rounded-4">
                                 <div class="rounded-4 d-flex align-items-center justify-content-center bg-white shadow-sm" 
                                     style="width: 80px; height: 80px; overflow: hidden; position: relative;">
                                     @if($product->image)
-                                        <img id="imagePreview" src="{{ asset('storage/' . $product->image) }}" alt="Product" style="width: 100%; height: 100%; object-fit: cover;">
-                                        <i id="placeholderIcon" class="fas fa-image text-muted fa-2x" style="display: none;"></i>
+                                        <img id="desktopImagePreview" src="{{ asset('storage/' . $product->image) }}" alt="Product" style="width: 100%; height: 100%; object-fit: cover;">
+                                        <i id="desktopPlaceholderIcon" class="fas fa-image text-muted fa-2x" style="display: none;"></i>
                                     @else
-                                        <img id="imagePreview" src="#" alt="Preview" style="display: none; width: 100%; height: 100%; object-fit: cover;">
-                                        <i id="placeholderIcon" class="fas fa-image text-muted fa-2x"></i>
+                                        <img id="desktopImagePreview" src="#" alt="Preview" style="display: none; width: 100%; height: 100%; object-fit: cover;">
+                                        <i id="desktopPlaceholderIcon" class="fas fa-image text-muted fa-2x"></i>
                                     @endif
                                 </div>
                                 <div class="flex-grow-1">
-                                    <input type="file" name="image" class="form-control bg-white border-0 shadow-sm" accept="image/*" onchange="previewImage(this)">
+                                    <input type="file" id="desktopImageInput" name="image" class="form-control bg-white border-0 shadow-sm" accept="image/*" onchange="previewImage(this, 'desktopImagePreview', 'desktopPlaceholderIcon')">
                                 </div>
                             </div>
                         </div>
@@ -101,52 +141,64 @@
             <div class="col-lg-4">
                 
                 {{-- Barcode Card --}}
-                <div class="card shadow-sm border-0 rounded-4 mb-4">
-                    <div class="card-header bg-white py-3 border-bottom-0">
+                <div class="card shadow-sm border-0 rounded-0 rounded-lg-4 mb-3 mb-lg-4">
+                    <div class="card-header bg-white py-3 border-bottom-0 d-none d-lg-block">
                         <h5 class="mb-0 text-dark fw-bold"><i class="fas fa-barcode me-2 text-secondary"></i>Barcode</h5>
                     </div>
-                    <div class="card-body pt-0">
+                    <div class="card-body p-3 p-lg-4">
                         <div class="mb-3">
-                            <label class="form-label small text-muted">SKU / Code</label>
+                            <label class="form-label small text-muted d-none d-lg-block">SKU / Code</label>
+                            <h6 class="fw-bold mb-3 d-lg-none d-flex align-items-center">
+                                <i class="fas fa-barcode me-2 text-secondary"></i> Barcode / SKU
+                            </h6>
                             <div class="input-group shadow-sm rounded-3 overflow-hidden">
                                 <span class="input-group-text bg-white border-0"><i class="fas fa-qrcode text-muted"></i></span>
-                                <input type="text" name="sku" class="form-control bg-white border-0 fw-bold" value="{{ $product->sku }}">
+                                <input type="text" name="sku" class="form-control bg-white border-0 fw-bold py-3" value="{{ $product->sku }}">
                             </div>
                         </div>
                     </div>
                 </div>
 
                 {{-- Inventory Card --}}
-                <div class="card shadow-sm border-0 rounded-4 mb-4">
-                    <div class="card-header bg-white py-3 border-bottom-0">
+                <div class="card shadow-sm border-0 rounded-0 rounded-lg-4 mb-3 mb-lg-4">
+                    <div class="card-header bg-white py-3 border-bottom-0 d-none d-lg-block">
                         <h5 class="mb-0 text-dark fw-bold"><i class="fas fa-warehouse me-2 text-warning"></i>Inventory</h5>
                     </div>
-                    <div class="card-body pt-0">
+                    <div class="card-body p-3 p-lg-4">
                         <div class="mb-3">
                             <label class="form-label fw-bold small text-secondary">Current Stock</label>
-                            <input type="number" name="stock" class="form-control bg-light border-0 text-muted" value="{{ $product->stock }}" readonly disabled style="cursor: not-allowed;">
-                            <div class="form-text small text-warning"><i class="fas fa-exclamation-circle me-1"></i> Stock levels are managed via <strong>Purchase History</strong> or <strong>Stock Adjustments</strong>.</div>
+                            <input type="number" name="stock" class="form-control bg-light border-0 text-muted p-3 fw-bold" value="{{ $product->stock }}" readonly disabled style="cursor: not-allowed;">
+                            <div class="form-text small text-warning mt-2"><i class="fas fa-exclamation-circle me-1"></i> Stock levels are managed via <strong>Purchase History</strong> or <strong>Stock Adjustments</strong>.</div>
                         </div>
-                        <div class="mb-3">
-                            <label class="form-label fw-bold small text-secondary">Reorder Point</label>
-                            <input type="number" name="reorder_point" class="form-control bg-light border-0" value="{{ $product->reorder_point }}">
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label fw-bold small text-secondary">Expiration Date</label>
-                            <input type="date" name="expiration_date" class="form-control bg-light border-0" 
-                                   value="{{ $product->expiration_date ? $product->expiration_date->format('Y-m-d') : '' }}">
+                        <div class="row g-2">
+                             <div class="col-12 mb-3">
+                                <label class="form-label fw-bold small text-secondary">Reorder Pt</label>
+                                <input type="number" name="reorder_point" class="form-control bg-light border-0 p-3 fw-bold" value="{{ $product->reorder_point }}">
+                            </div>
+                            <div class="col-12 mb-0">
+                                <label class="form-label fw-bold small text-secondary">Expiration</label>
+                                <input type="date" name="expiration_date" class="form-control bg-light border-0 p-3" 
+                                       value="{{ $product->expiration_date ? $product->expiration_date->format('Y-m-d') : '' }}">
+                            </div>
                         </div>
                     </div>
                 </div>
 
                 {{-- Action Buttons --}}
-                <div class="d-grid gap-2 mt-4">
+                <div class="d-none d-lg-grid gap-2 mt-4">
                     <button type="button" onclick="validateAndUpdate({{ $product->id }})" class="btn btn-warning btn-lg shadow-lg rounded-pill fw-bold text-dark">
                         <i class="fas fa-save me-2"></i> Update Product
                     </button>
                     <a href="{{ route('products.index') }}" class="btn btn-light rounded-pill text-muted fw-bold">Cancel Changes</a>
                 </div>
             </div>
+        </div>
+
+        {{-- MOBILE: Sticky Bottom Bar --}}
+        <div class="d-lg-none fixed-bottom bg-white border-top p-3 shadow-lg pb-4 pb-md-3">
+            <button type="button" onclick="validateAndUpdate({{ $product->id }})" class="btn btn-primary w-100 rounded-pill fw-bold py-3 text-uppercase ls-1">
+                Update Product
+            </button>
         </div>
     </form>
 </div>
@@ -188,6 +240,23 @@
         const form = document.getElementById('editProductForm');
         const csrfToken = document.querySelector('input[name="_token"]').value;
 
+        // Handle Image Input Conflict (Mobile vs Desktop)
+        const mobileInput = document.getElementById('mobileImageInput');
+        const desktopInput = document.getElementById('desktopImageInput');
+
+        // Reset names
+        mobileInput.removeAttribute('name');
+        desktopInput.removeAttribute('name');
+
+        if (mobileInput.files.length > 0) {
+            mobileInput.setAttribute('name', 'image');
+        } else if (desktopInput.files.length > 0) {
+            desktopInput.setAttribute('name', 'image');
+        } else {
+            // Default to desktop if no new file selected (backend handles optional image)
+            desktopInput.setAttribute('name', 'image');
+        }
+
         if (!name) { alert("Product Name is required"); return; }
 
         try {
@@ -211,9 +280,9 @@
         }
     }
 
-    function previewImage(input) {
-        const preview = document.getElementById('imagePreview');
-        const placeholder = document.getElementById('placeholderIcon');
+    function previewImage(input, previewId, placeholderId) {
+        const preview = document.getElementById(previewId);
+        const placeholder = document.getElementById(placeholderId);
         if (input.files && input.files[0]) {
             const reader = new FileReader();
             reader.onload = function(e) { preview.src = e.target.result; preview.style.display = 'block'; placeholder.style.display = 'none'; }

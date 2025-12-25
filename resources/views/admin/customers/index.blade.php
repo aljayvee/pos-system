@@ -3,8 +3,19 @@
 @section('content')
 <div class="container-fluid px-2 py-3 px-md-4 py-md-4">
     
+    {{-- MOBILE HEADER --}}
+    <div class="d-lg-none sticky-top bg-white border-bottom shadow-sm px-3 py-3 d-flex align-items-center justify-content-between z-3 mb-3" style="top: 0;">
+        <div style="width: 24px;"></div>
+        <h6 class="m-0 fw-bold text-dark">Customers</h6>
+        @if(auth()->user()->role !== 'auditor')
+        <a href="#" data-bs-toggle="modal" data-bs-target="#addCustomerModal" class="text-primary fw-bold">
+            <i class="fas fa-plus fa-lg"></i>
+        </a>
+        @endif
+    </div>
+
     {{-- HEADER --}}
-    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
+    <div class="d-none d-lg-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
         <div>
             <h4 class="fw-bold text-dark mb-1">
                 <i class="fas fa-users text-primary me-2"></i>Customer Management
@@ -112,7 +123,7 @@
                                 </div>
                             </td>
                         </tr>
-                        @include('admin.customers.partials.edit-modal', ['customer' => $customer])
+
                         @empty
                         <tr><td colspan="5" class="text-center py-5 text-muted">No customers found.</td></tr>
                         @endforelse
@@ -127,79 +138,105 @@
         @endif
     </div>
 
-    {{-- === MOBILE NATIVE VIEW === --}}
-    <div class="d-lg-none">
-        @forelse($customers as $customer)
-        <div class="card shadow-sm border-0 mb-3 rounded-4">
-            <div class="card-body p-3">
-                <div class="d-flex align-items-center mb-3">
-                    {{-- Avatar --}}
-                    <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center me-3" 
-                         style="width: 50px; height: 50px; font-weight: bold; font-size: 1.2rem;">
-                        {{ strtoupper(substr($customer->name, 0, 1)) }}
+    {{-- === MOBILE NATIVE VIEW (List) === --}}
+    <div class="d-lg-none menu-grid">
+        <div class="card shadow-sm border-0 rounded-4 overflow-hidden mb-5">
+            <ul class="list-group list-group-flush">
+                @forelse($customers as $customer)
+                <li class="list-group-item p-3 border-bottom-0 hover-bg-light" data-bs-toggle="modal" data-bs-target="#customerActionSheet-{{ $customer->id }}">
+                    <div class="d-flex align-items-center">
+                        <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center me-3" 
+                                style="width: 48px; height: 48px; font-weight: bold; font-size: 1.1rem;">
+                            {{ strtoupper(substr($customer->name, 0, 1)) }}
+                        </div>
+                        <div class="flex-grow-1">
+                            <h6 class="fw-bold text-dark mb-0">{{ $customer->name }}</h6>
+                            <div class="d-flex align-items-center gap-2 mt-1">
+                                @if($customer->points > 0)
+                                    <span class="badge bg-warning text-dark rounded-pill" style="font-size: 0.65rem;">
+                                        <i class="fas fa-star me-1"></i>{{ $customer->points }}
+                                    </span>
+                                @endif
+                                <small class="text-muted" style="font-size: 0.75rem;">
+                                    {{ $customer->contact ?? 'No Contact' }}
+                                </small>
+                            </div>
+                        </div>
+                        <i class="fas fa-chevron-right text-muted opacity-25"></i>
+                    </div>
+                </li>
+                @empty
+                <div class="text-center py-5 text-muted">
+                    <i class="fas fa-users fa-3x mb-3 text-light-gray opacity-25"></i>
+                    <p>No customers found.</p>
+                </div>
+                @endforelse
+            </ul>
+             @if($customers->hasPages()) 
+            <div class="p-3 border-top d-flex justify-content-center">
+                {{ $customers->links() }}
+            </div> 
+            @endif
+        </div>
+    </div>
+
+    {{-- MOBILE MODALS (Placed outside to avoid clipping) --}}
+    @foreach($customers as $customer)
+    <div class="modal fade" id="customerActionSheet-{{ $customer->id }}" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable fixed-bottom m-0" style="max-width: 100%;">
+            <div class="modal-content rounded-top-4 border-0 shadow-lg">
+                <div class="modal-header border-bottom-0 pb-0 justify-content-center">
+                    <div class="bg-secondary bg-opacity-25 rounded-pill" style="width: 40px; height: 5px;"></div>
+                </div>
+                <div class="modal-body pt-4 pb-4">
+                    <div class="text-center mb-4">
+                        <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3" 
+                                style="width: 60px; height: 60px; font-weight: bold; font-size: 1.5rem;">
+                            {{ strtoupper(substr($customer->name, 0, 1)) }}
+                        </div>
+                        <h5 class="fw-bold mb-1">{{ $customer->name }}</h5>
+                        <p class="text-muted small mb-0">{{ $customer->contact ?? 'No phone number' }}</p>
                     </div>
                     
-                    <div class="flex-grow-1">
-                        <h6 class="fw-bold text-dark mb-0">{{ $customer->name }}</h6>
-                        @if($customer->points > 0)
-                            <span class="badge bg-warning text-dark rounded-pill small mt-1">
-                                <i class="fas fa-star me-1"></i>{{ $customer->points }} pts
-                            </span>
+                    <div class="d-grid gap-3">
+                        <a href="{{ route('customers.show', $customer->id) }}" class="btn btn-light shadow-sm p-3 rounded-4 d-flex align-items-center justify-content-center gap-2 fw-bold text-dark">
+                            <i class="fas fa-eye fa-lg text-primary"></i> View Profile
+                        </a>
+                        
+                        @if($customer->contact)
+                        <a href="tel:{{ $customer->contact }}" class="btn btn-light shadow-sm p-3 rounded-4 d-flex align-items-center justify-content-center gap-2 fw-bold text-dark">
+                            <i class="fas fa-phone fa-lg text-success"></i> Call Customer
+                        </a>
+                        @endif
+
+                        @if(auth()->user()->role !== 'auditor')
+                        <button class="btn btn-light shadow-sm p-3 rounded-4 d-flex align-items-center justify-content-center gap-2 fw-bold text-dark" data-bs-toggle="modal" data-bs-target="#editCustomerModal-{{ $customer->id }}">
+                            <i class="fas fa-edit fa-lg text-warning"></i> Edit Details
+                        </button>
+                        
+                        <form action="{{ route('customers.destroy', $customer->id) }}" method="POST" onsubmit="return confirm('Do you really want to delete this customer?');">
+                            @csrf @method('DELETE')
+                            <button class="btn btn-light shadow-sm p-3 rounded-4 w-100 d-flex align-items-center justify-content-center gap-2 fw-bold text-danger">
+                                <i class="fas fa-trash fa-lg"></i> Delete Customer
+                            </button>
+                        </form>
                         @endif
                     </div>
-
-                    {{-- Quick Call --}}
-                    @if($customer->contact)
-                        <a href="tel:{{ $customer->contact }}" class="btn btn-success rounded-circle shadow-sm" style="width: 40px; height: 40px; padding: 0; display: flex; align-items: center; justify-content: center;">
-                            <i class="fas fa-phone-alt"></i>
-                        </a>
-                    @endif
-                </div>
-                
-                <div class="bg-light rounded-3 p-3 mb-3">
-                    <div class="d-flex align-items-center text-muted mb-2">
-                        <i class="fas fa-mobile-alt me-2 opacity-50" style="width: 20px; text-align: center;"></i> 
-                        {{ $customer->contact ?? 'No Contact Info' }}
-                    </div>
-                    <div class="d-flex align-items-start text-muted">
-                        <i class="fas fa-map-marker-alt me-2 opacity-50 mt-1" style="width: 20px; text-align: center;"></i> 
-                        <span>{{ $customer->address ?? 'No Address' }}</span>
-                    </div>
-                </div>
-
-                <div class="row g-2">
-                    <div class="col-12">
-                        <a href="{{ route('customers.show', $customer->id) }}" class="btn btn-light w-100 fw-bold border">
-                            View
-                        </a>
-                    </div>
-                    @if(auth()->user()->role !== 'auditor')
-                    <div class="col-6">
-                        <button class="btn btn-warning w-100 fw-bold text-dark" data-bs-toggle="modal" data-bs-target="#editCustomerModal-{{ $customer->id }}">
-                            Edit
-                        </button>
-                    </div>
-                    <div class="col-6">
-                        <form action="{{ route('customers.destroy', $customer->id) }}" method="POST" onsubmit="return confirm('Delete this customer?');">
-                            @csrf @method('DELETE')
-                            <button class="btn btn-outline-danger w-100 fw-bold border-2">Delete</button>
-                        </form>
-                    </div>
-                    @endif
                 </div>
             </div>
         </div>
-        @include('admin.customers.partials.edit-modal', ['customer' => $customer])
-        @empty
-        <div class="text-center py-5 text-muted">
-            <div class="mb-3">
-                <i class="fas fa-users fa-3x text-light-gray opacity-25"></i>
-            </div>
-            <h6 class="fw-bold text-secondary">No customers found</h6>
-        </div>
-        @endforelse
-        <div class="mt-4 d-flex justify-content-center">{{ $customers->links() }}</div>
     </div>
+    @include('admin.customers.partials.edit-modal', ['customer' => $customer])
+    @endforeach
+
+    {{-- FAB for Mobile --}}
+    @if(auth()->user()->role !== 'auditor')
+    <a href="#" class="btn btn-primary rounded-circle shadow-lg d-lg-none position-fixed d-flex align-items-center justify-content-center" 
+       data-bs-toggle="modal" data-bs-target="#addCustomerModal"
+       style="bottom: 20px; right: 20px; width: 60px; height: 60px; z-index: 1050;">
+        <i class="fas fa-plus fa-lg text-white"></i>
+    </a>
+    @endif
 
 </div>
 

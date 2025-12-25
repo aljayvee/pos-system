@@ -37,7 +37,7 @@
 
       <div class="flex-fill overflow-auto py-3 custom-scrollbar" :class="{ 'opacity-50 pe-none': isNavigating }" @click.capture="handleNavClick">
          
-         <div class="px-3 mb-4">
+         <div class="px-3 mb-4" v-if="can('pos.access')">
              <a href="/cashier/pos" class="btn btn-primary w-100 d-flex align-items-center justify-content-center py-2 shadow-sm text-uppercase fw-bold" style="letter-spacing: 0.5px;">
                  <i class="fas fa-cash-register"></i>
                  <span class="ms-2" v-show="isOpen || isMobile">Go to Cashier</span>
@@ -104,6 +104,12 @@
                     <a href="/admin/credits" class="nav-link d-flex align-items-center" :class="{ 'active': currentPath.includes('/credits') }">
                        <div class="icon-wrapper"><i class="fas fa-file-invoice-dollar"></i></div>
                        <span class="text-nowrap fade-text ms-2" v-show="isOpen || isMobile">Credits (Utang)</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="/admin/adjustments" class="nav-link d-flex align-items-center" :class="{ 'active': currentPath.includes('/adjustments') }">
+                       <div class="icon-wrapper"><i class="fas fa-sliders-h"></i></div>
+                       <span class="text-nowrap fade-text ms-2" v-show="isOpen || isMobile">Cash Adjustments</span>
                     </a>
                 </li>
              </template>
@@ -636,7 +642,7 @@ header.navbar {
     -webkit-backdrop-filter: blur(12px);
     border-bottom: 1px solid rgba(0, 0, 0, 0.05) !important;
     position: relative;
-    z-index: 1020; /* Ensure header is above content cards */
+    z-index: 1030; /* Ensure header is above content cards (1020) */
 }
 
 /* NOTIFICATION & ACCOUNT DROPDOWN PREMIUM */

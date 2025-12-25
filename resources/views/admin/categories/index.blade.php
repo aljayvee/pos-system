@@ -3,8 +3,15 @@
 @section('content')
 <div class="container-fluid px-2 py-3 px-md-4 py-md-4">
     
-    {{-- Header --}}
-    <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center mb-4 gap-3">
+    {{-- MOBILE HEADER --}}
+    <div class="d-lg-none sticky-top bg-white border-bottom shadow-sm px-3 py-3 d-flex align-items-center justify-content-between z-3 mb-3" style="top: 0;">
+        <div style="width: 40px;"></div> {{-- Spacer --}}
+        <h6 class="m-0 fw-bold text-dark">Categories</h6>
+        <div style="width: 40px;"></div> {{-- Spacer --}}
+    </div>
+
+    {{-- DESKTOP HEADER --}}
+    <div class="d-none d-lg-flex flex-column flex-sm-row justify-content-between align-items-sm-center mb-4 gap-3">
         <div>
             <h3 class="fw-bold text-dark m-0 tracking-tight">Category Management</h3>
             <p class="text-muted small m-0">Organize products into logical groups.</p>
@@ -16,13 +23,13 @@
         </div>
     </div>
 
-    <div class="row g-4">
+    <div class="row g-4 mb-5 pb-5 mb-lg-0 pb-lg-0">
         {{-- Main Content --}}
         <div class="col-lg-8">
             
             @if(auth()->user()->role !== 'auditor')
-            {{-- Add New Category Card --}}
-            <div class="card border-0 shadow-lg rounded-4 mb-4 overflow-hidden">
+            {{-- DESKTOP: Add New Category Card --}}
+            <div class="card border-0 shadow-lg rounded-4 mb-4 overflow-hidden d-none d-lg-block">
                 <div class="card-header bg-primary text-white py-3 border-0">
                     <h5 class="mb-0 fw-bold"><i class="fas fa-plus-circle me-2"></i>Add New Category</h5>
                 </div>
@@ -50,34 +57,43 @@
             @endif
 
             {{-- Categories List --}}
-            <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
-                <div class="card-header bg-white border-bottom border-light p-4">
+            <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4">
+                <div class="card-header bg-white border-bottom border-light p-4 d-none d-lg-block">
                     <h6 class="fw-bold text-dark mb-0">Existing Categories</h6>
                 </div>
                 <div class="card-body p-0">
                     <div class="list-group list-group-flush">
                         @forelse($categories as $cat)
-                        <div class="list-group-item p-3 d-flex align-items-center justify-content-between hover-bg-light transition-all">
+                        <div class="list-group-item p-3 d-flex align-items-center justify-content-between hover-bg-light transition-all" 
+                             onclick="handleCategoryClick({{ $cat->id }}, '{{ addslashes($cat->name) }}', {{ $cat->products_count }})" style="cursor: pointer;">
+                            
                             <div class="d-flex align-items-center gap-3">
                                 <div class="rounded-circle bg-primary bg-opacity-10 text-primary d-flex align-items-center justify-content-center shadow-sm" style="width: 48px; height: 48px;">
                                     <span class="fw-bold fs-5">{{ substr($cat->name, 0, 1) }}</span>
                                 </div>
                                 <div>
                                     <span class="fw-bold text-dark d-block fs-6">{{ $cat->name }}</span>
-                                    <!--<span class="text-muted x-small">ID: #{{ $cat->id }}</span>-->
+                                    <span class="badge {{ $cat->products_count > 0 ? 'bg-success' : 'bg-danger' }} bg-opacity-10 {{ $cat->products_count > 0 ? 'text-success' : 'text-danger' }} rounded-pill px-2 py-1" style="font-size: 0.7rem;">
+                                        <i class="fas {{ $cat->products_count > 0 ? 'fa-check-circle' : 'fa-times-circle' }} me-1"></i>
+                                        {{ $cat->products_count > 0 ? 'Products exist' : 'No products exist' }}
+                                    </span>
                                 </div>
                             </div>
                             
+                            {{-- Desktop Actions --}}
                             @if(auth()->user()->role !== 'auditor')
-                            <div class="d-flex gap-2">
-                                {{-- Edit Button (Trigger Modal) --}}
+                            <div class="d-none d-lg-flex gap-2" onclick="event.stopPropagation()">
+                                <button type="button" class="btn btn-light text-success btn-sm rounded-circle shadow-sm"
+                                        style="width: 36px; height: 36px;"
+                                        onclick="openProductListModal({{ $cat->id }}, '{{ addslashes($cat->name) }}')"
+                                        title="View Products">
+                                    <i class="fas fa-eye"></i>
+                                </button>
                                 <button type="button" class="btn btn-light text-primary btn-sm rounded-circle shadow-sm" 
                                         style="width: 36px; height: 36px;" 
                                         onclick="openEditModal({{ $cat->id }}, '{{ addslashes($cat->name) }}')" title="Edit">
                                     <i class="fas fa-edit"></i>
                                 </button>
-                                
-                                {{-- Delete Form --}}
                                 <form action="{{ route('categories.destroy', $cat) }}" method="POST" onsubmit="return confirm('Delete this category?');">
                                     @csrf @method('DELETE')
                                     <button class="btn btn-light text-danger btn-sm rounded-circle shadow-sm" 
@@ -85,6 +101,11 @@
                                         <i class="fas fa-trash-alt"></i>
                                     </button>
                                 </form>
+                            </div>
+                            
+                            {{-- Mobile Arrow --}}
+                            <div class="d-lg-none text-muted opacity-25">
+                                <i class="fas fa-chevron-right"></i>
                             </div>
                             @endif
                         </div>
@@ -104,7 +125,7 @@
         </div>
 
         {{-- Sidebar --}}
-        <div class="col-lg-4">
+        <div class="col-lg-4 d-none d-lg-block">
             {{-- Pro Tip --}}
             <div class="card border-0 shadow-sm rounded-4 bg-primary bg-gradient text-white overflow-hidden mb-4">
                 <div class="card-body p-4 position-relative">
@@ -136,35 +157,169 @@
             </div>
         </div>
     </div>
+    
+    {{-- FAB --}}
+    @if(auth()->user()->role !== 'auditor')
+    <div class="position-fixed d-lg-none" style="bottom: 90px; right: 20px; z-index: 1030;">
+        <button onclick="new bootstrap.Modal(document.getElementById('createCategoryModal')).show()" 
+            class="btn btn-primary rounded-circle shadow-lg d-flex align-items-center justify-content-center" 
+            style="width: 60px; height: 60px;">
+            <i class="fas fa-plus fa-lg text-white"></i>
+        </button>
+    </div>
+    @endif
+
 </div>
 
-{{-- EDIT MODAL --}}
-<div class="modal fade" id="editCategoryModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow-lg rounded-4">
-            <div class="modal-header bg-warning text-dark border-0">
-                <h5 class="modal-title fw-bold"><i class="fas fa-edit me-2"></i>Edit Category</h5>
+{{-- CREATE MODAL (Bottom Sheet on Mobile) --}}
+<div class="modal fade" id="createCategoryModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-fullscreen-sm-down" style="align-items: flex-end; margin-bottom: 0;">
+        <div class="modal-content border-0 shadow-lg rounded-top-5 rounded-4-lg">
+             <div class="modal-header border-0 pb-2 pt-4 justify-content-center d-lg-none">
+                <div style="width: 50px; height: 5px; background-color: #e0e0e0; border-radius: 10px;"></div>
+            </div>
+            <div class="modal-header border-0 pb-0 d-none d-lg-flex">
+                <h5 class="modal-title fw-bold"><i class="fas fa-plus-circle me-2"></i>New Category</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <form id="editCategoryForm" method="POST">
+            <form action="{{ route('categories.store') }}" method="POST">
                 @csrf
-                @method('PUT')
-                <div class="modal-body p-4">
-                    <div class="mb-3">
-                        <label class="form-label fw-bold small text-uppercase text-secondary">Category Name</label>
-                        <input type="text" name="name" id="editCategoryName" class="form-control form-control-lg bg-light border-0" required>
+                <div class="modal-body p-4 pt-0 pt-lg-4">
+                     <div class="text-center mb-4 d-lg-none">
+                        <h5 class="fw-bold text-dark m-0">New Category</h5>
                     </div>
-                </div>
-                <div class="modal-footer border-0 bg-light rounded-bottom-4">
-                    <button type="button" class="btn btn-light rounded-pill fw-bold" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" onclick="submitEditForm()" class="btn btn-warning rounded-pill fw-bold shadow-sm px-4">Update</button>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small text-uppercase text-secondary d-none d-lg-block">Category Name</label>
+                        <input type="text" name="name" class="form-control form-control-lg bg-light border-0 py-3 fw-bold" placeholder="Category Name" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100 py-3 rounded-pill fw-bold shadow-lg">Create Category</button>
+                    <button type="button" class="btn btn-white w-100 py-3 rounded-pill fw-bold text-muted mt-2 d-lg-none" data-bs-dismiss="modal">Cancel</button>
                 </div>
             </form>
         </div>
     </div>
 </div>
 
+{{-- EDIT MODAL (Bottom Sheet on Mobile) --}}
+<div class="modal fade" id="editCategoryModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-fullscreen-sm-down" style="align-items: flex-end; margin-bottom: 0;">
+        <div class="modal-content border-0 shadow-lg rounded-top-5 rounded-4-lg">
+             <div class="modal-header border-0 pb-2 pt-4 justify-content-center d-lg-none">
+                <div style="width: 50px; height: 5px; background-color: #e0e0e0; border-radius: 10px;"></div>
+            </div>
+            <div class="modal-header bg-warning text-dark border-0 d-none d-lg-flex">
+                <h5 class="modal-title fw-bold"><i class="fas fa-edit me-2"></i>Edit Category</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="editCategoryForm" method="POST">
+                @csrf
+                @method('PUT')
+                <div class="modal-body p-4 pt-0 pt-lg-4">
+                     <div class="text-center mb-4 d-lg-none">
+                        <h5 class="fw-bold text-dark m-0">Edit Category</h5>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small text-uppercase text-secondary d-none d-lg-block">Category Name</label>
+                        <input type="text" name="name" id="editCategoryName" class="form-control form-control-lg bg-light border-0 py-3 fw-bold" required>
+                    </div>
+                    <button type="button" onclick="submitEditForm()" class="btn btn-warning w-100 py-3 rounded-pill fw-bold shadow-lg text-dark">Update Category</button>
+                    <button type="button" class="btn btn-white w-100 py-3 rounded-pill fw-bold text-muted mt-2 d-lg-none" data-bs-dismiss="modal">Cancel</button>
+                </div>
+                {{-- Desktop Footer legacy support if needed, but styling above covers it --}}
+            </form>
+        </div>
+    </div>
+</div>
+
+{{-- ACTION SHEET (Mobile Only) --}}
+<div class="modal fade" id="categoryActionSheet" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-fullscreen-sm-down" style="align-items: flex-end; margin-bottom: 0;">
+        <div class="modal-content rounded-top-5 border-0 shadow-lg bg-light">
+            <div class="modal-header border-0 pb-2 pt-4 justify-content-center">
+                <div style="width: 50px; height: 5px; background-color: #e0e0e0; border-radius: 10px;"></div>
+            </div>
+            <div class="modal-body px-3 pb-4 pt-0">
+                <div class="text-center mb-4">
+                    <h5 class="fw-bold text-dark m-0" id="actionSheetTitle">Category</h5>
+                    <p class="text-muted small m-0">Select an action</p>
+                </div>
+
+                <div class="d-flex flex-column gap-2">
+                    <div class="bg-white rounded-4 overflow-hidden shadow-sm">
+                        {{-- View Products --}}
+                        <a href="#" id="actionViewProducts" class="btn btn-white w-100 p-3 text-start fw-bold d-flex align-items-center border-bottom text-dark">
+                            <div class="rounded-circle bg-success bg-opacity-10 text-success d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+                                <i class="fas fa-box"></i>
+                            </div>
+                            <span>View Products</span>
+                            <i class="fas fa-chevron-right ms-auto text-muted opacity-25"></i>
+                        </a>
+                        
+                        {{-- Edit --}}
+                        <a href="#" id="actionEdit" class="btn btn-white w-100 p-3 text-start fw-bold d-flex align-items-center border-bottom text-dark">
+                            <div class="rounded-circle bg-warning bg-opacity-10 text-warning d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+                                <i class="fas fa-pen"></i>
+                            </div>
+                            <span>Edit Name</span>
+                            <i class="fas fa-chevron-right ms-auto text-muted opacity-25"></i>
+                        </a>
+
+                        {{-- Delete --}}
+                        <form id="actionDeleteForm" action="#" method="POST" onsubmit="return confirm('Delete this category?');" class="w-100">
+                            @csrf @method('DELETE')
+                            <button class="btn btn-white w-100 p-3 text-start fw-bold d-flex align-items-center text-danger border-0">
+                                <div class="rounded-circle bg-danger bg-opacity-10 text-danger d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+                                    <i class="fas fa-trash"></i>
+                                </div>
+                                <span>Delete Category</span>
+                            </button>
+                        </form>
+                    </div>
+                    
+                    <button type="button" class="btn btn-white fw-bold py-3 rounded-4 shadow-sm text-dark mt-2" data-bs-dismiss="modal">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
+    // Handle Item Click (Desktop vs Mobile)
+    function handleCategoryClick(id, name, count) {
+        if (window.innerWidth < 992) { // lg breakpoint
+            openActionSheet(id, name, count);
+        }
+    }
+
+    function openActionSheet(id, name, count) {
+        document.getElementById('actionSheetTitle').innerText = name;
+        
+        // Setup View Products
+        const viewBtn = document.getElementById('actionViewProducts');
+        viewBtn.onclick = function() {
+            var myModal = bootstrap.Modal.getOrCreateInstance(document.getElementById('categoryActionSheet'));
+            myModal.hide();
+            openProductListModal(id, name);
+        };
+        // If no products, maybe disable? But user might want to see empty list. kept enabled.
+
+        // Setup Edit
+        const editBtn = document.getElementById('actionEdit');
+        editBtn.onclick = function() {
+            var myModal = bootstrap.Modal.getOrCreateInstance(document.getElementById('categoryActionSheet'));
+            myModal.hide();
+            openEditModal(id, name);
+        };
+
+        // Setup Delete
+        const deleteForm = document.getElementById('actionDeleteForm');
+        deleteForm.action = `/admin/categories/${id}`;
+
+        new bootstrap.Modal(document.getElementById('categoryActionSheet')).show();
+    }
+
     function openEditModal(id, name) {
         // Set Action URL dynamically
         const form = document.getElementById('editCategoryForm');
@@ -187,4 +342,5 @@
     .x-small { font-size: 0.75rem; }
     .transition-all { transition: all 0.2s ease-in-out; }
 </style>
+@include('admin.categories.partials.product-list-modal')
 @endsection

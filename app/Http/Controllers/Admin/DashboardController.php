@@ -14,33 +14,38 @@ use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
-    public function index()
+    public function index(\App\Services\AnalyticsService $analyticsService)
     {
-        $today = \Carbon\Carbon::today();
+        $today = \Carbon\Carbon::today()->toDateString();
         $startOfMonth = \Carbon\Carbon::now()->startOfMonth();
 
         // 1. DETERMINE ACTIVE STORE
         $multiStoreEnabled = \App\Models\Setting::where('key', 'enable_multi_store')->value('value') ?? '0';
         $storeId = ($multiStoreEnabled == '1') ? session('active_store_id', auth()->user()->store_id ?? 1) : 1;
 
-        // 2. SALES METRICS
+        // 2. FETCH ANALYTICS VIA SERVICE
+        $salesMetrics = $analyticsService->getDailySalesMetrics($storeId, $today);
+        $profitMetrics = $analyticsService->getDailyProfitMetrics($storeId, $today, $salesMetrics['net_sales'], $salesMetrics['returns_collection']);
+        $cashFlowMetrics = $analyticsService->getDailyCashFlow($storeId, $today);
+
+        // Map to View Variables
+        $salesToday = $salesMetrics['net_sales'];
+        $profitToday = $profitMetrics['profit'];
+        $transactionCountToday = $salesMetrics['transaction_count'];
+        
+        // New Cash Flow Variables
+        $debtCollectionsToday = $cashFlowMetrics['collections'];
+        $estCashInDrawer = $cashFlowMetrics['net_cash_flow']; // Cash Sales + Collections - Cash Refunds
+        
+        // Monthly Net Sales (Keep simple logic here or move to service later)
         $salesQuery = \App\Models\Sale::where('store_id', $storeId);
-        $salesToday = (clone $salesQuery)->whereDate('created_at', $today)->sum('total_amount');
-        $salesMonth = (clone $salesQuery)->where('created_at', '>=', $startOfMonth)->sum('total_amount');
-        $transactionCountToday = (clone $salesQuery)->whereDate('created_at', $today)->count();
+        $grossSalesMonth = (clone $salesQuery)->where('created_at', '>=', $startOfMonth)->sum('total_amount');
+        $refundsMonth = \App\Models\SalesReturn::whereHas('sale', function($q) use ($storeId) {
+            $q->where('store_id', $storeId);
+        })->where('created_at', '>=', $startOfMonth)->sum('refund_amount');
+        $salesMonth = $grossSalesMonth - $refundsMonth;
+
         $totalCredits = \App\Models\CustomerCredit::where('is_paid', false)->sum('remaining_balance');
-
-        // 3. PROFIT CALCULATION
-        $soldItemsToday = \App\Models\SaleItem::whereHas('sale', function($q) use ($today, $storeId) {
-            $q->where('store_id', $storeId)->whereDate('created_at', $today);
-        })->with('product')->get();
-
-        $totalCostToday = 0;
-        foreach($soldItemsToday as $item) {
-            $cost = $item->cost > 0 ? $item->cost : ($item->product->cost ?? 0);
-            $totalCostToday += ($cost * $item->quantity);
-        }
-        $profitToday = $salesToday - $totalCostToday;
 
         // 4. LOW STOCK LOGIC (FIXED)
         $lowStockItems = \Illuminate\Support\Facades\DB::table('inventories')
@@ -104,7 +109,7 @@ class DashboardController extends Controller
         return view('admin.dashboard', compact(
             'salesToday', 'salesMonth', 'transactionCountToday', 'totalCredits', 
             'lowStockItems', 'outOfStockItems', 'chartLabels', 'chartValues', 'profitToday',
-            'expiringItems'
+            'expiringItems', 'debtCollectionsToday', 'estCashInDrawer'
         ));
     }
 }
