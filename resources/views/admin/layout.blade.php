@@ -13,6 +13,35 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 
     <meta name="csrf-token" content="{{ csrf_token() }}">
+
+    <style>
+        #global-loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            z-index: 9999;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            color: white;
+            font-family: 'Inter', sans-serif; /* Assuming Inter is used, fallback to sans-serif */
+        }
+        
+        #global-loading-overlay .spinner-border {
+            width: 3rem;
+            height: 3rem;
+            margin-bottom: 15px;
+        }
+
+        #global-loading-overlay h5 {
+            font-weight: 500;
+            letter-spacing: 0.5px;
+        }
+    </style>
 </head>
 <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -89,6 +118,14 @@
         <offline-indicator></offline-indicator>
     </div>
 
+    <!-- Global Loading Overlay -->
+    <div id="global-loading-overlay">
+        <div class="spinner-border text-light" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+        <h5 class="mt-3">Loading, please wait...</h5>
+    </div>
+
     {{-- 1. ADD THIS: Bootstrap JS Bundle (Required for Modals) --}}
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     
@@ -105,6 +142,82 @@
             'warning' => session('warning'),
             'info' => session('info')
         ]) !!};
+
+        // Loading Overlay Logic
+        document.addEventListener('DOMContentLoaded', function() {
+            const overlay = document.getElementById('global-loading-overlay');
+            
+            function showLoading() {
+                overlay.style.display = 'flex';
+            }
+
+            // 1. Form Submissions
+            const forms = document.querySelectorAll('form');
+            forms.forEach(form => {
+                form.addEventListener('submit', function(e) {
+                    // Check if the form is invalid (standard HTML validation)
+                    if (!form.checkValidity()) {
+                        return;
+                    }
+                    
+                    // Allow preventing the loading screen if the form has a specific class, e.g. 'no-loading'
+                    if (form.classList.contains('no-loading')) {
+                        return;
+                    }
+
+                    showLoading();
+                });
+            });
+
+            // 2. Global Navigation Links (exclude target="_blank", #links, and specific classes)
+            document.addEventListener('click', function(e) {
+                const link = e.target.closest('a');
+                
+                if (link) {
+                    const href = link.getAttribute('href');
+                    const target = link.getAttribute('target');
+
+                    // Skip if:
+                    // - It's a hash link (#)
+                    // - It opens in a new tab
+                    // - It has 'no-loading' class
+                    // - It's a javascript: protocol
+                    // - It is strictly a download link (optional check, dependent on attr)
+                    if (
+                        !href || 
+                        href.startsWith('#') || 
+                        href.startsWith('javascript:') || 
+                        target === '_blank' || 
+                        link.classList.contains('no-loading') ||
+                        link.dataset.toggle === 'modal' || // Bootstrap modals
+                        link.dataset.bsToggle === 'modal'  // Bootstrap 5 modals
+                    ) {
+                        return;
+                    }
+
+                    // Special handling for your existing .single-click-link (combine logic)
+                    if (link.classList.contains('single-click-link')) {
+                         // The existing logic already adds a smaller spinner, but we can also show the generic overlay 
+                         // if we want a full screen block. 
+                         // For now, let's respect the user's request for "Loading, please wait..."
+                         showLoading();
+                         return;
+                    }
+
+                    // Check if it's an internal link
+                    if (href.startsWith(window.location.origin) || href.startsWith('/')) {
+                        showLoading();
+                    }
+                }
+            });
+
+            // Fallback: Hide overlay if page acts restored (bfcache)
+            window.addEventListener('pageshow', function(event) {
+                if (event.persisted) {
+                    overlay.style.display = 'none';
+                }
+            });
+        });
 
         // GLOBAL: Prevent Double Clicks & Lock Navigation on Reports
         document.addEventListener('click', function(e) {
