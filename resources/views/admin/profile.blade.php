@@ -29,7 +29,7 @@
                         </div>
                     @endif
 
-                    <form action="{{ route('profile.update') }}" method="POST">
+                    <form action="{{ route('profile.update') }}" method="POST" onsubmit="const btn = this.querySelector('button[type=submit]'); btn.disabled = true; btn.innerHTML = '<i class=\'fas fa-spinner fa-spin me-2\'></i> Updating...';">
                         @csrf
                         
                         <div class="row mb-4">

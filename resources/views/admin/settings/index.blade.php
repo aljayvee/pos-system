@@ -245,6 +245,18 @@
                                 </div>
                             </li>
                             
+                            <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                                <div>
+                                    <div class="fw-bold">Register Cash Logs</div>
+                                    <small class="text-muted">Enable history and logs for cash registers</small>
+                                </div>
+                                <div class="form-check form-switch">
+                                    <input type="hidden" name="enable_register_logs" value="0">
+                                    <input class="form-check-input" type="checkbox" name="enable_register_logs" value="1" 
+                                        {{ ($settings['enable_register_logs'] ?? '0') == '1' ? 'checked' : '' }}>
+                                </div>
+                            </li>
+                            
                             @if(config('safety_flag_features.multi_store'))
                             <li class="list-group-item px-0">
                                 <div class="d-flex justify-content-between align-items-center">

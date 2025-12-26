@@ -28,8 +28,9 @@ class DashboardController extends Controller
         $profitMetrics = $analyticsService->getDailyProfitMetrics($storeId, $today, $salesMetrics['net_sales'], $salesMetrics['returns_collection']);
         $cashFlowMetrics = $analyticsService->getDailyCashFlow($storeId, $today);
 
-        // Map to View Variables
+        // Map toView Variables
         $salesToday = $salesMetrics['net_sales'];
+        $realizedSalesToday = $salesMetrics['realized_sales']; // [NEW]
         $profitToday = $profitMetrics['profit'];
         $transactionCountToday = $salesMetrics['transaction_count'];
         
@@ -107,7 +108,7 @@ class DashboardController extends Controller
         }
 
         return view('admin.dashboard', compact(
-            'salesToday', 'salesMonth', 'transactionCountToday', 'totalCredits', 
+            'salesToday', 'realizedSalesToday', 'salesMonth', 'transactionCountToday', 'totalCredits', 
             'lowStockItems', 'outOfStockItems', 'chartLabels', 'chartValues', 'profitToday',
             'expiringItems', 'debtCollectionsToday', 'estCashInDrawer'
         ));

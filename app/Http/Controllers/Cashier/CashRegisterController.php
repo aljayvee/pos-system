@@ -31,6 +31,11 @@ class CashRegisterController extends Controller
     // 2. OPEN REGISTER
     public function open(Request $request)
     {
+        // [SECURITY] Only Admins can open the register
+        if (Auth::user()->role !== 'admin') {
+            return response()->json(['success' => false, 'message' => 'Unauthorized. Only Admins can open the register.'], 403);
+        }
+
         $request->validate(['opening_amount' => 'required|numeric|min:0']);
 
         $storeId = session('active_store_id', auth()->user()->store_id ?? 1);
@@ -46,6 +51,9 @@ class CashRegisterController extends Controller
     // 3. CLOSE REGISTER
     public function close(Request $request)
     {
+        // [SECURITY] Anyone with a valid session can close it (Cashier/Admin)
+        // Checks are handled by service ensuring the session belongs to user (or user is admin)
+
         $request->validate([
             'closing_amount' => 'required|numeric|min:0',
             'session_id' => 'required|exists:cash_register_sessions,id'

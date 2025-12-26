@@ -10,12 +10,19 @@ class CashRegisterController extends Controller
 {
     public function index()
     {
-        // Fetch only PENDING adjustments
+        // 1. Fetch PENDING adjustments (Action Items)
         $adjustments = CashRegisterAdjustment::with(['user', 'session'])
             ->where('status', 'pending')
             ->orderBy('created_at', 'desc')
             ->get();
 
-        return view('admin.approvals.index', compact('adjustments'));
+        // 2. Fetch Session History (Logs) - Latest 50
+        $logs = \App\Models\CashRegisterSession::with(['user'])
+            ->where('status', 'closed')
+            ->orderBy('closed_at', 'desc')
+            ->limit(50)
+            ->get();
+
+        return view('admin.approvals.index', compact('adjustments', 'logs'));
     }
 }

@@ -59,6 +59,11 @@ class ReportController extends Controller
         $sales = $query->get();
         $salesIds = $sales->pluck('id');
 
+        // Fetch sold items for cost calculation
+        $soldItems = SaleItem::with(['sale', 'product'])
+            ->whereIn('sale_id', $salesIds)
+            ->get();
+
         // 4. Calculate Financials (NET SALES LOGIC)
         $gross_sales = $sales->sum('total_amount');
         
@@ -72,43 +77,121 @@ class ReportController extends Controller
         $credit_sales = $sales->where('payment_method', 'credit')->sum('total_amount');
         $digital_sales = $sales->where('payment_method', 'digital')->sum('total_amount');
 
-        // Tithes (Based on Net)
+        // [FIX] Realized Revenue (Cash Basis) for Tithes
+        // 1. Calculate Credit Collections for the period
+        $collectionQuery = \App\Models\CreditPayment::query();
+        if ($targetStore !== 'all') {
+             $collectionQuery->whereHas('credit.sale', function($q) use ($targetStore) {
+                $q->where('store_id', $targetStore);
+             });
+        }
+        
+        // Match Date Filter
+        if ($type === 'daily') {
+            $collectionQuery->whereDate('payment_date', $startDate);
+        } elseif ($type === 'weekly') {
+            $startW = Carbon::parse($startDate)->startOfWeek();
+            $endW = Carbon::parse($startDate)->endOfWeek();
+            $collectionQuery->whereBetween('payment_date', [$startW, $endW]);
+        } elseif ($type === 'monthly') {
+             $collectionQuery->whereMonth('payment_date', Carbon::parse($startDate)->month)
+                             ->whereYear('payment_date', Carbon::parse($startDate)->year);
+        }
+        $collected_amount = $collectionQuery->sum('amount');
+
+        // 2. Calculate Cash Refunds only
+        $cash_refunds = $returns->filter(function($ret) {
+            return $ret->sale && $ret->sale->payment_method !== 'credit';
+        })->sum('refund_amount');
+
+        // 3. Realized Revenue = (Cash + Digital + Collections) - Cash Refunds
+        $realized_revenue = ($cash_sales + $digital_sales + $collected_amount) - $cash_refunds;
+
+        // Tithes (Based on Realized / Cash Basis)
         $tithesEnabled = \App\Models\Setting::where('key', 'enable_tithes')->value('value') ?? '1'; 
-        $tithesAmount = ($tithesEnabled == '1') ? $total_sales * 0.10 : 0;
+        $tithesAmount = ($tithesEnabled == '1') ? max(0, $realized_revenue * 0.10) : 0;
 
         // Gross Profit Calculation (Sales - Cost - Returns)
-        $soldItems = SaleItem::whereIn('sale_id', $salesIds)->with('product')->get();
-        $total_cost = 0;
-        foreach ($soldItems as $item) {
-            $itemCost = ($item->cost > 0) ? $item->cost : ($item->product->cost ?? 0);
-            $total_cost += ($itemCost * $item->quantity);
-        }
+        // Gross Profit Calculation (Realized / Cash Basis)
+        
+        // A. Profit from Cash Sales
+        // Filter soldItems to only include those from Cash/Digital sales
+        $cashSoldItems = $soldItems->filter(function($item) {
+             return $item->sale && in_array($item->sale->payment_method, ['cash', 'digital']);
+        });
 
-        // Calculate Cost of Returns to deduct from Total Cost (Recovered Inventory Value)
-        $cost_of_returns = 0;
-        foreach ($returns as $ret) {
-            // Find original cost from the specific sale item if available
-            $originalItem = null;
-            if ($ret->sale && $ret->sale->saleItems) {
-                $originalItem = $ret->sale->saleItems->where('product_id', $ret->product_id)->first();
+        $cashSalesCost = 0;
+        foreach ($cashSoldItems as $item) {
+            $itemCost = ($item->cost > 0) ? $item->cost : ($item->product->cost ?? 0);
+            $cashSalesCost += ($itemCost * $item->quantity);
+        }
+        $cashSalesRev = $sales->whereIn('payment_method', ['cash', 'digital'])->sum('total_amount');
+        $cashProfit = $cashSalesRev - $cashSalesCost;
+
+        // B. Profit from Collections 
+        // We need to fetch the actual collection records, not just the sum
+        // Reuse the query logic from earlier but get models
+        $collectionQueryModels = \App\Models\CreditPayment::query();
+        if ($targetStore !== 'all') {
+             $collectionQueryModels->whereHas('credit.sale', function($q) use ($targetStore) {
+                $q->where('store_id', $targetStore);
+             });
+        }
+        if ($type === 'daily') {
+            $collectionQueryModels->whereDate('payment_date', $startDate);
+        } elseif ($type === 'weekly') {
+            $collectionQueryModels->whereBetween('payment_date', [$startW, $endW]);
+        } elseif ($type === 'monthly') {
+             $collectionQueryModels->whereMonth('payment_date', Carbon::parse($startDate)->month)
+                                   ->whereYear('payment_date', Carbon::parse($startDate)->year);
+        }
+        
+        $collectionsParam = $collectionQueryModels->with(['credit.sale.saleItems'])->get();
+        
+        $collectionProfit = 0;
+        foreach ($collectionsParam as $payment) {
+            $sale = $payment->credit->sale ?? null;
+            if (!$sale) continue;
+            
+            $saleTotal = $sale->total_amount > 0 ? $sale->total_amount : 1;
+            $paymentRatio = $payment->amount / $saleTotal;
+
+            // Calculate Original Cost
+            $saleTotalCost = 0;
+            if ($sale->saleItems) {
+                foreach ($sale->saleItems as $sItem) {
+                    $c = $sItem->cost > 0 ? $sItem->cost : ($sItem->product->cost ?? 0);
+                    $saleTotalCost += ($c * $sItem->quantity);
+                }
             }
             
-            // Use original sale cost, or current product cost as fallback
-            $returnUnitCost = 0;
-            if ($originalItem && $originalItem->cost > 0) {
-                $returnUnitCost = $originalItem->cost;
-            } else {
-                $returnUnitCost = $ret->product->cost ?? 0;
-            }
-
-            $cost_of_returns += ($returnUnitCost * $ret->quantity);
+            $recoveredCost = $saleTotalCost * $paymentRatio;
+            $collectionProfit += ($payment->amount - $recoveredCost);
         }
 
-        // Net Cost = Cost of Sales - Cost of Returns
-        $net_cost = $total_cost - $cost_of_returns;
+        // C. Profit Lost on Cash Returns
+        // We only deduct profit if we refunded pure cash (since Credit Refunds don't affect realized profit yet)
+        $cashReturns = $returns->filter(fn($r) => $r->sale && $r->sale->payment_method !== 'credit');
+        $cashRefundAmount = $cashReturns->sum('refund_amount');
         
-        // Gross Profit = Net Sales - Net Cost
-        $gross_profit = $total_sales - $net_cost; 
+        $cashReturnCost = 0;
+        foreach ($cashReturns as $ret) {
+             $originalItem = null;
+             if ($ret->sale && $ret->sale->saleItems) {
+                 $originalItem = $ret->sale->saleItems->where('product_id', $ret->product_id)->first();
+             }
+             $uCost = ($originalItem && $originalItem->cost > 0) ? $originalItem->cost : ($ret->product->cost ?? 0);
+             $cashReturnCost += ($uCost * $ret->quantity);
+        }
+        $profitLost = $cashRefundAmount - $cashReturnCost;
+
+        // FINAL GROSS PROFIT (Realized)
+        $gross_profit = $cashProfit + $collectionProfit - $profitLost;
+        
+        // Maintain legacy variables for view if needed, or just overwrite
+        // We set $total_cost and $net_cost to simplified values or 0 as they are less relevant in Hybrid Cash Basis
+        // But let's calculate them for the Cash portion so "Margin" makes sense if calculated.
+        $net_cost = $cashSalesCost + ($collectionProfit > 0 ? ($collected_amount - $collectionProfit) : 0); // Approximation 
 
         // 5. Analytics Data
         // 5. Analytics Data (NET Basis)
@@ -201,7 +284,7 @@ class ReportController extends Controller
 
         return view('admin.reports.index', compact(
             'sales', 'total_sales', 'gross_sales', 'total_returns', 'total_transactions', 
-            'cash_sales', 'credit_sales', 'digital_sales',
+            'cash_sales', 'credit_sales', 'digital_sales', 'collected_amount', 'realized_revenue',
             'type', 'startDate', 'endDate', 'date',
             'topItems', 'topCustomers', 'salesByCategory', 'slowMovingItems',
             'tithesAmount', 'tithesEnabled', 'gross_profit',

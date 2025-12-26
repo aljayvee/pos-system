@@ -27,7 +27,13 @@ class POSController extends Controller
             ->where('inventories.store_id', $storeId)
             ->where('inventories.stock', '>', 0)
             ->whereNull('products.deleted_at')
-            ->select('products.*', 'inventories.stock as current_stock')
+            ->with(['category', 'pricingTiers']) // [OPTIMIZATION] Eager load to prevent N+1 queries
+            ->select(
+                'products.id', 'products.name', 'products.sku', 'products.price', 
+                'products.image', 'products.category_id', 'products.unit', 
+                'inventories.stock as current_stock', 
+                'inventories.reorder_point'
+            )
             ->get();
 
         $customers = Customer::withSum(['credits as balance' => function($q) use ($storeId) {
@@ -45,7 +51,20 @@ class POSController extends Controller
         // --- FIXED: Fetch BIR/Tax Setting ---
         $birEnabled = \App\Models\Setting::where('key', 'enable_tax')->value('value') ?? '0';
 
-        return view('cashier.index', compact('products', 'customers', 'categories', 'loyaltyEnabled', 'birEnabled'));
+        // --- FETCH Register Log Setting ---
+        $registerLogsEnabled = \App\Models\Setting::where('key', 'enable_register_logs')->value('value') ?? '0';
+
+        // [FIX] Check if register is open OR if feature is disabled (bypass lock)
+        if ($registerLogsEnabled == '1') {
+            $isRegisterOpen = \App\Models\CashRegisterSession::where('store_id', $storeId)
+                                ->where('user_id', Auth::id())
+                                ->where('status', 'open')
+                                ->exists();
+        } else {
+            $isRegisterOpen = true; // Always open if feature disabled
+        }
+
+        return view('cashier.index', compact('products', 'customers', 'categories', 'loyaltyEnabled', 'birEnabled', 'isRegisterOpen', 'registerLogsEnabled'));
     }
 
     public function payCredit(Request $request)

@@ -15,10 +15,10 @@
         {{-- ROW 1: CASH FLOW METRICS (TODAY) --}}
         <div class="col-12 col-sm-6 col-lg-4">
             <stats-card 
-                title="Today's Sales" 
-                value="₱{{ number_format($salesToday, 2) }}" 
-                subtitle="{{ $transactionCountToday }} Transactions (Net)"
-                icon="fas fa-cash-register"
+                title="Realized Revenue" 
+                value="₱{{ number_format($realizedSalesToday, 2) }}" 
+                subtitle="Cash + Digital + Collections"
+                icon="fas fa-coins"
                 color="primary"
             ></stats-card>
         </div>
@@ -57,9 +57,9 @@
 
         <div class="col-12 col-sm-6 col-lg-4">
             <stats-card 
-                title="Monthly Revenue" 
+                title="Monthly Sales (Accrual)" 
                 value="₱{{ number_format($salesMonth, 2) }}" 
-                subtitle="Current Month Net"
+                subtitle="Includes Unpaid Credits"
                 icon="fas fa-chart-line"
                 color="primary"
             ></stats-card>

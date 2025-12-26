@@ -17,22 +17,29 @@ class CashRegisterService
      */
     public function openSession(int $storeId, int $userId, float $openingAmount)
     {
-        // 1. Check if already open
-        $existing = CashRegisterSession::where('store_id', $storeId)
-            ->where('status', 'open')
-            ->first();
+        return DB::transaction(function() use ($storeId, $userId, $openingAmount) {
+            // [ACID] Lock the STORE record to serialize access (prevent double open)
+            // We lock the store itself or a related "config" to ensure only one process 
+            // can check-and-create for this store at a time.
+            \App\Models\Store::where('id', $storeId)->lockForUpdate()->first();
 
-        if ($existing) {
-            throw new \Exception("Register is already open for this store.");
-        }
+            // 1. Check if already open (Inside Lock)
+            $existing = CashRegisterSession::where('store_id', $storeId)
+                ->where('status', 'open')
+                ->first();
 
-        return CashRegisterSession::create([
-            'store_id' => $storeId,
-            'user_id' => $userId,
-            'opening_amount' => $openingAmount,
-            'status' => 'open',
-            'opened_at' => now(),
-        ]);
+            if ($existing) {
+                throw new \Exception("Register is already open for this store.");
+            }
+
+            return CashRegisterSession::create([
+                'store_id' => $storeId,
+                'user_id' => $userId, // Admin who opened it
+                'opening_amount' => $openingAmount,
+                'status' => 'open',
+                'opened_at' => now(),
+            ]);
+        });
     }
 
     /**
@@ -106,6 +113,18 @@ class CashRegisterService
             'status' => 'closed',
             'notes' => $notes
         ]);
+
+        // [NEW] If there is a discrepancy, auto-create a Pending Adjustment for Admin review
+        if (abs($variance) > 0.01) {
+            CashRegisterAdjustment::create([
+                'cash_register_session_id' => $session->id,
+                'user_id' => $session->user_id, // Attribute to the session owner
+                'original_amount' => $expected,
+                'new_amount' => $closingActual,
+                'reason' => "Register Closing Discrepancy (Variance: " . number_format($variance, 2) . ")" . ($notes ? " - Notes: $notes" : ""),
+                'status' => 'pending'
+            ]);
+        }
 
         return $session;
     }

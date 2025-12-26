@@ -8,6 +8,14 @@
         @click="toggleSidebar"
     ></div>
 
+    <!-- MOBILE BACKDROP FOR DROPDOWNS -->
+    <div 
+        v-if="isMobile && (notifOpen || accountDropdownOpen)" 
+        class="position-fixed top-0 start-0 w-100 h-100 bg-dark bg-opacity-50 fade-in"
+        style="z-index: 1055;"
+        @click="closeAllDropdowns"
+    ></div>
+
     <aside 
       class="d-flex flex-column shadow-lg sidebar-transition"
       :class="sidebarClasses"
@@ -106,10 +114,10 @@
                        <span class="text-nowrap fade-text ms-2" v-show="isOpen || isMobile">Credits (Utang)</span>
                     </a>
                 </li>
-                <li class="nav-item">
+                <li class="nav-item" v-if="enableRegisterLogs == 1">
                     <a href="/admin/adjustments" class="nav-link d-flex align-items-center" :class="{ 'active': currentPath.includes('/adjustments') }">
-                       <div class="icon-wrapper"><i class="fas fa-sliders-h"></i></div>
-                       <span class="text-nowrap fade-text ms-2" v-show="isOpen || isMobile">Cash Adjustments</span>
+                       <div class="icon-wrapper"><i class="fas fa-clipboard-list"></i></div>
+                       <span class="text-nowrap fade-text ms-2" v-show="isOpen || isMobile">Register Cash Logs</span>
                     </a>
                 </li>
              </template>
@@ -186,70 +194,74 @@
                      <span v-if="totalAlerts > 0" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger border border-light">{{ totalAlerts }}</span>
                  </button>
     
-                 <div v-if="notifOpen" class="dropdown-menu dropdown-menu-end show shadow-lg border-0 mt-3 p-0 overflow-hidden rounded-4 notification-dropdown" style="z-index: 1060;">
-                     <div class="px-4 py-3 bg-white border-bottom d-flex justify-content-between align-items-center">
-                         <h6 class="mb-0 fw-bold text-dark">Notifications</h6>
-                         <span v-if="totalAlerts > 0" class="badge bg-danger bg-opacity-10 text-danger rounded-pill px-3">{{ totalAlerts }} New</span>
-                     </div>
-                     <div class="list-group list-group-flush" style="max-height: 350px; overflow-y: auto;">
-                         <div v-if="totalAlerts === 0" class="p-5 text-center text-muted">
-                            <i class="far fa-bell-slash fa-2x mb-2 opacity-25"></i>
-                            <p class="mb-0 small">No new notifications</p>
+                 <teleport to="body" :disabled="!isMobile">
+                     <transition :name="isMobile ? 'bottom-sheet' : 'dropdown-slide'">
+                     <div v-if="notifOpen" class="dropdown-menu dropdown-menu-end show shadow-lg border-0 mt-3 p-0 overflow-hidden rounded-4 notification-dropdown" style="z-index: 1060;">
+                         <div class="px-4 py-3 bg-white border-bottom d-flex justify-content-between align-items-center sticky-top">
+                             <h6 class="mb-0 fw-bold text-dark">Notifications</h6>
+                             <span v-if="totalAlerts > 0" class="badge bg-danger bg-opacity-10 text-danger rounded-pill px-3">{{ totalAlerts }} New</span>
                          </div>
-                         <template v-else>
-                             <!-- PENDING APPROVALS -->
-                             <button 
-                                v-for="req in pendingApprovals" 
-                                :key="req.id"
-                                @click="openApprovalModal(req)"
-                                class="list-group-item list-group-item-action p-3 border-start border-4 border-info bg-info bg-opacity-10"
-                             >
-                                 <div class="d-flex align-items-start">
-                                     <div class="bg-info bg-opacity-25 text-primary rounded-circle p-2 me-3 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
-                                         <i class="fas fa-user-clock"></i>
+                         <div class="list-group list-group-flush" style="max-height: 350px; overflow-y: auto;">
+                             <div v-if="totalAlerts === 0" class="p-5 text-center text-muted">
+                                <i class="far fa-bell-slash fa-2x mb-2 opacity-25"></i>
+                                <p class="mb-0 small">No new notifications</p>
+                             </div>
+                             <template v-else>
+                                 <!-- PENDING APPROVALS -->
+                                 <button 
+                                    v-for="req in pendingApprovals" 
+                                    :key="req.id"
+                                    @click="openApprovalModal(req)"
+                                    class="list-group-item list-group-item-action p-3 border-start border-4 border-info bg-info bg-opacity-10"
+                                 >
+                                     <div class="d-flex align-items-start">
+                                         <div class="bg-info bg-opacity-25 text-primary rounded-circle p-2 me-3 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                             <i class="fas fa-user-clock"></i>
+                                         </div>
+                                         <div>
+                                             <small class="fw-bold text-dark d-block mb-1">Approval Request</small>
+                                             <small class="text-secondary d-block lh-sm mb-1">
+                                                 <span class="fw-bold">{{ req.requester.name }}</span> 
+                                                 <span v-if="!req.target_user.is_active">wants to create account </span>
+                                                 <span v-else>wants to promote </span>
+                                                 <span class="fw-bold">{{ req.target_user.name }}</span> to 
+                                                 <span class="badge bg-primary bg-opacity-25 text-primary ms-1">{{ req.new_role.toUpperCase() }}</span>
+                                             </small>
+                                             <small class="text-muted" style="font-size: 0.7rem;">Expires {{ new Date(req.expires_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) }}</small>
+                                         </div>
                                      </div>
-                                     <div>
-                                         <small class="fw-bold text-dark d-block mb-1">Approval Request</small>
-                                         <small class="text-secondary d-block lh-sm mb-1">
-                                             <span class="fw-bold">{{ req.requester.name }}</span> 
-                                             <span v-if="!req.target_user.is_active">wants to create account </span>
-                                             <span v-else>wants to promote </span>
-                                             <span class="fw-bold">{{ req.target_user.name }}</span> to 
-                                             <span class="badge bg-primary bg-opacity-25 text-primary ms-1">{{ req.new_role.toUpperCase() }}</span>
-                                         </small>
-                                         <small class="text-muted" style="font-size: 0.7rem;">Expires {{ new Date(req.expires_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) }}</small>
-                                     </div>
-                                 </div>
-                             </button>
+                                 </button>
 
-                             <a href="/admin/products?filter=out_of_stock" v-if="outOfStock > 0" class="list-group-item list-group-item-action p-3 border-start border-4 border-danger">
-                                 <div class="d-flex align-items-start">
-                                     <div class="bg-danger bg-opacity-10 rounded p-2 me-3">
-                                         <i class="fas fa-exclamation-triangle text-danger"></i>
+                                 <a href="/admin/products?filter=out_of_stock" v-if="outOfStock > 0" class="list-group-item list-group-item-action p-3 border-start border-4 border-danger">
+                                     <div class="d-flex align-items-start">
+                                         <div class="bg-danger bg-opacity-10 rounded p-2 me-3">
+                                             <i class="fas fa-exclamation-triangle text-danger"></i>
+                                         </div>
+                                         <div>
+                                             <small class="fw-bold text-dark d-block mb-1">Out of Stock Alert</small>
+                                             <small class="text-muted d-block lh-sm">{{ outOfStock }} products have hit 0 stock.</small>
+                                         </div>
                                      </div>
-                                     <div>
-                                         <small class="fw-bold text-dark d-block mb-1">Out of Stock Alert</small>
-                                         <small class="text-muted d-block lh-sm">{{ outOfStock }} products have hit 0 stock.</small>
+                                 </a>
+                                 <a href="/admin/products?filter=low_stock" v-if="lowStock > 0" class="list-group-item list-group-item-action p-3 border-start border-4 border-warning">
+                                     <div class="d-flex align-items-start">
+                                         <div class="bg-warning bg-opacity-10 rounded p-2 me-3">
+                                             <i class="fas fa-box-open text-warning"></i>
+                                         </div>
+                                         <div>
+                                             <small class="fw-bold text-dark d-block mb-1">Low Stock Warning</small>
+                                             <small class="text-muted d-block lh-sm">{{ lowStock }} items are running low.</small>
+                                         </div>
                                      </div>
-                                 </div>
-                             </a>
-                             <a href="/admin/products?filter=low_stock" v-if="lowStock > 0" class="list-group-item list-group-item-action p-3 border-start border-4 border-warning">
-                                 <div class="d-flex align-items-start">
-                                     <div class="bg-warning bg-opacity-10 rounded p-2 me-3">
-                                         <i class="fas fa-box-open text-warning"></i>
-                                     </div>
-                                     <div>
-                                         <small class="fw-bold text-dark d-block mb-1">Low Stock Warning</small>
-                                         <small class="text-muted d-block lh-sm">{{ lowStock }} items are running low.</small>
-                                     </div>
-                                 </div>
-                             </a>
-                         </template>
+                                 </a>
+                             </template>
+                         </div>
+                         <div class="p-2 bg-light text-center border-top">
+                            <a href="/admin/inventory" class="text-decoration-none small fw-bold text-primary">View Inventory</a>
+                         </div>
                      </div>
-                     <div class="p-2 bg-light text-center border-top">
-                        <a href="/admin/inventory" class="text-decoration-none small fw-bold text-primary">View Inventory</a>
-                     </div>
-                 </div>
+                     </transition>
+                 </teleport>
             </div>
 
             <!-- MY ACCOUNT DROPDOWN (PREMIUM) -->
@@ -263,55 +275,57 @@
                     <i class="fas fa-chevron-down text-muted small ms-1 transition-transform" :class="{ 'rotate-180': accountDropdownOpen }"></i>
                 </button>
 
-                <transition name="dropdown-slide">
-                    <div v-if="accountDropdownOpen" class="dropdown-menu dropdown-menu-end show shadow-xl border-0 mt-3 p-0 overflow-hidden rounded-4 account-dropdown" style="z-index: 1060;">
-                        
-                        <!-- Premium Header with Pattern -->
-                        <div class="position-relative bg-primary text-white p-4 text-center overflow-hidden" 
-                             style="background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%);">
-                            <!-- Decoding Pattern Overlay -->
-                            <div class="position-absolute top-0 start-0 w-100 h-100 opacity-10" 
-                                 style="background-image: radial-gradient(#fff 1px, transparent 1px); background-size: 10px 10px;"></div>
+                <teleport to="body" :disabled="!isMobile">
+                    <transition :name="isMobile ? 'bottom-sheet' : 'dropdown-slide'">
+                        <div v-if="accountDropdownOpen" class="dropdown-menu dropdown-menu-end show shadow-xl border-0 mt-3 p-0 overflow-hidden rounded-4 account-dropdown" style="z-index: 1060;">
                             
-                            <div class="position-relative z-10">
-                                <div class="rounded-circle bg-white text-primary d-flex align-items-center justify-content-center shadow-lg mx-auto mb-3" 
-                                     style="width: 70px; height: 70px; font-size: 2rem; font-family: monospace;">
-                                    {{ userName.charAt(0).toUpperCase() }}
+                            <!-- Premium Header with Pattern -->
+                            <div class="position-relative bg-primary text-white p-4 text-center overflow-hidden" 
+                                 style="background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%);">
+                                <!-- Decoding Pattern Overlay -->
+                                <div class="position-absolute top-0 start-0 w-100 h-100 opacity-10" 
+                                     style="background-image: radial-gradient(#fff 1px, transparent 1px); background-size: 10px 10px;"></div>
+                                
+                                <div class="position-relative z-10">
+                                    <div class="rounded-circle bg-white text-primary d-flex align-items-center justify-content-center shadow-lg mx-auto mb-3" 
+                                         style="width: 70px; height: 70px; font-size: 2rem; font-family: monospace;">
+                                        {{ userName.charAt(0).toUpperCase() }}
+                                    </div>
+                                    <h6 class="fw-bold mb-1">{{ userName }}</h6>
+                                    <span class="badge bg-white bg-opacity-25 rounded-pill px-3 py-1 small fw-normal">{{ userRole.toUpperCase() }}</span>
                                 </div>
-                                <h6 class="fw-bold mb-1">{{ userName }}</h6>
-                                <span class="badge bg-white bg-opacity-25 rounded-pill px-3 py-1 small fw-normal">{{ userRole.toUpperCase() }}</span>
                             </div>
-                        </div>
 
-                        <!-- Menu Items -->
-                        <div class="p-2">
-                            <a href="/profile" class="dropdown-item p-3 rounded-3 d-flex align-items-center gap-3 fw-bold text-secondary hover-bg-light transition-all mb-1">
-                                <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
-                                    <i class="fas fa-user-cog"></i>
-                                </div>
-                                <div>
-                                    <div class="text-dark">Profile Settings</div>
-                                    <small class="text-muted d-block fw-normal" style="font-size: 0.75rem">Manage your personal info</small>
-                                </div>
-                            </a>
-
-                            <div class="dropdown-divider my-1 opacity-50"></div>
-
-                            <form action="/logout" method="POST">
-                                <input type="hidden" name="_token" :value="csrfToken">
-                                <button class="dropdown-item p-3 rounded-3 d-flex align-items-center gap-3 fw-bold text-danger hover-bg-danger-soft transition-all w-100 text-start">
-                                    <div class="bg-danger bg-opacity-10 text-danger rounded-circle d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
-                                        <i class="fas fa-sign-out-alt ps-1"></i>
+                            <!-- Menu Items -->
+                            <div class="p-2">
+                                <a href="/profile" class="dropdown-item p-3 rounded-3 d-flex align-items-center gap-3 fw-bold text-secondary hover-bg-light transition-all mb-1">
+                                    <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
+                                        <i class="fas fa-user-cog"></i>
                                     </div>
                                     <div>
-                                        <div>Sign Out</div>
-                                        <small class="text-secondary d-block fw-normal" style="font-size: 0.75rem">End your session safely</small>
+                                        <div class="text-dark">Profile Settings</div>
+                                        <small class="text-muted d-block fw-normal" style="font-size: 0.75rem">Manage your personal info</small>
                                     </div>
-                                </button>
-                            </form>
+                                </a>
+
+                                <div class="dropdown-divider my-1 opacity-50"></div>
+
+                                <form action="/logout" method="POST">
+                                    <input type="hidden" name="_token" :value="csrfToken">
+                                    <button class="dropdown-item p-3 rounded-3 d-flex align-items-center gap-3 fw-bold text-danger hover-bg-danger-soft transition-all w-100 text-start">
+                                        <div class="bg-danger bg-opacity-10 text-danger rounded-circle d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
+                                            <i class="fas fa-sign-out-alt ps-1"></i>
+                                        </div>
+                                        <div>
+                                            <div>Sign Out</div>
+                                            <small class="text-secondary d-block fw-normal" style="font-size: 0.75rem">End your session safely</small>
+                                        </div>
+                                    </button>
+                                </form>
+                            </div>
                         </div>
-                    </div>
-                </transition>
+                    </transition>
+                </teleport>
             </div>
 
         </div>
@@ -389,7 +403,7 @@
 
 <script>
 export default {
-  props: ['userName', 'userRole', 'userPermissions', 'pageTitle', 'csrfToken', 'outOfStock', 'lowStock'],
+  props: ['userName', 'userRole', 'userPermissions', 'pageTitle', 'csrfToken', 'outOfStock', 'lowStock', 'enableRegisterLogs'],
   data() {
     const isMobile = window.innerWidth < 992;
     // Default open on desktop, closed on mobile. 
@@ -456,6 +470,10 @@ export default {
         if(this.accountDropdownOpen) this.notifOpen = false;
     },
     closeAccountDropdown() { this.accountDropdownOpen = false; },
+    closeAllDropdowns() {
+        this.notifOpen = false;
+        this.accountDropdownOpen = false;
+    },
     handleResize() {
       const mobile = window.innerWidth < 992;
       if (this.isMobile !== mobile) {
@@ -571,6 +589,9 @@ export default {
     clickOutside: {
       beforeMount(el, binding) {
         el.clickOutsideEvent = function(event) {
+          // FIX: Disable on Mobile (Backdrop handles it)
+          if (window.innerWidth < 992) return;
+          
           if (!(el === event.target || el.contains(event.target))) {
             binding.value(event);
           }
@@ -589,7 +610,7 @@ export default {
 /* GLOBAL PREMIUM RESET */
 .font-sans { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
 .text-white { color: #ffffff !important; }
-.text-muted { color: #94a3b8 !important; } /* Lighter slate for better contrast on dark */
+.text-muted { color: #94a3b8 !important; }
 .rotate-180 { transform: rotate(180deg); }
 .transition-all { transition: all 0.2s ease-in-out; }
 .hover-scale:hover { transform: scale(1.05); }
@@ -619,9 +640,8 @@ export default {
     background: linear-gradient(90deg, rgba(59, 130, 246, 0.15) 0%, rgba(59, 130, 246, 0.05) 100%); 
     color: #60a5fa !important; 
     position: relative; 
-    box-shadow: inset 3px 0 0 0 #3b82f6; /* Modern left border */
+    box-shadow: inset 3px 0 0 0 #3b82f6; 
 }
-/* Icon styling */
 .icon-wrapper { 
     width: 24px; 
     display: flex; 
@@ -631,9 +651,7 @@ export default {
     flex-shrink: 0; 
     transition: transform 0.2s;
 }
-.nav-link:hover .icon-wrapper, .nav-link.active .icon-wrapper {
-    transform: scale(1.1);
-}
+.nav-link:hover .icon-wrapper, .nav-link.active .icon-wrapper { transform: scale(1.1); }
 
 /* HEADER GLASSMORPHISM */
 header.navbar {
@@ -642,65 +660,75 @@ header.navbar {
     -webkit-backdrop-filter: blur(12px);
     border-bottom: 1px solid rgba(0, 0, 0, 0.05) !important;
     position: relative;
-    z-index: 1030; /* Ensure header is above content cards (1020) */
+    z-index: 1030;
 }
 
-/* NOTIFICATION & ACCOUNT DROPDOWN PREMIUM */
+/* NOTIFICATION & ACCOUNT DROPDOWN (DESKTOP DEFAULT) */
 .notification-dropdown, .account-dropdown { 
     width: 380px; 
     position: absolute; 
     right: 0; 
+    top: 100%;
     border: 1px solid rgba(0,0,0,0.05); 
     box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04) !important;
+    margin-top: 1rem;
+    border-radius: 1.5rem; /* Rounded-4 */
+}
+.account-dropdown { min-width: 260px; width: auto; }
+
+/* MOBILE BOTTOM SHEET OVERRIDE */
+@media (max-width: 991px) {
+    .notification-dropdown, .account-dropdown {
+        position: fixed !important;
+        top: auto !important;
+        bottom: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        margin: 0 !important;
+        border-radius: 1.5rem 1.5rem 0 0 !important; /* Rounded Top Only */
+        border: none !important;
+        box-shadow: 0 -10px 40px rgba(0,0,0,0.2) !important;
+        max-height: 85vh;
+        overflow-y: auto;
+        transform: none; /* Reset desktop transforms if any */
+    }
+    
+    /* Drag Handle Visual */
+    .notification-dropdown::before, .account-dropdown::before {
+        content: '';
+        display: block;
+        width: 40px;
+        height: 5px;
+        background-color: #e2e8f0;
+        border-radius: 10px;
+        margin: 12px auto 5px auto;
+    }
 }
 
-.account-dropdown { min-width: 260px; width: auto; } /* Specific tweak for account */
-
-/* MOBILE OPTIMIZATIONS */
-@media (max-width: 576px) {
-    .notification-dropdown { 
-        position: fixed; /* Center relative to screen */
-        top: 80px;
-        left: 50%;
-        right: auto;
-        transform: translateX(-50%); /* Perfect Center */
-        width: 350px; /* Slightly wider for better content fit */
-        max-width: 92vw; /* Ensure no overflow */
-        margin-top: 0;
-        border-radius: 1rem;
-        max-height: 80vh;
-        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-    }
-
-    .account-dropdown {
-        position: absolute;
-        top: 100%;
-        right: 0;
-        left: auto;
-        width: auto;
-        min-width: 250px;
-        max-width: 300px; /* Prevent it from being too wide */
-        margin-top: 0.5rem;
-        border-radius: 1rem;
-    }
-}
-
-/* DROPDOWN ANIMATION */
-.dropdown-slide-enter-active,
-.dropdown-slide-leave-active {
+/* DESKTOP DROPDOWN ANIMATION */
+.dropdown-slide-enter-active, .dropdown-slide-leave-active {
     transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
-
-.dropdown-slide-enter-from,
-.dropdown-slide-leave-to {
+.dropdown-slide-enter-from, .dropdown-slide-leave-to {
     opacity: 0;
     transform: translateY(-10px) scale(0.95);
 }
-
-.dropdown-slide-enter-to,
-.dropdown-slide-leave-from {
+.dropdown-slide-enter-to, .dropdown-slide-leave-from {
     opacity: 1;
     transform: translateY(0) scale(1);
+}
+
+/* MOBILE BOTTOM SHEET ANIMATION */
+.bottom-sheet-enter-active, .bottom-sheet-leave-active {
+    transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.bottom-sheet-enter-from, .bottom-sheet-leave-to {
+    transform: translateY(100%);
+}
+.bottom-sheet-enter-to, .bottom-sheet-leave-from {
+    transform: translateY(0);
 }
 
 /* UTILS */

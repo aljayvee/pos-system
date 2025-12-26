@@ -17,7 +17,7 @@ class Product extends Model
     'cost',   // <--- Add this
     'sku',    // <--- Add this
     'stock', 
-    'unit', 
+    'unit',
     'reorder_point',
     'image', 
     'reorder_point',
@@ -38,6 +38,12 @@ class Product extends Model
     public function saleItems()
     {
         return $this->hasMany(SaleItem::class);
+    }
+
+    // Relationship to Pricing Tiers (Multi-Buy Strategy)
+    public function pricingTiers()
+    {
+        return $this->hasMany(PricingTier::class);
     }
 
     // Relationship to Multi-Store Inventory

@@ -214,40 +214,80 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body p-0">
-                <div class="p-3 sticky-top bg-white border-bottom">
+                <div class="p-3 sticky-top bg-white border-bottom shadow-sm">
                     <div class="position-relative">
                         <i class="fas fa-search text-muted position-absolute top-50 start-0 translate-middle-y ms-3"></i>
                         <input type="text" id="customer-modal-search" class="form-control form-control-lg bg-light border-0 ps-5 rounded-pill" placeholder="Search customer...">
                     </div>
                 </div>
                 
-                <div class="list-group list-group-flush" id="customer-modal-list">
-                    {{-- Default Options --}}
-                    <button class="list-group-item list-group-item-action py-3 px-4 d-flex align-items-center justify-content-between" onclick="selectCustomer('walk-in', 'Walk-in Customer', 0)">
-                        <span class="fw-bold text-dark">Walk-in Customer</span>
-                        <i class="fas fa-check text-primary d-none header-check" id="check-walk-in"></i>
-                    </button>
-                    
-                    <button class="list-group-item list-group-item-action py-3 px-4 d-flex align-items-center justify-content-between text-primary bg-light" onclick="selectCustomer('new', '+ Create New Profile', 0)">
-                        <span class="fw-bold"><i class="fas fa-user-plus me-2"></i>Create New Profile</span>
-                    </button>
+                <div class="p-3 bg-light">
+                    <label class="small fw-bold text-uppercase text-muted mb-2 ms-1">Quick Actions</label>
+                    <div class="row g-2">
+                        {{-- Walk-in Button --}}
+                        <div class="col-6">
+                            <div class="card border-0 shadow-sm h-100" onclick="selectCustomer('walk-in', 'Walk-in Customer', 0)" style="cursor: pointer;">
+                                <div class="card-body p-3 text-center d-flex flex-column align-items-center justify-content-center">
+                                    <div class="bg-secondary bg-opacity-10 text-secondary rounded-circle d-flex align-items-center justify-content-center mb-2" style="width: 48px; height: 48px;">
+                                        <i class="fas fa-walking fa-lg"></i>
+                                    </div>
+                                    <span class="fw-bold text-dark small">Walk-in</span>
+                                    <small class="text-muted" style="font-size: 0.65rem;">Default</small>
+                                </div>
+                                <div class="position-absolute top-0 end-0 p-2 d-none header-check" id="check-walk-in">
+                                    <i class="fas fa-check-circle text-primary"></i>
+                                </div>
+                            </div>
+                        </div>
 
-                    <div class="px-4 py-2 bg-light text-muted small fw-bold text-uppercase">Registered Customers</div>
+                        {{-- New Profile Button --}}
+                        <div class="col-6">
+                            <div class="card border-0 shadow-sm h-100 bg-primary text-white" onclick="selectCustomer('new', '+ Create New Profile', 0)" style="cursor: pointer; background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%);">
+                                <div class="card-body p-3 text-center d-flex flex-column align-items-center justify-content-center">
+                                     <div class="bg-white bg-opacity-25 text-white rounded-circle d-flex align-items-center justify-content-center mb-2" style="width: 48px; height: 48px;">
+                                        <i class="fas fa-user-plus fa-lg"></i>
+                                    </div>
+                                    <span class="fw-bold small">New Profile</span>
+                                    <small class="text-white text-opacity-75" style="font-size: 0.65rem;">For Credits</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="list-group list-group-flush border-top" id="customer-modal-list">
+                    <div class="px-4 py-3 bg-white border-bottom">
+                         <label class="small fw-bold text-uppercase text-muted">Registered Database</label>
+                    </div>
 
                     {{-- Dynamic List --}}
                     @foreach($customers as $c)
-                    <button class="list-group-item list-group-item-action py-3 px-4 d-flex align-items-center justify-content-between customer-item" 
+                    <button class="list-group-item list-group-item-action py-3 px-4 d-flex align-items-center justify-content-between customer-item border-bottom" 
                             data-name="{{ strtolower($c->name) }}" 
                             onclick="selectCustomer('{{ $c->id }}', '{{ $c->name }}', {{ $c->balance ?? 0 }})">
-                        <div class="d-flex flex-column">
-                            <span class="fw-bold text-dark">{{ $c->name }}</span>
-                            @if(($c->balance ?? 0) > 0)
-                                <small class="text-danger">Debt: ₱{{ number_format($c->balance, 2) }}</small>
-                            @endif
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="bg-light text-secondary rounded-circle d-flex align-items-center justify-content-center fw-bold small" style="width: 40px; height: 40px; font-size: 0.9rem;">
+                                {{ substr($c->name, 0, 1) }}
+                            </div>
+                            <div class="d-flex flex-column align-items-start">
+                                <span class="fw-bold text-dark">{{ $c->name }}</span>
+                                @if(($c->balance ?? 0) > 0)
+                                    <small class="text-danger fw-bold" style="font-size: 0.75rem;"><i class="fas fa-exclamation-circle me-1"></i>Due: ₱{{ number_format($c->balance, 2) }}</small>
+                                @else 
+                                    <small class="text-muted" style="font-size: 0.75rem;">No active debt</small>
+                                @endif
+                            </div>
                         </div>
-                        <i class="fas fa-check text-primary d-none header-check" id="check-{{ $c->id }}"></i>
+                        <i class="fas fa-check-circle text-primary fa-lg d-none header-check" id="check-{{ $c->id }}"></i>
                     </button>
                     @endforeach
+                    
+                    @if($customers->isEmpty())
+                        <div class="text-center py-5 text-muted">
+                            <i class="far fa-folder-open fa-3x mb-3 opacity-25"></i>
+                            <p class="mb-0">No customers found.</p>
+                        </div>
+                    @endif
                 </div>
             </div>
         </div>

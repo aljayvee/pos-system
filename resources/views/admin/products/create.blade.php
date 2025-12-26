@@ -68,8 +68,9 @@
                         </div>
 
                         {{-- Section: Categorization --}}
-                        <div class="row g-2 g-lg-4 mb-0 mb-lg-4">
-                            <div class="col-6">
+                        {{-- Section: Categorization --}}
+                        <div class="row g-2 g-lg-4 mb-3 mb-lg-4">
+                            <div class="col-12 col-md-6">
                                 <label class="form-label fw-bold small text-secondary d-none d-lg-block">Category</label>
                                 <div class="form-floating form-floating-custom">
                                     <select name="category_id" class="form-select bg-light border-0 fw-bold" id="categorySelect">
@@ -81,21 +82,21 @@
                                 </div>
                             </div>
 
-                            <div class="col-6">
-                                <label class="form-label fw-bold small text-secondary d-none d-lg-block">Unit</label>
+                            <div class="col-12 col-md-6">
+                                <label class="form-label fw-bold small text-secondary d-none d-lg-block">Unit (e.g. Pc, Kg, Box)</label>
                                 <div class="form-floating form-floating-custom">
-                                    <select name="unit" class="form-select bg-light border-0 fw-bold" id="unitSelect" required>
-                                        <option value="pc">Piece (pc)</option>
-                                        <option value="pack">Pack</option>
-                                        <option value="kg">Kilogram (kg)</option>
-                                        <option value="g">Gram (g)</option>
-                                        <option value="l">Liter (L)</option>
-                                        <option value="ml">Milliliter (ml)</option>
-                                        <option value="box">Box</option>
-                                        <option value="bottle">Bottle</option>
-                                        <option value="can">Can</option>
-                                    </select>
-                                    <label for="unitSelect" class="d-lg-none">Unit</label>
+                                    <input type="text" name="unit" class="form-control bg-light border-0 fw-bold" list="unitOptions" placeholder="e.g. Pc" required>
+                                    <label class="d-lg-none">Unit (e.g. Pc, Kg)</label>
+                                    <datalist id="unitOptions">
+                                        <option value="Pc">
+                                        <option value="Pack">
+                                        <option value="Box">
+                                        <option value="Bottle">
+                                        <option value="Can">
+                                        <option value="Kg">
+                                        <option value="L">
+                                        <option value="Set">
+                                    </datalist>
                                 </div>
                             </div>
                         </div>
@@ -143,6 +144,9 @@
                         </div>
                     </div>
                 </div>
+
+                {{-- Include Multi-Buy Pricing Partial --}}
+                @include('admin.products.partials.pricing_tiers')
             </div>
 
             {{-- Right Column --}}
@@ -281,7 +285,28 @@
             desktopInput.setAttribute('name', 'image');
         }
 
+        // Select buttons
+        const desktopBtn = document.querySelector('button[onclick="validateAndSubmit()"]');
+        const mobileBtn = document.querySelector('.fixed-bottom button[onclick="validateAndSubmit()"]');
+
+        const originalDesktopText = desktopBtn ? desktopBtn.innerHTML : '';
+        const originalMobileText = mobileBtn ? mobileBtn.innerHTML : '';
+
+        // Helper to set loading state
+        const setLoading = (isLoading) => {
+            if (desktopBtn) {
+                desktopBtn.disabled = isLoading;
+                desktopBtn.innerHTML = isLoading ? '<i class="fas fa-spinner fa-spin me-2"></i> Processing...' : originalDesktopText;
+            }
+            if (mobileBtn) {
+                mobileBtn.disabled = isLoading;
+                mobileBtn.innerHTML = isLoading ? '<i class="fas fa-spinner fa-spin me-2"></i> Processing...' : originalMobileText;
+            }
+        };
+
         try {
+            setLoading(true); // Start loading
+
             const response = await fetch("{{ route('products.check_duplicate') }}", {
                 method: "POST",
                 headers: { "Content-Type": "application/json", "Accept": "application/json" },
@@ -290,15 +315,20 @@
             const data = await response.json();
 
             if (data.exists) {
+                setLoading(false); // Stop loading if error/modal
                 existingProductId = data.product_id;
                 document.getElementById('modalMessage').innerText = data.message;
                 const modal = new bootstrap.Modal(document.getElementById('duplicateModal'));
                 modal.show();
             } else {
                 form.submit();
+                // Don't enable buttons, let page reload
             }
         } catch (error) {
             console.error("Validation Error:", error);
+            alert("Error validating product. Please try again.");
+            setLoading(false); // Stop loading on error
+        }
             alert("Error validating product. Please try again.");
         }
     }
@@ -360,6 +390,7 @@
                 this.value = words.join(' ');
             });
         }
+
     });
 </script>
 @endsection

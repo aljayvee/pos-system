@@ -85,9 +85,11 @@
             <div class="col-6 col-xl-3">
                 <div class="card h-100 shadow-sm border-0 rounded-4 overflow-hidden" style="background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);">
                     <div class="card-body p-3 text-white">
-                        <small class="text-white-50 text-uppercase fw-bold" style="font-size: 0.65rem;">Total Revenue</small>
-                        <h3 class="fw-bold mb-0 mt-1">₱{{ number_format($total_sales, 2) }}</h3>
-                        <div class="small text-white-50 mt-1"><i class="fas fa-coins me-1 opacity-50"></i>Gross Sales</div>
+                        <small class="text-white-50 text-uppercase fw-bold" style="font-size: 0.65rem;">Realized Revenue</small>
+                        <h3 class="fw-bold mb-0 mt-1">₱{{ number_format($realized_revenue, 2) }}</h3>
+                        <div class="small text-white-50 mt-1" title="Sales excluding unpaid credits">
+                            <i class="fas fa-wallet me-1 opacity-50"></i> vs ₱{{ number_format($total_sales, 2) }} (Accrual)
+                        </div>
                     </div>
                 </div>
             </div>

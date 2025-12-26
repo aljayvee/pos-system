@@ -229,7 +229,7 @@ class ProductController extends Controller
     $validated = $request->validate([
         'name' => 'required',
         'price' => 'required|numeric',
-        'unit' => 'required|string|max:20',
+        'unit' => 'required|string|max:50', // Extended max length
         'category_id' => 'required|exists:categories,id',
         'cost' => 'nullable|numeric|min:0',
         'sku' => 'nullable|string|unique:products,sku',
@@ -237,6 +237,8 @@ class ProductController extends Controller
         'reorder_point' => 'nullable|integer|min:0',
         'expiration_date' => 'nullable|date',
         'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:10240',
+        'tiers.*.quantity' => 'required|integer|min:2',
+        'tiers.*.price' => 'required|numeric|min:0',
     ]);
 
     DB::beginTransaction();
@@ -259,6 +261,19 @@ class ProductController extends Controller
             'image' => $imagePath,
             'stock' => 0, // dummy global stock
         ]);
+
+        // Save Pricing Tiers
+        if ($request->has('tiers')) {
+            foreach ($request->tiers as $tier) {
+                if ($tier['quantity'] && $tier['price']) {
+                    $product->pricingTiers()->create([
+                        'quantity' => $tier['quantity'],
+                        'price' => $tier['price'],
+                        'name' => $tier['name'] ?? null
+                    ]);
+                }
+            }
+        }
 
         // 3. Create Inventory Record for current branch
         $storeId = $this->getActiveStoreId();
@@ -287,6 +302,7 @@ class ProductController extends Controller
         if (!Auth::user()->hasPermission(\App\Enums\Permission::INVENTORY_EDIT->value)) {
             abort(403);
         }
+        $product->load('pricingTiers'); // Eager load tiers
         $categories = Category::all();
         return view('admin.products.edit', compact('product', 'categories'));
     }
@@ -302,16 +318,19 @@ class ProductController extends Controller
             'price' => 'required|numeric',
             'category_id' => 'required|exists:categories,id',
             'sku' => 'nullable|unique:products,sku,' . $product->id,
+            'unit' => 'required|string|max:50', // Extended max length
             'stock' => 'nullable|integer|min:0', // Ensure this is validated
             'reorder_point' => 'nullable|integer|min:0',
             'expiration_date' => 'nullable|date',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:10240',
+            'tiers.*.quantity' => 'required|integer|min:2',
+            'tiers.*.price' => 'required|numeric|min:0',
         ]);
 
         DB::beginTransaction();
         try {
 
-            $data = $request->except(['stock', 'reorder_point', 'image']);
+            $data = $request->except(['stock', 'reorder_point', 'image', 'tiers']);
             $data['name'] = Str::title($request->name);
 
             // Handle Image Upload
@@ -331,6 +350,20 @@ class ProductController extends Controller
 
             // Update Global Product Details
             $product->update($data);
+
+            // Sync Pricing Tiers
+            $product->pricingTiers()->delete(); // Clear old tiers
+            if ($request->has('tiers')) {
+                foreach ($request->tiers as $tier) {
+                    if ($tier['quantity'] && $tier['price']) {
+                        $product->pricingTiers()->create([
+                            'quantity' => $tier['quantity'],
+                            'price' => $tier['price'],
+                            'name' => $tier['name'] ?? null
+                        ]);
+                    }
+                }
+            }
 
             // 2. Identify Current Active Store
             $storeId = $this->getActiveStoreId();

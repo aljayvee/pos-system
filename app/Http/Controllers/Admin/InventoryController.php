@@ -113,7 +113,7 @@ class InventoryController extends Controller
             StockAdjustment::create([
                 'user_id'    => Auth::id(),
                 'product_id' => $request->product_id,
-                'store_id'   => $storeId, // <--- Ideally, add store_id to this table too
+                'store_id'   => $storeId,
                 'quantity'   => $finalQty,
                 'type'       => $request->reason,
                 'remarks'    => $request->remarks

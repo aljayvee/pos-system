@@ -111,6 +111,7 @@
             csrf-token="{{ csrf_token() }}"
             :out-of-stock="{{ $outOfStockCount ?? 0 }}"
             :low-stock="{{ $lowStockCount ?? 0 }}"
+            :enable-register-logs="{{ \App\Models\Setting::where('key', 'enable_register_logs')->value('value') ?? 0 }}"
         >
             @yield('content')
             

@@ -177,6 +177,11 @@
                     <span class="fw-medium text-dark">Return Items</span>
                 </button>
 
+                <button id="btn-close-register-mobile" class="list-group-item list-group-item-action py-3 px-4 border-0 bg-transparent d-flex align-items-center gap-3" onclick="bootstrap.Offcanvas.getInstance(document.getElementById('mobileNavDrawer')).hide(); showCloseRegisterModal();">
+                    <i class="fas fa-store-slash text-danger w-25px text-center"></i>
+                    <span class="fw-medium text-dark">Close Register</span>
+                </button>
+
             </div>
 
              <div class="my-2 border-top"></div>

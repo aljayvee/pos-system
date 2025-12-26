@@ -64,8 +64,8 @@
                         </div>
 
                         {{-- Category & Unit --}}
-                        <div class="row g-2 g-lg-4 mb-0 mb-lg-4">
-                            <div class="col-6">
+                        <div class="row g-2 g-lg-4 mb-3 mb-lg-4">
+                            <div class="col-12 col-md-6">
                                 <label class="form-label fw-bold small text-secondary d-none d-lg-block">Category <span class="text-danger">*</span></label>
                                 <div class="form-floating form-floating-custom">
                                     <select name="category_id" class="form-select bg-light border-0 fw-bold" id="categorySelect">
@@ -78,15 +78,21 @@
                                     <label for="categorySelect" class="d-lg-none">Category</label>
                                 </div>
                             </div>
-                            <div class="col-6">
-                                <label class="form-label fw-bold small text-secondary d-none d-lg-block">Unit <span class="text-danger">*</span></label>
+                            <div class="col-12 col-md-6">
+                                <label class="form-label fw-bold small text-secondary d-none d-lg-block">Unit (e.g. Pc, Kg, Box)</label>
                                 <div class="form-floating form-floating-custom">
-                                    <select name="unit" class="form-select bg-light border-0 fw-bold" id="unitSelect" required>
-                                        @foreach(['pc','pack','kg','g','l','ml','box','bottle','can'] as $u)
-                                            <option value="{{ $u }}" {{ $product->unit == $u ? 'selected' : '' }}>{{ ucfirst($u) }}</option>
-                                        @endforeach
-                                    </select>
-                                    <label for="unitSelect" class="d-lg-none">Unit</label>
+                                    <input type="text" name="unit" class="form-control bg-light border-0 fw-bold" list="unitOptions" value="{{ $product->unit }}" placeholder="e.g. Pc" required>
+                                    <label class="d-lg-none">Unit (e.g. Pc, Kg)</label>
+                                    <datalist id="unitOptions">
+                                        <option value="Pc">
+                                        <option value="Pack">
+                                        <option value="Box">
+                                        <option value="Bottle">
+                                        <option value="Can">
+                                        <option value="Kg">
+                                        <option value="L">
+                                        <option value="Set">
+                                    </datalist>
                                 </div>
                             </div>
                         </div>
@@ -133,8 +139,10 @@
                                 </div>
                             </div>
                         </div>
-                    </div>
                 </div>
+
+                {{-- Include Multi-Buy Pricing Partial --}}
+                @include('admin.products.partials.pricing_tiers')
             </div>
 
             {{-- Right Column: Inventory & Barcode --}}
@@ -258,8 +266,29 @@
         }
 
         if (!name) { alert("Product Name is required"); return; }
+        
+        // Select buttons
+        const desktopBtn = document.querySelector('button[onclick^="validateAndUpdate"]');
+        const mobileBtn = document.querySelector('.fixed-bottom button[onclick^="validateAndUpdate"]');
+
+        const originalDesktopText = desktopBtn ? desktopBtn.innerHTML : '';
+        const originalMobileText = mobileBtn ? mobileBtn.innerHTML : '';
+
+        // Helper to set loading state
+        const setLoading = (isLoading) => {
+            if (desktopBtn) {
+                desktopBtn.disabled = isLoading;
+                desktopBtn.innerHTML = isLoading ? '<i class="fas fa-spinner fa-spin me-2"></i> Processing...' : originalDesktopText;
+            }
+            if (mobileBtn) {
+                mobileBtn.disabled = isLoading;
+                mobileBtn.innerHTML = isLoading ? '<i class="fas fa-spinner fa-spin me-2"></i> Processing...' : originalMobileText;
+            }
+        };
 
         try {
+            setLoading(true); // Start loading
+
             const response = await fetch("{{ route('products.check_duplicate') }}", {
                 method: "POST",
                 headers: { "Content-Type": "application/json", "Accept": "application/json" },
@@ -269,14 +298,20 @@
             const data = await response.json();
 
             if (data.exists) {
+                setLoading(false); // Stop loading if error
                 document.getElementById('modalMessage').innerText = data.message;
                 new bootstrap.Modal(document.getElementById('duplicateModal')).show();
             } else {
                 form.submit();
+                // Don't enable buttons, let page reload
             }
         } catch (error) {
             console.error(error);
-            form.submit();
+            form.submit(); // Submit anyway on error? Or stop? 
+            // The original logic was to submit anyway. 
+            // I'll keep it consistent but maybe enabling buttons is moot if it submits.
+            // But if submission fails (e.g. server error not related to duplicate), 
+            // the page will reload with errors anyway.
         }
     }
 

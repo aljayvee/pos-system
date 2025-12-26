@@ -32,7 +32,7 @@
                         <i class="fas fa-user"></i>
                     </div>
                     <div class="d-flex flex-column align-items-start text-truncate">
-                        <span class="fw-bold text-dark lh-1 text-truncate" id="selected-customer-name">Walk-in Customer</span>
+                        <span class="fw-bold text-dark lh-1 text-truncate selected-customer-name">Walk-in Customer</span>
                         <small class="text-muted" style="font-size: 0.7rem;">Select Profile</small>
                     </div>
                 </div>
@@ -40,7 +40,7 @@
             </button>
             
             {{-- Hidden Input for Logic Compatibility --}}
-            <input type="hidden" id="customer-id" value="walk-in">
+            <input type="hidden" class="customer-id-input" value="walk-in">
         </div>
 
         {{-- Totals --}}

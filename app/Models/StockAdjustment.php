@@ -11,6 +11,7 @@ class StockAdjustment extends Model
 
     protected $fillable = [
         'user_id',
+        'store_id',
         'product_id',
         'quantity', // Positive for adding, Negative for deducting
         'type',   // e.g., 'Spoilage', 'Theft', 'Internal Use'
