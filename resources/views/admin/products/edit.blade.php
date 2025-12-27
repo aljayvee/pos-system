@@ -202,9 +202,9 @@
             </div>
         </div>
 
-        {{-- MOBILE: Sticky Bottom Bar --}}
-        <div class="d-lg-none fixed-bottom bg-white border-top p-3 shadow-lg pb-4 pb-md-3">
-            <button type="button" onclick="validateAndUpdate({{ $product->id }})" class="btn btn-primary w-100 rounded-pill fw-bold py-3 text-uppercase ls-1">
+        {{-- MOBILE: Static Bottom Button --}}
+        <div class="d-lg-none px-3 mt-4 mb-5">
+            <button type="button" onclick="validateAndUpdate({{ $product->id }})" class="btn btn-primary w-100 rounded-pill fw-bold py-3 text-uppercase ls-1 shadow-sm">
                 Update Product
             </button>
         </div>

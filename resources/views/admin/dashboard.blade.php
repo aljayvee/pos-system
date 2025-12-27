@@ -9,9 +9,70 @@
         </div>
         </div>
 
-    {{-- 1. MODERN VUE STATS GRID --}}
-    <div class="row g-4 mb-5">
-        
+    {{-- 0. MOBILE QUICK ACTIONS (NATIVE APP FEEL) --}}
+    <div class="d-md-none mb-4">
+        <h6 class="fw-bold text-secondary text-uppercase small mb-3 ls-tight">Quick Actions</h6>
+        <div class="d-flex justify-content-between px-2">
+            
+            <a href="/cashier/pos" class="text-decoration-none text-center">
+                <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center shadow-sm mb-2 hover-scale transition-all" 
+                     style="width: 60px; height: 60px; font-size: 1.5rem;">
+                     <i class="fas fa-cash-register"></i>
+                </div>
+                <span class="d-block small fw-bold text-dark" style="font-size: 0.75rem;">POS</span>
+            </a>
+
+            <a href="{{ route('products.create') }}" class="text-decoration-none text-center">
+                <div class="rounded-circle bg-white text-success border border-success border-opacity-25 d-flex align-items-center justify-content-center shadow-sm mb-2 hover-scale transition-all" 
+                     style="width: 60px; height: 60px; font-size: 1.4rem;">
+                     <i class="fas fa-plus"></i>
+                </div>
+                <span class="d-block small fw-bold text-dark" style="font-size: 0.75rem;">Add Item</span>
+            </a>
+
+            <a href="{{ route('purchases.create') }}" class="text-decoration-none text-center">
+                <div class="rounded-circle bg-white text-info border border-info border-opacity-25 d-flex align-items-center justify-content-center shadow-sm mb-2 hover-scale transition-all" 
+                     style="width: 60px; height: 60px; font-size: 1.4rem;">
+                     <i class="fas fa-truck-loading"></i>
+                </div>
+                <span class="d-block small fw-bold text-dark" style="font-size: 0.75rem;">Stock In</span>
+            </a>
+
+            <a href="{{ route('transactions.index') }}" class="text-decoration-none text-center">
+                <div class="rounded-circle bg-white text-secondary border border-secondary border-opacity-25 d-flex align-items-center justify-content-center shadow-sm mb-2 hover-scale transition-all" 
+                     style="width: 60px; height: 60px; font-size: 1.4rem;">
+                     <i class="fas fa-history"></i>
+                </div>
+                <span class="d-block small fw-bold text-dark" style="font-size: 0.75rem;">History</span>
+            </a>
+
+        </div>
+    </div>
+
+    {{-- 1. STATS SECTION --}}
+    
+    {{-- ALERT (Mobile & Desktop) --}}
+    @if($outOfStockItems > 0)
+    <div class="mb-4">
+        <div class="alert alert-danger d-flex align-items-center shadow-sm border-0 rounded-4 p-4" role="alert">
+            <div class="rounded-circle bg-danger bg-opacity-10 p-3 me-3">
+                <i class="fas fa-exclamation-triangle fa-lg text-danger"></i>
+            </div>
+            <div>
+                <h5 class="alert-heading fw-bold mb-1">Attention Needed</h5>
+                <p class="mb-0">
+                    You have <span class="fw-bold text-decoration-underline">{{ $outOfStockItems }} items</span> out of stock.
+                    @if(auth()->user()->role !== 'auditor')
+                    <a href="{{ route('inventory.index') }}" class="btn btn-sm btn-light text-danger fw-bold ms-2 rounded-pill px-3">Restock Now</a>
+                    @endif
+                </p>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    {{-- DESKTOP GRID (Hidden on Mobile) --}}
+    <div class="row g-4 mb-5 d-none d-md-flex">
         {{-- ROW 1: CASH FLOW METRICS (TODAY) --}}
         <div class="col-12 col-sm-6 col-lg-4">
             <stats-card 
@@ -37,7 +98,7 @@
             <stats-card 
                 title="Cash in Drawer" 
                 value="₱{{ number_format($estCashInDrawer, 2) }}" 
-                subtitle="Sales + Collections - Refunds"
+                subtitle="Expected Cash on Hand"
                 icon="fas fa-wallet"
                 color="success text-white" 
                 :gradient="true"
@@ -74,41 +135,116 @@
                 color="warning"
             ></stats-card>
         </div>
+    </div>
 
-        {{-- Critical Alert (Only shows if > 0) --}}
-        @if($outOfStockItems > 0)
-        <div class="col-12">
-            <div class="alert alert-danger d-flex align-items-center shadow-sm border-0 rounded-4 p-4" role="alert">
-                <div class="rounded-circle bg-danger bg-opacity-10 p-3 me-3">
-                    <i class="fas fa-exclamation-triangle fa-lg text-danger"></i>
-                </div>
-                <div>
-                    <h5 class="alert-heading fw-bold mb-1">Attention Needed</h5>
-                    <p class="mb-0">
-                        You have <span class="fw-bold text-decoration-underline">{{ $outOfStockItems }} items</span> totally out of stock.
-                        @if(auth()->user()->role !== 'auditor')
-                        <a href="{{ route('inventory.index') }}" class="btn btn-sm btn-light text-danger fw-bold ms-2 rounded-pill px-3">Restock Now</a>
-                        @endif
-                    </p>
+    {{-- MOBILE ACCORDION (Visible on Mobile Only) --}}
+    <div class="d-md-none mb-5">
+        <div class="accordion accordion-flush bg-transparent gap-3 d-flex flex-column" id="mobileStatsAccordion">
+            
+            {{-- DRAWER 1: CASH FLOW --}}
+            <div class="accordion-item border-0 rounded-4 shadow-sm overflow-hidden mb-0">
+                <h2 class="accordion-header" id="headingCash">
+                    <button class="accordion-button collapsed bg-white py-4 px-4 shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#collapseCash" aria-expanded="false" aria-controls="collapseCash">
+                        <div class="d-flex align-items-center w-100 me-3">
+                             <div class="rounded-circle bg-primary bg-opacity-10 p-2 me-3 d-flex align-items-center justify-content-center" style="width: 42px; height: 42px;">
+                                <i class="fas fa-wallet text-primary" style="font-size: 1.2rem;"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <h6 class="fw-bold text-dark mb-0">Cash Position</h6>
+                                <small class="text-muted">In Drawer: <span class="fw-bold text-dark">₱{{ number_format($estCashInDrawer, 2) }}</span></small>
+                            </div>
+                        </div>
+                    </button>
+                </h2>
+                <div id="collapseCash" class="accordion-collapse collapse" aria-labelledby="headingCash" data-bs-parent="#mobileStatsAccordion">
+                    <div class="accordion-body bg-light p-3 pt-0">
+                        <div class="d-flex flex-column gap-3 pt-3">
+                            <stats-card 
+                                title="Realized Revenue" 
+                                value="₱{{ number_format($realizedSalesToday, 2) }}" 
+                                subtitle="Cash + Digital + Collections"
+                                icon="fas fa-coins"
+                                color="primary"
+                            ></stats-card>
+                            <stats-card 
+                                title="Debt Collections" 
+                                value="₱{{ number_format($debtCollectionsToday, 2) }}" 
+                                subtitle="Collected Today"
+                                icon="fas fa-hand-holding-usd"
+                                color="info"
+                            ></stats-card>
+                             <stats-card 
+                                title="Cash in Drawer" 
+                                value="₱{{ number_format($estCashInDrawer, 2) }}" 
+                                subtitle="Expected Cash"
+                                icon="fas fa-wallet"
+                                color="success text-white" 
+                                :gradient="true"
+                            ></stats-card>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </div>
-        @endif
 
+            {{-- DRAWER 2: PERFORMANCE --}}
+            <div class="accordion-item border-0 rounded-4 shadow-sm overflow-hidden">
+                <h2 class="accordion-header" id="headingPerf">
+                    <button class="accordion-button collapsed bg-white py-4 px-4 shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#collapsePerf" aria-expanded="false" aria-controls="collapsePerf">
+                        <div class="d-flex align-items-center w-100 me-3">
+                             <div class="rounded-circle bg-success bg-opacity-10 p-2 me-3 d-flex align-items-center justify-content-center" style="width: 42px; height: 42px;">
+                                <i class="fas fa-chart-line text-success" style="font-size: 1.2rem;"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <h6 class="fw-bold text-dark mb-0">Performance</h6>
+                                <small class="text-muted">Net Profit: <span class="fw-bold text-success">₱{{ number_format($profitToday, 2) }}</span></small>
+                            </div>
+                        </div>
+                    </button>
+                </h2>
+                <div id="collapsePerf" class="accordion-collapse collapse" aria-labelledby="headingPerf" data-bs-parent="#mobileStatsAccordion">
+                    <div class="accordion-body bg-light p-3 pt-0">
+                        <div class="d-flex flex-column gap-3 pt-3">
+                             <stats-card 
+                                title="Profit (Today)" 
+                                value="₱{{ number_format($profitToday, 2) }}" 
+                                subtitle="Net Income"
+                                icon="fas fa-coins"
+                                color="success"
+                            ></stats-card>
+                            <stats-card 
+                                title="Monthly Sales" 
+                                value="₱{{ number_format($salesMonth, 2) }}" 
+                                subtitle="Accrual Basis"
+                                icon="fas fa-chart-line"
+                                color="primary"
+                            ></stats-card>
+                            <stats-card 
+                                title="Total Collectibles" 
+                                value="₱{{ number_format($totalCredits, 2) }}" 
+                                subtitle="Unpaid Customer Debts"
+                                icon="fas fa-file-invoice-dollar"
+                                color="warning"
+                            ></stats-card>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
     </div>
 
     {{-- 2. CHART SECTION (Existing) --}}
     <div class="row mb-5">
-        <div class="col-12">
+        <div class="col-12 px-0 px-md-3">
             <div class="card shadow-sm border-0 rounded-4 overflow-hidden">
                 <div class="card-header bg-white border-0 py-4 px-4 d-flex justify-content-between align-items-center">
                     <div>
                         <h6 class="m-0 fw-bold text-dark fs-5">Sales Trend</h6>
                         <small class="text-muted">Revenue performance over the last 30 days</small>
                     </div>
-                    <span class="badge bg-primary bg-opacity-10 text-primary px-3 py-2 rounded-pill">Last 30 Days</span>
+                    <span class="badge bg-primary bg-opacity-10 text-primary px-3 py-2 rounded-pill d-none d-sm-inline-block">Last 30 Days</span>
                 </div>
-                <div class="card-body px-4 pb-4">
+                <div class="card-body px-2 px-md-4 pb-4">
                     <div class="chart-container" style="position: relative; height: 350px; width: 100%;">
                         <canvas id="salesChart"></canvas>
                     </div>
@@ -294,6 +430,24 @@
     </div>
 </div>
 @endsection
+
+@push('styles')
+<style>
+    /* Accordion Premium Tweaks */
+    .accordion-button:not(.collapsed) {
+        background-color: #fff !important;
+        box-shadow: none !important;
+    }
+    .accordion-button:focus {
+        box-shadow: none !important;
+        border-color: rgba(0,0,0,0.1);
+    }
+    .accordion-button::after {
+        background-size: 1rem;
+        opacity: 0.5;
+    }
+</style>
+@endpush
 
 @push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>

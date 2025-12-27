@@ -233,7 +233,7 @@
     @if(auth()->user()->role !== 'auditor')
     <a href="#" class="btn btn-primary rounded-circle shadow-lg d-lg-none position-fixed d-flex align-items-center justify-content-center" 
        data-bs-toggle="modal" data-bs-target="#addCustomerModal"
-       style="bottom: 20px; right: 20px; width: 60px; height: 60px; z-index: 1050;">
+       style="bottom: 90px; right: 20px; width: 60px; height: 60px; z-index: 900;">
         <i class="fas fa-plus fa-lg text-white"></i>
     </a>
     @endif

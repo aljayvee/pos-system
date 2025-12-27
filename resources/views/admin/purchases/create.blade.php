@@ -142,9 +142,9 @@
 
         </div>
 
-        {{-- MOBILE STICKY BOTTOM BAR --}}
-        <div class="d-lg-none position-fixed bottom-0 start-0 w-100 bg-white border-top p-3 z-3 shadow-lg">
-            <button type="submit" class="btn btn-dark w-100 py-3 rounded-pill fw-bold shadow-lg">
+        {{-- MOBILE STATIC BUTTON --}}
+        <div class="d-lg-none mt-4 mb-5 pb-5 px-3">
+            <button type="submit" class="btn btn-dark w-100 py-3 rounded-pill fw-bold shadow-sm">
                 <i class="fas fa-check-circle me-2"></i> Confirm Stock In
             </button>
         </div>

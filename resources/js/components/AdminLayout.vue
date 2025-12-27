@@ -16,32 +16,43 @@
         @click="closeAllDropdowns"
     ></div>
 
-    <aside 
-      class="d-flex flex-column shadow-lg sidebar-transition"
-      :class="sidebarClasses"
-      style="z-index: 1050; background-color: #1e1e2d;"
-    >
-      <div class="d-flex align-items-center px-3 border-bottom border-secondary border-opacity-10" 
-           style="height: 70px; min-height: 70px; background-color: #151521;"
-           :class="(!isMobile && !isOpen) ? 'justify-content-center' : 'justify-content-between'"
+      <aside 
+        class="d-flex flex-column shadow-lg sidebar-transition"
+        :class="sidebarClasses"
+        style="z-index: 1050; background-color: #1e1e2d;"
       >
-         <div class="d-flex align-items-center overflow-hidden" :class="{ 'w-100 justify-content-center': !isOpen && !isMobile }">
-             <button v-if="isMobile" @click="toggleSidebar" class="btn btn-link text-white p-0 me-3 text-decoration-none">
-                 <i class="fas fa-times fa-lg"></i>
-             </button>
+        <!-- SIDEBAR HEADER -->
+        <div class="d-flex align-items-center px-3 border-bottom border-secondary border-opacity-10 position-relative" 
+             style="height: 70px; min-height: 70px; background-color: #151521;"
+             :class="(!isMobile && !isOpen) ? 'justify-content-center' : 'justify-content-between'"
+        >
+           <!-- DESKTOP LOGO / MOBILE CLOSE -->
+           <div class="d-flex align-items-center overflow-hidden" :class="{ 'w-100 justify-content-center': !isOpen && !isMobile }">
+               <button v-if="isMobile" @click="toggleSidebar" class="btn btn-link text-white p-0 me-3 text-decoration-none opacity-50 hover-opacity-100">
+                   <i class="fas fa-arrow-left fa-lg"></i>
+               </button>
 
-             <div class="d-flex align-items-center text-nowrap">
-                 <div class="rounded d-flex align-items-center justify-content-center text-white" style="width: 36px; height: 36px;">
-                    <i class="fas fa-store fa-lg text-primary"></i>
-                 </div>
-                 <span class="ms-2 fw-bold fs-5 tracking-wide text-white fade-text" v-show="isOpen || isMobile">VERAPOS</span>
-             </div>
-         </div>
+               <div class="d-flex align-items-center text-nowrap">
+                   <div class="rounded d-flex align-items-center justify-content-center text-white" style="width: 36px; height: 36px;">
+                      <i class="fas fa-store fa-lg text-primary"></i>
+                   </div>
+                   <!-- TITLE OR USERNAME (On Mobile) -->
+                   <div class="ms-2 d-flex flex-column justify-content-center fade-text" v-show="isOpen || isMobile">
+                       <span class="fw-bold fs-5 tracking-wide text-white leading-tight" v-if="!isMobile">VERAPOS</span>
+                       
+                       <!-- Mobile Profile Header -->
+                       <template v-else>
+                           <span class="fw-bold text-white leading-none small">{{ userName }}</span>
+                           <span class="text-muted small" style="font-size: 0.7rem;">{{ userRole.toUpperCase() }}</span>
+                       </template>
+                   </div>
+               </div>
+           </div>
 
-         <button v-if="!isMobile && isOpen" @click="toggleSidebar" class="btn btn-sm btn-link text-muted p-0 text-decoration-none hover-white">
-             <i class="fas fa-bars fa-lg"></i>
-         </button>
-      </div>
+           <button v-if="!isMobile && isOpen" @click="toggleSidebar" class="btn btn-sm btn-link text-muted p-0 text-decoration-none hover-white">
+               <i class="fas fa-bars fa-lg"></i>
+           </button>
+        </div>
 
       <div class="flex-fill overflow-auto py-3 custom-scrollbar" :class="{ 'opacity-50 pe-none': isNavigating }" @click.capture="handleNavClick">
          
@@ -181,7 +192,7 @@
       
       <header class="navbar navbar-expand bg-white border-bottom shadow-sm px-4" style="height: 70px; min-height: 70px;">
         <button v-if="!isOpen && !isMobile" @click="toggleSidebar" class="btn btn-light border me-3 text-secondary"><i class="fas fa-bars"></i></button>
-        <button v-if="isMobile" @click="toggleSidebar" class="btn btn-light border me-3 text-secondary"><i class="fas fa-bars"></i></button>
+        <!-- Mobile Toggle Removed (Replaced by Bottom Nav) -->
 
         <h5 class="h9 mb-0 text-dark"></h5>
 
@@ -331,11 +342,50 @@
         </div>
       </header>
 
-      <main class="flex-fill overflow-auto p-4">
+      <main class="flex-fill overflow-auto p-4" :class="{ 'pb-5 mb-5': isMobile }">
           <div class="container-fluid p-0" style="max-width: 1600px;">
               <slot></slot>
           </div>
       </main>
+
+      <!-- MOBILE BOTTOM NAVIGATION (Native App Feel) -->
+      <nav v-if="isMobile" class="fixed-bottom bg-white border-top shadow-lg pb-safe d-flex justify-content-around align-items-center px-2 py-2" style="z-index: 1045;">
+          <!-- 1. DASHBOARD -->
+          <a href="/admin/dashboard" class="mobile-nav-item" :class="{ 'active': currentPath === '/admin/dashboard' }">
+              <i class="fas fa-home mb-1"></i>
+              <span>Home</span>
+          </a>
+
+          <!-- 2. INVENTORY -->
+          <a href="/admin/products" class="mobile-nav-item" :class="{ 'active': currentPath.includes('/products') || currentPath.includes('/inventory') }">
+              <i class="fas fa-box mb-1"></i>
+              <span>Stock</span>
+          </a>
+
+          <!-- 3. POS FAB (Floating Action Button) -->
+          <div class="mobile-nav-item position-relative" style="overflow: visible;">
+              <a href="/cashier/pos" class="btn btn-primary rounded-circle shadow-lg d-flex align-items-center justify-content-center" 
+                 style="width: 56px; height: 56px; border: 4px solid #fff; position: absolute; top: -35px; left: 50%; transform: translateX(-50%);">
+                  <i class="fas fa-cash-register fa-lg"></i>
+              </a>
+              <!-- Invisible spacer to match sibling alignment -->
+              <i class="fas fa-circle mb-1 opacity-0"></i>
+              <span class="text-primary fw-bold">POS</span>
+          </div>
+
+          <!-- 4. TRANSACTIONS -->
+          <a href="/admin/transactions" class="mobile-nav-item" :class="{ 'active': currentPath.includes('/transactions') }">
+              <i class="fas fa-history mb-1"></i>
+              <span>History</span>
+          </a>
+
+          <!-- 5. MENU (Toggles Sidebar) -->
+          <button @click="toggleSidebar" class="mobile-nav-item border-0 bg-transparent" :class="{ 'active': isOpen }">
+              <i class="fas fa-bars mb-1"></i>
+              <span>Menu</span>
+          </button>
+      </nav>
+
     </div>
     <toast-manager />
     
@@ -576,8 +626,8 @@ export default {
     sidebarClasses() {
         if (this.isMobile) {
             return this.isOpen 
-                ? 'sidebar-open position-fixed top-0 start-0 bottom-0 shadow-lg' 
-                : 'sidebar-closed-mobile position-fixed top-0 start-0 bottom-0';
+                ? 'sidebar-open position-fixed top-0 end-0 bottom-0 shadow-lg' 
+                : 'sidebar-closed-mobile position-fixed top-0 end-0 bottom-0';
         }
         return this.isOpen ? 'sidebar-open' : 'sidebar-closed-desktop';
     },
@@ -616,10 +666,28 @@ export default {
 .hover-scale:hover { transform: scale(1.05); }
 
 /* TRANSITIONS */
-.sidebar-transition { transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1); white-space: nowrap; }
+.sidebar-transition { transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1), width 0.3s ease; white-space: nowrap; }
 .sidebar-open { width: 280px; transform: translateX(0); }
 .sidebar-closed-desktop { width: 88px; }
-.sidebar-closed-mobile { width: 280px; transform: translateX(-100%); }
+.sidebar-closed-mobile { width: 85vw; max-width: 320px; transform: translateX(100%); }
+
+@media (max-width: 991px) {
+    .sidebar-open { width: 85vw; max-width: 320px; }
+    
+    /* Bigger Touch Targets for Mobile */
+    .nav-link { 
+        padding-top: 1.1rem; 
+        padding-bottom: 1.1rem;
+        font-size: 1.05rem;
+    }
+    
+    /* Make headers more prominent */
+    .nav-header {
+        font-size: 0.8rem;
+        margin-top: 1.5rem !important;
+        opacity: 0.8;
+    }
+}
 
 /* SIDEBAR PREMIUM */
 .sidebar-backdrop { backdrop-filter: blur(4px); }
@@ -652,6 +720,27 @@ export default {
     transition: transform 0.2s;
 }
 .nav-link:hover .icon-wrapper, .nav-link.active .icon-wrapper { transform: scale(1.1); }
+
+/* MOBILE BOTTOM NAV */
+.mobile-nav-item {
+    font-size: 0.7rem;
+    color: #64748b;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    width: 60px;
+    text-decoration: none;
+}
+.mobile-nav-item.active {
+    color: #3b82f6;
+    font-weight: bold;
+}
+.mobile-nav-item i {
+    font-size: 1.2rem;
+}
+.pb-safe { padding-bottom: env(safe-area-inset-bottom); }
 
 /* HEADER GLASSMORPHISM */
 header.navbar {
@@ -693,6 +782,7 @@ header.navbar {
         max-height: 85vh;
         overflow-y: auto;
         transform: none; /* Reset desktop transforms if any */
+        z-index: 2000 !important; /* Above bottom nav */
     }
     
     /* Drag Handle Visual */
