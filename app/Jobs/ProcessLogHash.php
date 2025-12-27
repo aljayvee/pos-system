@@ -27,6 +27,10 @@ class ProcessLogHash implements ShouldQueue
      */
     public function handle(): void
     {
+        // Safety Check: Stop if feature disabled
+        if (!config('safety_flag_features.log_integrity')) {
+            return;
+        }
         // Use an Atomic Lock to ensure only one worker processes hashes at a time.
         // This is crucial for maintaining the "Blockchain" sequence `previous_hash`
         // "log_hashing" is the lock key, 10 seconds timeout.

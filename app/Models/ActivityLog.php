@@ -21,10 +21,10 @@ class ActivityLog extends Model
         });
 
         static::created(function ($log) {
-            // 3. Dispatch Background Job
-            // This offloads the heavy cryptographic work and serialization lock
-            // to the queue worker, keeping the User's request fast.
-            \App\Jobs\ProcessLogHash::dispatch();
+            // 3. Dispatch Background Job (Only if enabled)
+            if (config('safety_flag_features.log_integrity')) {
+                \App\Jobs\ProcessLogHash::dispatch();
+            }
         });
     }
 

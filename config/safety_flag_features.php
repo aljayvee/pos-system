@@ -17,4 +17,5 @@ return [
     'bir_tax_compliance' => false,
     'online_payment' => false, 
     'multi_store' => false, 
+    'log_integrity' => false,
 ];
