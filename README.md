@@ -32,6 +32,7 @@ A modern, robust Point of Sale (POS) system built with Laravel and Vue.js, desig
     ```bash
     php artisan serve
     npm run dev
+    php artisan queue:work --timeout=60
     ```
 
 ## Testing
