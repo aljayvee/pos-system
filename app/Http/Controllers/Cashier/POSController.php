@@ -478,6 +478,14 @@ class POSController extends Controller
                 ]);
             }
 
+            // 10. ACTIVITY LOG (Transaction Recorded)
+            \App\Models\ActivityLog::create([
+                'user_id' => Auth::id(),
+                'store_id' => $storeId,
+                'action' => 'Sale Created',
+                'description' => "Sale ID: #{$sale->id} | Total: " . number_format($finalTotal, 2) . " | Items: " . count($validatedItems) . " | Method: " . ucfirst($request->payment_method),
+            ]);
+
             DB::commit(); 
             return response()->json(['success' => true, 'sale_id' => $sale->id]);
 
