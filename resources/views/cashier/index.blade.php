@@ -462,7 +462,17 @@
         }
     }
 
-    window.addToCart = function(product) {
+    window.addToCart = function(productOrId) {
+        // [FIX] Ensure we use the 'live' product object from ALL_PRODUCTS which receives sync updates
+        // The onclick handler passes a static JSON snapshot from page load.
+        let product = productOrId;
+        
+        // If passed object has an ID, look it up in the live array
+        if (typeof productOrId === 'object' && productOrId.id) {
+             const liveProduct = ALL_PRODUCTS.find(p => p.id === productOrId.id);
+             if (liveProduct) product = liveProduct;
+        }
+
         const existing = cart.find(i => i.id === product.id);
         if (existing) {
             if (existing.qty < product.current_stock) {

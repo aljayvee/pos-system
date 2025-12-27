@@ -59,6 +59,8 @@ Or directly via PHPUnit:
     -   `test_open_session_creates_record`: Ensures cash register sessions are correctly initialized with opening amounts.
     -   `test_calculate_expected_cash`: Validates the financial calculations, ensuring that opening cash + cash sales match the expected total (ignoring non-cash methods).
     -   *Note*: These tests use specific database transactions (`DB::beginTransaction()` / `DB::rollBack()`) to ensure no test data persists in your local database.
+-   **`PricingServiceTest`**: Verifies the multi-buy pricing logic.
+    -   `test_calculate_total_multiple_tiers_greedy`: Ensures complex combinations of pricing tiers are applied correctly (e.g., verifying that the system prioritizes the largest applicable bundle first).
 
 #### Feature Tests (`tests/Feature`)
 -   Includes standard HTTP tests to verify route accessibility and controller responses.
