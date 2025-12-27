@@ -132,31 +132,33 @@
                 </div>
             </div>
 
+            {{-- MOBILE STATIC BUTTONS (Scrollable) --}}
+            <div class="d-md-none mt-3 pb-5">
+                <div class="row g-2">
+                    <div class="col-3">
+                        <a href="{{ route('admin.transactions.return', $sale->id) }}" class="btn btn-light w-100 py-3 rounded-4 text-secondary border d-flex flex-column align-items-center justify-content-center h-100 shadow-sm">
+                            <i class="fas fa-undo mb-2 fa-lg"></i> <small style="font-size: 0.65rem;" class="fw-bold">Return</small>
+                        </a>
+                    </div>
+                    <div class="col-3">
+                        <form action="{{ route('transactions.destroy', $sale->id) }}" method="POST" class="h-100" onsubmit="return confirm('CRITICAL WARNING:\n\nThis will VOID the entire transaction:\n- Restore stock\n- Remove sales record\n- Cancel credit/points\n\nAre you sure?');">
+                            @csrf @method('DELETE')
+                            <button type="submit" class="btn btn-light w-100 py-3 rounded-4 text-danger border d-flex flex-column align-items-center justify-content-center h-100 shadow-sm">
+                                <i class="fas fa-ban mb-2 fa-lg"></i> <small style="font-size: 0.65rem;" class="fw-bold">Void</small>
+                            </button>
+                        </form>
+                    </div>
+                    <div class="col-6">
+                        <a href="{{ route('transactions.print', $sale->id) }}" target="_blank" class="btn btn-dark w-100 py-3 rounded-4 h-100 d-flex align-items-center justify-content-center shadow-lg">
+                            <i class="fas fa-print me-2"></i> <span class="fw-bold">Print Receipt</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
         </div>
     </div>
 </div>
 
-{{-- MOBILE STICKY BOTTOM BAR --}}
-<div class="fixed-bottom bg-white border-top shadow-lg p-3 d-md-none safe-area-bottom">
-    <div class="row g-2">
-        <div class="col-3">
-            <a href="{{ route('admin.transactions.return', $sale->id) }}" class="btn btn-light w-100 py-3 rounded-4 text-secondary border d-flex flex-column align-items-center justify-content-center h-100">
-                <i class="fas fa-undo mb-2 fa-lg"></i> <small style="font-size: 0.65rem;" class="fw-bold">Return</small>
-            </a>
-        </div>
-        <div class="col-3">
-            <form action="{{ route('transactions.destroy', $sale->id) }}" method="POST" class="h-100" onsubmit="return confirm('CRITICAL WARNING:\n\nThis will VOID the entire transaction:\n- Restore stock\n- Remove sales record\n- Cancel credit/points\n\nAre you sure?');">
-                @csrf @method('DELETE')
-                <button type="submit" class="btn btn-light w-100 py-3 rounded-4 text-danger border d-flex flex-column align-items-center justify-content-center h-100">
-                    <i class="fas fa-ban mb-2 fa-lg"></i> <small style="font-size: 0.65rem;" class="fw-bold">Void</small>
-                </button>
-            </form>
-        </div>
-        <div class="col-6">
-            <a href="{{ route('transactions.print', $sale->id) }}" target="_blank" class="btn btn-dark w-100 py-3 rounded-4 h-100 d-flex align-items-center justify-content-center shadow-lg">
-                <i class="fas fa-print me-2"></i> <span class="fw-bold">Print Receipt</span>
-            </a>
-        </div>
-    </div>
-</div>
+
 @endsection

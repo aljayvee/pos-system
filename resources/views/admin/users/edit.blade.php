@@ -280,9 +280,9 @@
                     </div>
                 </div>
 
-                {{-- MOBILE STICKY BOTTOM ACTION BAR --}}
-                <div class="d-lg-none fixed-bottom bg-white border-top p-3 shadow-lg" style="z-index: 1020;">
-                    <button type="submit" id="btnUpdateMobile" class="btn btn-primary w-100 rounded-pill fw-bold py-3 shadow-sm" style="font-size: 1.1rem;">
+                {{-- MOBILE STATIC ACTION BAR --}}
+                <div class="d-lg-none mt-4 pb-5">
+                    <button type="submit" id="btnUpdateMobile" class="btn btn-primary w-100 rounded-pill fw-bold py-3 shadow-lg" style="font-size: 1.1rem;">
                         Save Changes
                     </button>
                 </div>

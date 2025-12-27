@@ -8,13 +8,22 @@
       "app.css"
     ]
   },
+  "resources/css/premium-ui.css": {
+    "file": "assets/premium-ui-DijrDSN0.css",
+    "src": "resources/css/premium-ui.css",
+    "isEntry": true,
+    "name": "premium-ui",
+    "names": [
+      "premium-ui.css"
+    ]
+  },
   "resources/js/app.js": {
-    "file": "assets/app-CD_oLaCy.js",
+    "file": "assets/app-DzwKtAlB.js",
     "name": "app",
     "src": "resources/js/app.js",
     "isEntry": true,
     "css": [
-      "assets/app-ZRnzYmsl.css"
+      "assets/app-DM_gYaOR.css"
     ]
   }
 }

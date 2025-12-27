@@ -1,0 +1,173 @@
+/* 
+   Premium UI Design System 
+   Theme: Soft, Futuristic, Glassmorphism, Neumorphism
+*/
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+:root {
+    /* Color Palette */
+    --bg-gradient-start: #e0f2fe;
+    /* Light Blue 100 */
+    --bg-gradient-end: #ffffff;
+    /* White */
+
+    --primary-color: #4f46e5;
+    /* Indigo 600 - keeping brand consistency */
+    --primary-hover: #4338ca;
+
+    --glass-bg: rgba(255, 255, 255, 0.65);
+    --glass-border: rgba(255, 255, 255, 0.4);
+    --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+
+    --text-main: #1f2937;
+    --text-muted: #6b7280;
+
+    /* Neumorphic Shadows */
+    --neumorph-shadow-light: -5px -5px 10px rgba(255, 255, 255, 0.8);
+    --neumorph-shadow-dark: 5px 5px 10px rgba(163, 177, 198, 0.3);
+}
+
+body {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    color: var(--text-main);
+    background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
+    min-height: 100vh;
+    margin: 0;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* Glassmorphism Utilities (Optimized) */
+.glass-panel {
+    background: var(--glass-bg);
+    backdrop-filter: blur(8px);
+    /* Reduced from 12px */
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid var(--glass-border);
+    border-radius: 24px;
+    box-shadow: var(--glass-shadow);
+    will-change: backdrop-filter;
+}
+
+.glass-header {
+    background: rgba(255, 255, 255, 0.4);
+    /* Increased opacity */
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(4px);
+    /* Reduced from 5px */
+    -webkit-backdrop-filter: blur(4px);
+}
+
+/* Input Fields (Floating & Modern) */
+.form-floating-custom {
+    position: relative;
+    margin-bottom: 1.5rem;
+}
+
+.form-floating-custom input {
+    width: 100%;
+    padding: 1rem 1rem 1rem 3rem;
+    /* Left padding for icon */
+    background: #f3f6f9;
+    /* Slightly darker than glass for contrast */
+    border: 1px solid transparent;
+    border-radius: 16px;
+    font-size: 1rem;
+    transition: all 0.2s ease;
+    /* Faster transition */
+    box-shadow: inset 2px 2px 5px rgba(163, 177, 198, 0.1),
+        inset -2px -2px 5px rgba(255, 255, 255, 0.7);
+}
+
+.form-floating-custom input:focus {
+    outline: none;
+    background: #ffffff;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+}
+
+.form-floating-custom label {
+    position: absolute;
+    left: 3rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    pointer-events: none;
+    transition: all 0.2s ease;
+    font-size: 1rem;
+}
+
+.form-floating-custom .icon {
+    position: absolute;
+    left: 1.2rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    font-size: 1.1rem;
+    transition: color 0.2s;
+}
+
+.form-floating-custom input:focus~.icon {
+    color: var(--primary-color);
+}
+
+/* Floating Label Action */
+.form-floating-custom input:not(:placeholder-shown)~label,
+.form-floating-custom input:focus~label {
+    top: 0;
+    left: 1rem;
+    font-size: 0.75rem;
+    padding: 0 0.5rem;
+    background: transparent;
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
+/* Buttons */
+.btn-premium {
+    background: linear-gradient(135deg, var(--primary-color) 0%, #3730a3 100%);
+    color: white;
+    padding: 14px 24px;
+    border-radius: 16px;
+    border: none;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    box-shadow: 0 10px 20px -5px rgba(79, 70, 229, 0.4);
+    transition: transform 0.2s, box-shadow 0.2s;
+    width: 100%;
+}
+
+.btn-premium:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 15px 25px -5px rgba(79, 70, 229, 0.5);
+    color: white;
+}
+
+.btn-premium:active {
+    transform: translateY(0);
+}
+
+.btn-glass {
+    background: rgba(255, 255, 255, 0.6);
+    border: 1px solid var(--glass-border);
+    color: var(--text-main);
+    padding: 12px 20px;
+    border-radius: 16px;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+.btn-glass:hover {
+    background: rgba(255, 255, 255, 0.9);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+}
+
+/* 3D Isometric / Float Elements */
+.float-card {
+    /* animation: float 6s ease-in-out infinite; REMOVED for performance */
+    transition: transform 0.3s ease;
+}
+
+.float-card:hover {
+    transform: translateY(-5px);
+}

@@ -62,6 +62,19 @@
                             </div>
                         </div>
 
+                        <hr>
+                        <h6 class="text-primary mb-3"><i class="fas fa-fingerprint me-1"></i> Biometric & Passkey Authentication</h6>
+                        
+                        <div class="d-flex align-items-center justify-content-between bg-light p-3 rounded-3 mb-3">
+                            <div>
+                                <h6 class="mb-1 fw-bold">Register Passkey</h6>
+                                <p class="mb-0 text-muted small">Enable login with Fingerprint, FaceID, PIN, or Windows Hello.</p>
+                            </div>
+                            <button type="button" onclick="WebAuthn.register()" class="btn btn-outline-primary rounded-pill">
+                                <i class="fas fa-plus me-1"></i> Valid Device
+                            </button>
+                        </div>
+
                         <div class="text-end mt-3">
                             <button type="submit" class="btn btn-primary px-4">
                                 <i class="fas fa-save me-1"></i> Update Profile

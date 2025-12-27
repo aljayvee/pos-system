@@ -228,4 +228,18 @@ Route::get('/auth/force-verify/{id}', [AuthController::class, 'verifyForceLogin'
     ->middleware('signed');
 
 
-// ...
+// ... (End of existing file)
+
+// WebAuthn Routes
+Route::middleware(['auth'])->group(function () {
+    Route::post('/webauthn/register/options', [\App\Http\Controllers\WebAuthnController::class, 'options'])
+        ->name('webauthn.register.options');
+    Route::post('/webauthn/register', [\App\Http\Controllers\WebAuthnController::class, 'register'])
+        ->name('webauthn.register');
+});
+
+// WebAuthn Login Routes (Unauthenticated)
+Route::post('/webauthn/login/options', [\App\Http\Controllers\WebAuthnController::class, 'loginOptions'])
+    ->name('webauthn.login.options');
+Route::post('/webauthn/login', [\App\Http\Controllers\WebAuthnController::class, 'login'])
+    ->name('webauthn.login');

@@ -11,10 +11,13 @@ use Illuminate\Support\Facades\Config;
 
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-class User extends Authenticatable
+use Laragear\WebAuthn\Contracts\WebAuthnAuthenticatable;
+use Laragear\WebAuthn\WebAuthnAuthentication;
+
+class User extends Authenticatable implements WebAuthnAuthenticatable
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable, SoftDeletes;
+    use HasFactory, Notifiable, SoftDeletes, WebAuthnAuthentication;
 
     /**
      * The attributes that are mass assignable.

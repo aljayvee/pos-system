@@ -10,9 +10,10 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     {{-- Vite Assets (Loads your Vue Component) --}}
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @vite(['resources/css/app.css', 'resources/css/premium-ui.css', 'resources/js/app.js'])
 
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    <meta name="app-url" content="{{ url('/') }}">
 
     <style>
         #global-loading-overlay {
@@ -249,6 +250,22 @@
                 clickedLink.innerHTML = `<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> ${originalText}`;
             }
         });
+
+        // GLOBAL: Prevent Back Button on Mobile (App-like behavior)
+        if (window.innerWidth < 992) {
+            // Robust Trap: Push state multiple times to create a 'buffer' against rapid clicking
+            // This ensures that even if the user clicks back quickly, they are just traversing our dummy states
+            history.pushState(null, null, location.href); 
+            history.pushState(null, null, location.href);
+            history.pushState(null, null, location.href);
+
+            window.addEventListener('popstate', function (event) {
+                // When back is detected, immediately push state again to maintain the trap
+                // 'forward' is generally ignored by browsers if there is no forward history, 
+                // preventing the 'forward' button from breaking this logic is less of a concern than 'back'.
+                history.pushState(null, null, location.href);
+            });
+        }
     </script>
 </body>
 

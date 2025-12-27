@@ -4,6 +4,7 @@ import NProgress from 'nprogress';
 import 'nprogress/nprogress.css';
 
 // CHANGED: Import AdminLayout instead of SidebarLayout to match your Blade template
+import './webauthn.js';
 import AdminLayout from './components/AdminLayout.vue';
 import StatsCard from './components/StatsCard.vue';
 import ToastManager from './components/ToastManager.vue';

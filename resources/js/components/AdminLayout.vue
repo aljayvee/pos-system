@@ -1,6 +1,7 @@
 <template>
-  <div class="d-flex vh-100 w-100 overflow-hidden bg-light font-sans">
+  <div class="d-flex vh-100 w-100 overflow-hidden bg-body font-sans">
     
+    <!-- MOBILE OVERLAY -->
     <div 
         v-if="isMobile && isOpen" 
         class="position-fixed top-0 start-0 w-100 h-100 bg-dark bg-opacity-75 fade-in"
@@ -16,203 +17,196 @@
         @click="closeAllDropdowns"
     ></div>
 
+      <!-- SIDEBAR (Floating Glass Panel) -->
       <aside 
-        class="d-flex flex-column shadow-lg sidebar-transition"
+        class="d-flex flex-column sidebar-transition m-3 rounded-4 border border-white border-opacity-50 shadow-lg position-relative overflow-hidden"
         :class="sidebarClasses"
-        style="z-index: 1050; background-color: #1e1e2d;"
+        style="z-index: 1050; background: rgba(255, 255, 255, 0.65); backdrop-filter: blur(16px);"
       >
+        <!-- DECORATIVE BLUR -->
+        <div class="position-absolute top-0 start-0 w-100 h-100 opacity-25 pointer-events-none" 
+             style="background: linear-gradient(180deg, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0) 100%); mix-blend-mode: overlay;"></div>
+
         <!-- SIDEBAR HEADER -->
-        <div class="d-flex align-items-center px-3 border-bottom border-secondary border-opacity-10 position-relative" 
-             style="height: 70px; min-height: 70px; background-color: #151521;"
+        <div class="d-flex align-items-center px-3 position-relative z-10" 
+             style="height: 80px; min-height: 80px;"
              :class="(!isMobile && !isOpen) ? 'justify-content-center' : 'justify-content-between'"
         >
-           <!-- DESKTOP LOGO / MOBILE CLOSE -->
+           <!-- BRAND -->
            <div class="d-flex align-items-center overflow-hidden" :class="{ 'w-100 justify-content-center': !isOpen && !isMobile }">
-               <button v-if="isMobile" @click="toggleSidebar" class="btn btn-link text-white p-0 me-3 text-decoration-none opacity-50 hover-opacity-100">
+               <button v-if="isMobile" @click="toggleSidebar" class="btn btn-link text-dark p-0 me-3 text-decoration-none opacity-50 hover-opacity-100">
                    <i class="fas fa-arrow-left fa-lg"></i>
                </button>
 
                <div class="d-flex align-items-center text-nowrap">
-                   <div class="rounded d-flex align-items-center justify-content-center text-white" style="width: 36px; height: 36px;">
-                      <i class="fas fa-store fa-lg text-primary"></i>
+                   <div class="rounded-3 d-flex align-items-center justify-content-center text-white shadow-sm hover-scale transition-all" 
+                        style="width: 42px; height: 42px; background: linear-gradient(135deg, #4f46e5 0%, #818cf8 100%);">
+                      <i class="fas fa-layer-group fa-lg"></i>
                    </div>
-                   <!-- TITLE OR USERNAME (On Mobile) -->
-                   <div class="ms-2 d-flex flex-column justify-content-center fade-text" v-show="isOpen || isMobile">
-                       <span class="fw-bold fs-5 tracking-wide text-white leading-tight" v-if="!isMobile">VERAPOS</span>
+                   <!-- TITLE -->
+                   <div class="ms-3 d-flex flex-column justify-content-center fade-text" v-show="isOpen || isMobile">
+                       <span class="fw-bold fs-5 tracking-tight text-dark" v-if="!isMobile" style="font-family: 'Inter', sans-serif;">VERAPOS</span>
                        
                        <!-- Mobile Profile Header -->
                        <template v-else>
-                           <span class="fw-bold text-white leading-none small">{{ userName }}</span>
+                           <span class="fw-bold text-dark leading-none small">{{ userName }}</span>
                            <span class="text-muted small" style="font-size: 0.7rem;">{{ userRole.toUpperCase() }}</span>
                        </template>
                    </div>
                </div>
            </div>
-
-           <button v-if="!isMobile && isOpen" @click="toggleSidebar" class="btn btn-sm btn-link text-muted p-0 text-decoration-none hover-white">
-               <i class="fas fa-bars fa-lg"></i>
-           </button>
         </div>
 
-      <div class="flex-fill overflow-auto py-3 custom-scrollbar" :class="{ 'opacity-50 pe-none': isNavigating }" @click.capture="handleNavClick">
+      <div class="flex-fill overflow-auto px-3 py-2 custom-scrollbar position-relative z-10" :class="{ 'opacity-50 pe-none': isNavigating }" @click.capture="handleNavClick">
          
-         <div class="px-3 mb-4" v-if="can('pos.access')">
-             <a href="/cashier/pos" class="btn btn-primary w-100 d-flex align-items-center justify-content-center py-2 shadow-sm text-uppercase fw-bold" style="letter-spacing: 0.5px;">
+         <!-- POS BUTTON -->
+         <div class="mb-4" v-if="can('pos.access')">
+             <a href="/cashier/pos" class="btn btn-primary w-100 d-flex align-items-center justify-content-center py-3 shadow-lg hover-translate text-uppercase fw-bold border-0" 
+                style="background: linear-gradient(135deg, #4f46e5 0%, #3730a3 100%); border-radius: 16px; letter-spacing: 0.5px;">
                  <i class="fas fa-cash-register"></i>
-                 <span class="ms-2" v-show="isOpen || isMobile">Go to Cashier</span>
+                 <span class="ms-2" v-show="isOpen || isMobile">Launch POS</span>
              </a>
          </div>
 
-          <ul class="nav nav-pills flex-column px-2 gap-1">
+          <ul class="nav flex-column gap-2">
              <!-- DASHBOARD -->
              <li class="nav-item">
                  <a href="/admin/dashboard" class="nav-link d-flex align-items-center" :class="{ 'active': currentPath === '/admin/dashboard' }">
-                    <div class="icon-wrapper"><i class="fas fa-tachometer-alt"></i></div>
-                    <span class="text-nowrap fade-text ms-2" v-show="isOpen || isMobile">Dashboard</span>
+                    <div class="icon-wrapper"><i class="fas fa-grid-2"></i></div> <!-- Using grid icon for modern feel if avail, fallback handles it generally -->
+                    <span class="text-nowrap fade-text ms-3 fw-medium" v-show="isOpen || isMobile">Dashboard</span>
                  </a>
              </li>
 
              <!-- INVENTORY -->
              <template v-if="can('inventory.view')">
-                <li class="nav-header px-3 mt-3 mb-1 text-muted small fw-bold text-uppercase overflow-hidden" v-show="isOpen || isMobile">Inventory</li>
+                <li class="nav-header mt-4 mb-2 ps-2 text-uppercase text-xs fw-bold text-muted tracking-wider opacity-75" v-show="isOpen || isMobile">Inventory</li>
 
                 <li class="nav-item">
                     <a href="/admin/categories" class="nav-link d-flex align-items-center" :class="{ 'active': currentPath.includes('/categories') }">
                        <div class="icon-wrapper"><i class="fas fa-tags"></i></div>
-                       <span class="text-nowrap fade-text ms-2" v-show="isOpen || isMobile">Categories</span>
+                       <span class="text-nowrap fade-text ms-3 fw-medium" v-show="isOpen || isMobile">Categories</span>
                     </a>
                 </li>
 
                 <li class="nav-item">
                     <a href="/admin/products" class="nav-link d-flex align-items-center" :class="{ 'active': currentPath.includes('/products') }">
-                       <div class="icon-wrapper"><i class="fas fa-box-open"></i></div>
-                       <span class="text-nowrap fade-text ms-2" v-show="isOpen || isMobile">Product Management</span>
+                       <div class="icon-wrapper"><i class="fas fa-box"></i></div>
+                       <span class="text-nowrap fade-text ms-3 fw-medium" v-show="isOpen || isMobile">Products</span>
                     </a>
                 </li>
-
+                
                 <li class="nav-item">
                     <a href="/admin/purchases" class="nav-link d-flex align-items-center" :class="{ 'active': currentPath.includes('/purchases') }">
                        <div class="icon-wrapper"><i class="fas fa-truck-loading"></i></div>
-                       <span class="text-nowrap fade-text ms-2" v-show="isOpen || isMobile">Stock In History</span>
+                       <span class="text-nowrap fade-text ms-3 fw-medium" v-show="isOpen || isMobile">Stock In</span>
                     </a>
                 </li>
                 <li class="nav-item">
                     <a href="/admin/inventory" class="nav-link d-flex align-items-center" :class="{ 'active': currentPath.includes('/inventory') }">
-                       <div class="icon-wrapper"><i class="fas fa-boxes"></i></div>
-                       <span class="text-nowrap fade-text ms-2" v-show="isOpen || isMobile">Inventory Management</span>
+                       <div class="icon-wrapper"><i class="fas fa-warehouse"></i></div>
+                       <span class="text-nowrap fade-text ms-3 fw-medium" v-show="isOpen || isMobile">Management</span>
                     </a>
                 </li>
              </template>
 
              <!-- FINANCE -->
              <template v-if="can('sales.view') || can('reports.view')">
-                <li class="nav-header px-3 mt-3 mb-1 text-muted small fw-bold text-uppercase overflow-hidden" v-show="isOpen || isMobile">Finance</li>
+                <li class="nav-header mt-4 mb-2 ps-2 text-uppercase text-xs fw-bold text-muted tracking-wider opacity-75" v-show="isOpen || isMobile">Finance</li>
                 <li class="nav-item">
                     <a href="/admin/customers" class="nav-link d-flex align-items-center" :class="{ 'active': currentPath.includes('/customers') }">
                        <div class="icon-wrapper"><i class="fas fa-users"></i></div>
-                       <span class="text-nowrap fade-text ms-2" v-show="isOpen || isMobile">Customer Management</span>
+                       <span class="text-nowrap fade-text ms-3 fw-medium" v-show="isOpen || isMobile">Customers</span>
                     </a>
                 </li>
                 <li class="nav-item">
                     <a href="/admin/suppliers" class="nav-link d-flex align-items-center" :class="{ 'active': currentPath.includes('/suppliers') }">
-                       <div class="icon-wrapper"><i class="fas fa-people-carry"></i></div>
-                       <span class="text-nowrap fade-text ms-2" v-show="isOpen || isMobile">Supplier Management</span>
+                       <div class="icon-wrapper"><i class="fas fa-dolly"></i></div>
+                       <span class="text-nowrap fade-text ms-3 fw-medium" v-show="isOpen || isMobile">Suppliers</span>
                     </a>
                 </li>
                 <li class="nav-item">
                     <a href="/admin/credits" class="nav-link d-flex align-items-center" :class="{ 'active': currentPath.includes('/credits') }">
                        <div class="icon-wrapper"><i class="fas fa-file-invoice-dollar"></i></div>
-                       <span class="text-nowrap fade-text ms-2" v-show="isOpen || isMobile">Credits (Utang)</span>
+                       <span class="text-nowrap fade-text ms-3 fw-medium" v-show="isOpen || isMobile">Credits</span>
                     </a>
                 </li>
                 <li class="nav-item" v-if="enableRegisterLogs == 1">
                     <a href="/admin/adjustments" class="nav-link d-flex align-items-center" :class="{ 'active': currentPath.includes('/adjustments') }">
-                       <div class="icon-wrapper"><i class="fas fa-clipboard-list"></i></div>
-                       <span class="text-nowrap fade-text ms-2" v-show="isOpen || isMobile">Register Cash Logs</span>
+                       <div class="icon-wrapper"><i class="fas fa-cash-register"></i></div>
+                       <span class="text-nowrap fade-text ms-3 fw-medium" v-show="isOpen || isMobile">Cash Logs</span>
                     </a>
                 </li>
              </template>
 
              <!-- ANALYTICS -->
              <template v-if="can('reports.view')">
-                <li class="nav-header px-3 mt-3 mb-1 text-muted small fw-bold text-uppercase overflow-hidden" v-show="isOpen || isMobile">Analytics</li>
+                <li class="nav-header mt-4 mb-2 ps-2 text-uppercase text-xs fw-bold text-muted tracking-wider opacity-75" v-show="isOpen || isMobile">Analytics</li>
                 <li class="nav-item">
                     <a href="/admin/reports" class="nav-link d-flex align-items-center" :class="{ 'active': currentPath.includes('/reports') }">
                        <div class="icon-wrapper"><i class="fas fa-chart-pie"></i></div>
-                       <span class="text-nowrap fade-text ms-2" v-show="isOpen || isMobile">Reports & Analytics</span>
+                       <span class="text-nowrap fade-text ms-3 fw-medium" v-show="isOpen || isMobile">Reports</span>
                     </a>
                 </li>
              </template>
 
-             <!-- ACCOUNTS -->
-             <template v-if="can('user.manage')">
-                <li class="nav-header px-3 mt-3 mb-1 text-muted small fw-bold text-uppercase overflow-hidden" v-show="isOpen || isMobile">Accounts Management</li>
-                <li class="nav-item">
+             <!-- SYSTEM -->
+             <template v-if="can('user.manage') || can('settings.manage')">
+                <li class="nav-header mt-4 mb-2 ps-2 text-uppercase text-xs fw-bold text-muted tracking-wider opacity-75" v-show="isOpen || isMobile">System</li>
+                <li class="nav-item" v-if="can('user.manage')">
                     <a href="/admin/users" class="nav-link d-flex align-items-center" :class="{ 'active': currentPath.includes('/users') }">
-                       <div class="icon-wrapper"><i class="fas fa-user-shield"></i></div>
-                       <span class="text-nowrap fade-text ms-2" v-show="isOpen || isMobile">User Management</span>
+                        <div class="icon-wrapper"><i class="fas fa-user-shield"></i></div>
+                        <span class="text-nowrap fade-text ms-3 fw-medium" v-show="isOpen || isMobile">Users</span>
                     </a>
                 </li>
-             </template>
-
-             <!-- LOGS -->
-             <template v-if="can('logs.view') || can('sales.view')">
-                <li class="nav-header px-3 mt-3 mb-1 text-muted small fw-bold text-uppercase overflow-hidden" v-show="isOpen || isMobile">Logs and Transactions</li>
-                <li class="nav-item" v-if="can('sales.view')">
-                    <a href="/admin/transactions" class="nav-link d-flex align-items-center" :class="{ 'active': currentPath.includes('/transactions') }">
-                       <div class="icon-wrapper"><i class="fas fa-history"></i></div>
-                       <span class="text-nowrap fade-text ms-2" v-show="isOpen || isMobile">Transactions</span>
-                    </a>
-                </li>
-                <li class="nav-item" v-if="can('logs.view')">
-                    <a href="/admin/logs" class="nav-link d-flex align-items-center" :class="{ 'active': currentPath.includes('/logs') }">
-                       <div class="icon-wrapper"><i class="fas fa-clipboard-list"></i></div>
-                       <span class="text-nowrap fade-text ms-2" v-show="isOpen || isMobile">Audit Logs</span>
-                    </a>
-                </li>
-             </template>
-
-             <!-- SETTINGS -->
-             <template v-if="can('settings.manage')">
-                <li class="nav-header px-3 mt-3 mb-1 text-muted small fw-bold text-uppercase overflow-hidden" v-show="isOpen || isMobile">More Features</li>
-                <li class="nav-item">
+                <li class="nav-item" v-if="can('settings.manage')">
                     <a href="/admin/settings" class="nav-link d-flex align-items-center" :class="{ 'active': currentPath.includes('/settings') }">
                        <div class="icon-wrapper"><i class="fas fa-cog"></i></div>
-                       <span class="text-nowrap fade-text ms-2" v-show="isOpen || isMobile">Settings</span>
+                       <span class="text-nowrap fade-text ms-3 fw-medium" v-show="isOpen || isMobile">Settings</span>
                     </a>
                 </li>
              </template>
           </ul>
       </div>
 
-      <!-- Footer Removed -->
+       <!-- COLLAPSE TOGGLE (Desktop) -->
+       <div v-if="!isMobile" class="p-3 mt-auto border-top border-light position-relative z-10">
+           <button @click="toggleSidebar" class="btn btn-light w-100 d-flex align-items-center justify-content-center text-secondary border-0 hover-bg-light transition-all shadow-sm rounded-3">
+               <i class="fas" :class="isOpen ? 'fa-chevron-left' : 'fa-chevron-right'"></i>
+           </button>
+       </div>
     </aside>
 
-    <div class="d-flex flex-column flex-fill overflow-hidden position-relative w-100 bg-light">
+    <!-- MAIN CONTENT WRAPPER -->
+    <div class="d-flex flex-column flex-fill position-relative w-100" style="min-width: 0;">
       
-      <header class="navbar navbar-expand bg-white border-bottom shadow-sm px-4" style="height: 70px; min-height: 70px;">
-        <button v-if="!isOpen && !isMobile" @click="toggleSidebar" class="btn btn-light border me-3 text-secondary"><i class="fas fa-bars"></i></button>
-        <!-- Mobile Toggle Removed (Replaced by Bottom Nav) -->
+      <!-- TOP NAVBAR (Floating Glass) -->
+      <header class="navbar navbar-expand px-4 py-3 m-3 mt-3 rounded-4 shadow-sm align-items-center justify-content-between position-relative z-20" 
+              style="background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.6);">
+         
+         <div class="d-flex align-items-center">
+             <button v-if="isMobile" @click="toggleSidebar" class="btn btn-light rounded-circle shadow-sm me-3 text-secondary border-0 hover-scale">
+                 <i class="fas fa-bars"></i>
+             </button>
+             <h5 class="h6 fw-bold text-dark mb-0 tracking-tight">{{ pageTitle }}</h5>
+         </div>
 
-        <h5 class="h9 mb-0 text-dark"></h5>
-
-      <div class="ms-auto d-flex align-items-center gap-3">
+         <div class="d-flex align-items-center gap-3">
              
              <!-- NOTIFICATIONS -->
              <div class="position-relative" v-click-outside="closeNotif">
-                 <button @click="toggleNotif" class="btn btn-light rounded-circle position-relative p-2 text-secondary hover-bg-light transition-all" :class="{ 'bg-light text-primary': notifOpen }" style="width: 42px; height: 42px;">
+                 <button @click="toggleNotif" class="btn btn-light rounded-circle position-relative p-2 text-secondary hover-bg-white shadow-sm transition-all border-0" :class="{ 'text-primary': notifOpen }" style="width: 44px; height: 44px;">
                      <i class="far fa-bell fa-lg"></i>
-                     <span v-if="totalAlerts > 0" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger border border-light">{{ totalAlerts }}</span>
+                     <span v-if="totalAlerts > 0" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger border border-white shadow-sm">{{ totalAlerts }}</span>
                  </button>
     
                  <teleport to="body" :disabled="!isMobile">
                      <transition :name="isMobile ? 'bottom-sheet' : 'dropdown-slide'">
-                     <div v-if="notifOpen" class="dropdown-menu dropdown-menu-end show shadow-lg border-0 mt-3 p-0 overflow-hidden rounded-4 notification-dropdown" style="z-index: 1060;">
+                     <div v-if="notifOpen" class="dropdown-menu dropdown-menu-end show shadow-xl border-0 mt-2 p-0 overflow-hidden rounded-4 notification-dropdown" style="z-index: 1060;">
                          <div class="px-4 py-3 bg-white border-bottom d-flex justify-content-between align-items-center sticky-top">
                              <h6 class="mb-0 fw-bold text-dark">Notifications</h6>
                              <span v-if="totalAlerts > 0" class="badge bg-danger bg-opacity-10 text-danger rounded-pill px-3">{{ totalAlerts }} New</span>
                          </div>
-                         <div class="list-group list-group-flush" style="max-height: 350px; overflow-y: auto;">
+                         <div class="list-group list-group-flush custom-scrollbar" style="max-height: 350px; overflow-y: auto;">
                              <div v-if="totalAlerts === 0" class="p-5 text-center text-muted">
                                 <i class="far fa-bell-slash fa-2x mb-2 opacity-25"></i>
                                 <p class="mb-0 small">No new notifications</p>
@@ -277,29 +271,28 @@
 
             <!-- MY ACCOUNT DROPDOWN (PREMIUM) -->
             <div class="position-relative" v-click-outside="closeAccountDropdown">
-                <button @click="toggleAccountDropdown" class="btn btn-light d-flex align-items-center gap-2 rounded-pill px-1 pe-3 py-1 border shadow-sm hover-bg-light transition-all">
-                    <div class="rounded-circle bg-gradient-primary text-white d-flex align-items-center justify-content-center fw-bold shadow-sm" 
-                         style="width: 32px; height: 32px; font-size: 0.9rem; background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%);">
+                <button @click="toggleAccountDropdown" class="btn btn-light d-flex align-items-center gap-2 rounded-pill px-1 pe-3 py-1 border-0 shadow-sm hover-translate transition-all" style="background: white;">
+                    <div class="rounded-circle text-white d-flex align-items-center justify-content-center fw-bold shadow-sm" 
+                         style="width: 36px; height: 36px; font-size: 0.9rem; background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%);">
                         {{ userName.charAt(0).toUpperCase() }}
                     </div>
-                    <span class="d-none d-sm-block fw-bold text-dark small">{{ userName }}</span>
+                    <span class="d-none d-sm-block fw-bold text-dark small ms-1">{{ userName }}</span>
                     <i class="fas fa-chevron-down text-muted small ms-1 transition-transform" :class="{ 'rotate-180': accountDropdownOpen }"></i>
                 </button>
 
                 <teleport to="body" :disabled="!isMobile">
                     <transition :name="isMobile ? 'bottom-sheet' : 'dropdown-slide'">
-                        <div v-if="accountDropdownOpen" class="dropdown-menu dropdown-menu-end show shadow-xl border-0 mt-3 p-0 overflow-hidden rounded-4 account-dropdown" style="z-index: 1060;">
+                        <div v-if="accountDropdownOpen" class="dropdown-menu dropdown-menu-end show shadow-xl border-0 mt-2 p-0 overflow-hidden rounded-4 account-dropdown" style="z-index: 1060;">
                             
                             <!-- Premium Header with Pattern -->
                             <div class="position-relative bg-primary text-white p-4 text-center overflow-hidden" 
                                  style="background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%);">
-                                <!-- Decoding Pattern Overlay -->
                                 <div class="position-absolute top-0 start-0 w-100 h-100 opacity-10" 
                                      style="background-image: radial-gradient(#fff 1px, transparent 1px); background-size: 10px 10px;"></div>
                                 
                                 <div class="position-relative z-10">
                                     <div class="rounded-circle bg-white text-primary d-flex align-items-center justify-content-center shadow-lg mx-auto mb-3" 
-                                         style="width: 70px; height: 70px; font-size: 2rem; font-family: monospace;">
+                                         style="width: 64px; height: 64px; font-size: 1.8rem; font-family: monospace;">
                                         {{ userName.charAt(0).toUpperCase() }}
                                     </div>
                                     <h6 class="fw-bold mb-1">{{ userName }}</h6>
@@ -339,10 +332,10 @@
                 </teleport>
             </div>
 
-        </div>
+         </div>
       </header>
 
-      <main class="flex-fill overflow-auto p-4" :class="{ 'pb-5 mb-5': isMobile }">
+      <main class="flex-fill overflow-auto p-4 pt-1" :class="{ 'pb-5 mb-5': isMobile }" style="min-height: 0;">
           <div class="container-fluid p-0" style="max-width: 1600px;">
               <slot></slot>
           </div>
@@ -362,13 +355,12 @@
               <span>Stock</span>
           </a>
 
-          <!-- 3. POS FAB (Floating Action Button) -->
+          <!-- 3. POS FAB -->
           <div class="mobile-nav-item position-relative" style="overflow: visible;">
               <a href="/cashier/pos" class="btn btn-primary rounded-circle shadow-lg d-flex align-items-center justify-content-center" 
-                 style="width: 56px; height: 56px; border: 4px solid #fff; position: absolute; top: -35px; left: 50%; transform: translateX(-50%);">
-                  <i class="fas fa-cash-register fa-lg"></i>
+                 style="width: 56px; height: 56px; border: 4px solid #fff; position: absolute; top: -35px; left: 50%; transform: translateX(-50%); background: linear-gradient(135deg, #4f46e5 0%, #3730a3 100%);">
+                  <i class="fa-solid fa-cash-register fa-lg" style="color: #ffffff;"></i>
               </a>
-              <!-- Invisible spacer to match sibling alignment -->
               <i class="fas fa-circle mb-1 opacity-0"></i>
               <span class="text-primary fw-bold">POS</span>
           </div>
@@ -379,7 +371,7 @@
               <span>History</span>
           </a>
 
-          <!-- 5. MENU (Toggles Sidebar) -->
+          <!-- 5. MENU -->
           <button @click="toggleSidebar" class="mobile-nav-item border-0 bg-transparent" :class="{ 'active': isOpen }">
               <i class="fas fa-bars mb-1"></i>
               <span>Menu</span>
@@ -387,11 +379,12 @@
       </nav>
 
     </div>
+    
     <toast-manager />
     
     <!-- NOTIFICATION PREVIEW TOAST -->
     <div v-if="showNewNotifToast" class="position-fixed top-0 end-0 p-3" style="z-index: 2000;">
-        <div class="toast show align-items-center text-white bg-primary border-0 shadow-lg" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="toast show align-items-center text-white bg-primary border-0 shadow-lg p-2 rounded-3" role="alert">
             <div class="d-flex">
                 <div class="toast-body fw-bold">
                     <i class="fas fa-bell me-2"></i> New Approval Request!
@@ -402,15 +395,16 @@
     </div>
     
     <!-- APPROVAL MODAL -->
-    <div v-if="showApprovalModal" class="modal fade show d-block" style="background: rgba(0,0,0,0.5);" tabindex="-1">
+    <div v-if="showApprovalModal" class="modal fade show d-block" style="background: rgba(0,0,0,0.5); backdrop-filter: blur(5px);" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content border-0 shadow-lg rounded-4">
-                <div class="modal-header bg-primary text-white border-0 rounded-top-4">
+            <div class="modal-content border-0 shadow-xl rounded-4 overflow-hidden">
+                <div class="modal-header text-white border-0 p-4" style="background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%);">
                     <h5 class="modal-title fw-bold"><i class="fas fa-user-check me-2"></i>Review Request</h5>
                     <button type="button" class="btn-close btn-close-white" @click="closeApprovalModal"></button>
                 </div>
-                <div class="modal-body p-4">
-                    <div class="alert alert-light border shadow-sm rounded-3 mb-4">
+                <!-- ... Content same as before but cleaner padding ... -->
+                <div class="modal-body p-4 bg-light">
+                     <div class="bg-white p-3 rounded-3 shadow-sm border mb-4">
                         <div class="d-flex align-items-center mb-2">
                              <div class="fw-bold text-secondary text-uppercase small" style="width: 80px;">Requester:</div>
                              <div class="fw-bold text-dark">{{ selectedRequest?.requester?.name }}</div>
@@ -431,15 +425,15 @@
                     <p class="small text-muted mb-3">To approve this action, please confirm your Administrator password.</p>
                     
                     <div class="mb-4">
-                        <input type="password" v-model="adminPassword" class="form-control form-control-lg bg-light border-0" placeholder="Enter your password..." @keyup.enter="submitDecision('approve')">
+                        <input type="password" v-model="adminPassword" class="form-control form-control-lg bg-white border-0 shadow-sm" placeholder="Enter your password..." @keyup.enter="submitDecision('approve')">
                     </div>
 
                     <div class="d-grid gap-2">
-                        <button @click="submitDecision('approve')" class="btn btn-primary btn-lg fw-bold shadow-sm" :disabled="modalLoading">
+                        <button @click="submitDecision('approve')" class="btn btn-primary btn-lg fw-bold shadow-lg" :disabled="modalLoading" style="background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%); border: none;">
                             <span v-if="modalLoading" class="spinner-border spinner-border-sm me-2"></span>
                             <i v-if="!modalLoading" class="fas fa-check-circle me-2"></i> Approve Request
                         </button>
-                        <button @click="submitDecision('reject')" class="btn btn-light text-danger fw-bold shadow-sm" :disabled="modalLoading">
+                        <button @click="submitDecision('reject')" class="btn btn-white text-danger fw-bold shadow-sm" :disabled="modalLoading">
                             <i class="fas fa-times-circle me-2"></i> Reject Request
                         </button>
                     </div>
@@ -456,8 +450,6 @@ export default {
   props: ['userName', 'userRole', 'userPermissions', 'pageTitle', 'csrfToken', 'outOfStock', 'lowStock', 'enableRegisterLogs'],
   data() {
     const isMobile = window.innerWidth < 992;
-    // Default open on desktop, closed on mobile. 
-    // If desktop, check localStorage for user preference.
     let initialOpen = !isMobile;
     
     if (!isMobile) {
@@ -489,13 +481,9 @@ export default {
     };
   },
   mounted() {
-      // Start polling if Admin (Case Insensitive)
       if (this.userRole && this.userRole.toLowerCase() === 'admin') {
-          console.log('Admin Layout: Starting poll for approvals...');
           this.fetchPendingApprovals();
-          this.pollInterval = setInterval(this.fetchPendingApprovals, 5000); // Check every 5s for faster feedback
-      } else {
-          console.log('Admin Layout: Not an admin, polling disabled. Role:', this.userRole);
+          this.pollInterval = setInterval(this.fetchPendingApprovals, 5000); 
       }
   },
   beforeUnmount() {
@@ -534,7 +522,7 @@ export default {
             const savedState = localStorage.getItem('sidebar_state');
             this.isOpen = savedState !== null ? savedState === 'true' : true;
         }
-      }
+    }
     },
     handleNavClick(e) {
         if (this.isNavigating) {
@@ -549,22 +537,15 @@ export default {
     
     // --- APPROVAL METHODS ---
     fetchPendingApprovals() {
+        console.log('Fetching approvals...'); // Simplified
         fetch('/admin/approval/pending')
             .then(res => res.json())
             .then(data => {
-                // console.log('Pending Approvals Fetched:', data.requests);
                 const newRequests = data.requests || [];
-                
-                // Check if we have MORE requests than before
                 if (newRequests.length > this.previousApprovalsCount) {
-                     // Trigger Toast
                      this.showNewNotifToast = true;
-                     // Auto hide after 2 seconds
-                     setTimeout(() => {
-                        this.showNewNotifToast = false;
-                     }, 2000);
+                     setTimeout(() => { this.showNewNotifToast = false; }, 2000);
                 }
-                
                 this.pendingApprovals = newRequests;
                 this.previousApprovalsCount = newRequests.length;
             })
@@ -585,35 +566,24 @@ export default {
             alert('Please enter your password to confirm approval.');
             return;
         }
-        
         this.modalLoading = true;
         fetch(`/admin/approval/${this.selectedRequest.id}/decide`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': this.csrfToken
-            },
-            body: JSON.stringify({
-                decision: decision,
-                password: this.adminPassword
-            })
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': this.csrfToken },
+            body: JSON.stringify({ decision: decision, password: this.adminPassword })
         })
         .then(res => res.json())
         .then(data => {
             this.modalLoading = false;
             if (data.success) {
                 this.closeApprovalModal();
-                this.fetchPendingApprovals(); // Refresh list
-                // User will get notification via their polling
+                this.fetchPendingApprovals(); 
             } else {
                 alert(data.message || 'Action failed.');
             }
         })
         .catch(err => {
             this.modalLoading = false;
-            console.error('Approval Error:', err);
-            
-            // Try to extract JSON message if possible
             if (err.response && err.response.data) {
                  alert('Error: ' + (err.response.data.message || 'System error'));
             } else {
@@ -630,18 +600,13 @@ export default {
                 : 'sidebar-closed-mobile position-fixed top-0 end-0 bottom-0';
         }
         return this.isOpen ? 'sidebar-open' : 'sidebar-closed-desktop';
-    },
-    totalAlerts() {
-        return (this.outOfStock || 0) + (this.lowStock || 0) + this.pendingApprovals.length;
     }
   },
   directives: {
     clickOutside: {
       beforeMount(el, binding) {
         el.clickOutsideEvent = function(event) {
-          // FIX: Disable on Mobile (Backdrop handles it)
           if (window.innerWidth < 992) return;
-          
           if (!(el === event.target || el.contains(event.target))) {
             binding.value(event);
           }
@@ -657,115 +622,88 @@ export default {
 </script>
 
 <style scoped>
-/* GLOBAL PREMIUM RESET */
+/* GLOBAL & RESET */
 .font-sans { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
-.text-white { color: #ffffff !important; }
-.text-muted { color: #94a3b8 !important; }
+.bg-body { background-color: #f1f5f9; } /* Slate 100 base */
+.text-xs { font-size: 0.65rem; }
 .rotate-180 { transform: rotate(180deg); }
 .transition-all { transition: all 0.2s ease-in-out; }
 .hover-scale:hover { transform: scale(1.05); }
+.hover-translate:hover { transform: translateY(-2px); }
 
-/* TRANSITIONS */
-.sidebar-transition { transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1), width 0.3s ease; white-space: nowrap; }
+/* SIDEBAR TRANSITIONS */
+.sidebar-transition { transition: width 0.3s cubic-bezier(0.25, 1, 0.5, 1), transform 0.3s ease; white-space: nowrap; }
 .sidebar-open { width: 280px; transform: translateX(0); }
 .sidebar-closed-desktop { width: 88px; }
-.sidebar-closed-mobile { width: 85vw; max-width: 320px; transform: translateX(100%); }
-
-@media (max-width: 991px) {
-    .sidebar-open { width: 85vw; max-width: 320px; }
-    
-    /* Bigger Touch Targets for Mobile */
-    .nav-link { 
-        padding-top: 1.1rem; 
-        padding-bottom: 1.1rem;
-        font-size: 1.05rem;
-    }
-    
-    /* Make headers more prominent */
-    .nav-header {
-        font-size: 0.8rem;
-        margin-top: 1.5rem !important;
-        opacity: 0.8;
-    }
+.sidebar-closed-mobile { 
+    width: 85vw; 
+    max-width: 320px; 
+    transform: translateX(110%); /* Moved further to be safe */
+    margin: 0 !important; 
+    box-shadow: none !important; 
 }
 
-/* SIDEBAR PREMIUM */
-.sidebar-backdrop { backdrop-filter: blur(4px); }
+@media (max-width: 991px) {
+    .sidebar-open { width: 85vw; max-width: 320px; margin: 0 !important; border-radius: 0 !important; height: 100vh; }
+    .nav-link { padding: 1rem 1.2rem; font-size: 1.05rem; }
+}
+
+/* NAVIGATION LINKS */
 .nav-link { 
-    color: #94a3b8; 
-    padding: 0.9rem 1.2rem; 
+    color: #475569; /* Slate 600 */
+    padding: 0.8rem 1rem; 
     border-radius: 0.75rem; 
-    transition: all 0.3s ease; 
-    margin-bottom: 4px; 
+    transition: all 0.2s ease; 
     font-weight: 500;
 }
 .nav-link:hover { 
-    color: #ffffff; 
-    background-color: rgba(255, 255, 255, 0.08); 
-    transform: translateX(4px);
+    color: #4f46e5; 
+    background-color: rgba(79, 70, 229, 0.05); 
+    transform: translateX(3px);
 }
 .nav-link.active { 
-    background: linear-gradient(90deg, rgba(59, 130, 246, 0.15) 0%, rgba(59, 130, 246, 0.05) 100%); 
-    color: #60a5fa !important; 
-    position: relative; 
-    box-shadow: inset 3px 0 0 0 #3b82f6; 
+    background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%); 
+    color: white !important; 
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
 }
+.nav-link.active .icon-wrapper { color: white !important; }
+
+/* ICONS */
 .icon-wrapper { 
-    width: 24px; 
-    display: flex; 
-    justify-content: center; 
-    align-items: center; 
-    font-size: 1.2rem; 
-    flex-shrink: 0; 
-    transition: transform 0.2s;
+    width: 24px; display: flex; justify-content: center; align-items: center; 
+    font-size: 1.1rem; flex-shrink: 0; color: #64748b; transition: all 0.2s; 
 }
-.nav-link:hover .icon-wrapper, .nav-link.active .icon-wrapper { transform: scale(1.1); }
+.nav-link:hover .icon-wrapper { color: #4f46e5; transform: scale(1.1); }
+
+/* DROPDOWNS */
+.dropdown-slide-enter-active, .dropdown-slide-leave-active { transition: all 0.2s ease; }
+.dropdown-slide-enter-from, .dropdown-slide-leave-to { opacity: 0; transform: translateY(10px); }
+.notification-dropdown, .account-dropdown { 
+    width: 380px; position: absolute; right: 0; top: 100%; margin-top: 1rem;
+    border: 1px solid rgba(255,255,255,0.6); 
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04) !important;
+    border-radius: 1.5rem;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(12px);
+}
+.account-dropdown { width: 280px; }
 
 /* MOBILE BOTTOM NAV */
 .mobile-nav-item {
-    font-size: 0.7rem;
-    color: #64748b;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s;
-    width: 60px;
-    text-decoration: none;
+    font-size: 0.7rem; color: #64748b; display: flex; flex-direction: column; 
+    align-items: center; justify-content: center; transition: all 0.2s; 
+    width: 60px; text-decoration: none;
 }
-.mobile-nav-item.active {
-    color: #3b82f6;
-    font-weight: bold;
-}
-.mobile-nav-item i {
-    font-size: 1.2rem;
-}
+.mobile-nav-item.active { color: #4f46e5; font-weight: bold; }
+.mobile-nav-item i { font-size: 1.2rem; }
 .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
 
-/* HEADER GLASSMORPHISM */
-header.navbar {
-    background: rgba(255, 255, 255, 0.85) !important;
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border-bottom: 1px solid rgba(0, 0, 0, 0.05) !important;
-    position: relative;
-    z-index: 1030;
-}
+/* SCROLLBAR */
+.custom-scrollbar::-webkit-scrollbar { width: 5px; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.3); border-radius: 4px; }
+.custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(148, 163, 184, 0.5); }
 
-/* NOTIFICATION & ACCOUNT DROPDOWN (DESKTOP DEFAULT) */
-.notification-dropdown, .account-dropdown { 
-    width: 380px; 
-    position: absolute; 
-    right: 0; 
-    top: 100%;
-    border: 1px solid rgba(0,0,0,0.05); 
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04) !important;
-    margin-top: 1rem;
-    border-radius: 1.5rem; /* Rounded-4 */
-}
-.account-dropdown { min-width: 260px; width: auto; }
-
-/* MOBILE BOTTOM SHEET OVERRIDE */
+/* MOBILE DROPDOWN OVERRIDES (Bottom Sheet) */
 @media (max-width: 991px) {
     .notification-dropdown, .account-dropdown {
         position: fixed !important;
@@ -774,59 +712,20 @@ header.navbar {
         left: 0 !important;
         right: 0 !important;
         width: 100% !important;
-        max-width: 100% !important;
         margin: 0 !important;
-        border-radius: 1.5rem 1.5rem 0 0 !important; /* Rounded Top Only */
-        border: none !important;
+        border-radius: 1.5rem 1.5rem 0 0 !important;
+        max-height: 80vh;
+        transform: none !important; /* Reset any translate */
         box-shadow: 0 -10px 40px rgba(0,0,0,0.2) !important;
-        max-height: 85vh;
-        overflow-y: auto;
-        transform: none; /* Reset desktop transforms if any */
-        z-index: 2000 !important; /* Above bottom nav */
-    }
-    
-    /* Drag Handle Visual */
-    .notification-dropdown::before, .account-dropdown::before {
-        content: '';
-        display: block;
-        width: 40px;
-        height: 5px;
-        background-color: #e2e8f0;
-        border-radius: 10px;
-        margin: 12px auto 5px auto;
     }
 }
 
-/* DESKTOP DROPDOWN ANIMATION */
-.dropdown-slide-enter-active, .dropdown-slide-leave-active {
-    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.dropdown-slide-enter-from, .dropdown-slide-leave-to {
-    opacity: 0;
-    transform: translateY(-10px) scale(0.95);
-}
-.dropdown-slide-enter-to, .dropdown-slide-leave-from {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-}
+/* TRANSITIONS */
+/* Desktop Slide */
+.dropdown-slide-enter-active, .dropdown-slide-leave-active { transition: all 0.2s ease; }
+.dropdown-slide-enter-from, .dropdown-slide-leave-to { opacity: 0; transform: translateY(10px); }
 
-/* MOBILE BOTTOM SHEET ANIMATION */
-.bottom-sheet-enter-active, .bottom-sheet-leave-active {
-    transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
-}
-.bottom-sheet-enter-from, .bottom-sheet-leave-to {
-    transform: translateY(100%);
-}
-.bottom-sheet-enter-to, .bottom-sheet-leave-from {
-    transform: translateY(0);
-}
-
-/* UTILS */
-.hover-white:hover { color: #ffffff !important; }
-.custom-scrollbar::-webkit-scrollbar { width: 6px; }
-.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-.custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
-.custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
-.fade-in { animation: fadeIn 0.3s ease-out; }
-@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+/* Mobile Bottom Sheet Slide */
+.bottom-sheet-enter-active, .bottom-sheet-leave-active { transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1); }
+.bottom-sheet-enter-from, .bottom-sheet-leave-to { transform: translateY(100%); }
 </style>

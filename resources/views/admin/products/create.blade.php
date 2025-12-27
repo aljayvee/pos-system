@@ -191,7 +191,7 @@
 
                 {{-- DESKTOP: Submit Button --}}
                 <div class="d-none d-lg-grid mt-4">
-                    <button type="button" onclick="validateAndSubmit()" class="btn btn-primary btn-lg shadow-lg rounded-pill fw-bold">
+                    <button type="button" id="btn-save-desktop" onclick="validateAndSubmit()" class="btn btn-primary btn-lg shadow-lg rounded-pill fw-bold">
                         <i class="fas fa-save me-2"></i> Save Product
                     </button>
                 </div>
@@ -201,7 +201,7 @@
 
         {{-- MOBILE: Static Bottom Button --}}
         <div class="d-lg-none px-3 mt-4 mb-5">
-            <button type="button" onclick="validateAndSubmit()" class="btn btn-primary w-100 rounded-pill fw-bold py-3 text-uppercase ls-1 shadow-sm">
+            <button type="button" id="btn-save-mobile" onclick="validateAndSubmit()" class="btn btn-primary w-100 rounded-pill fw-bold py-3 text-uppercase ls-1 shadow-sm">
                 Save Product
             </button>
         </div>
@@ -285,9 +285,9 @@
             desktopInput.setAttribute('name', 'image');
         }
 
-        // Select buttons
-        const desktopBtn = document.querySelector('button[onclick="validateAndSubmit()"]');
-        const mobileBtn = document.querySelector('.fixed-bottom button[onclick="validateAndSubmit()"]');
+        // Select buttons by ID
+        const desktopBtn = document.getElementById('btn-save-desktop');
+        const mobileBtn = document.getElementById('btn-save-mobile');
 
         const originalDesktopText = desktopBtn ? desktopBtn.innerHTML : '';
         const originalMobileText = mobileBtn ? mobileBtn.innerHTML : '';
@@ -296,11 +296,11 @@
         const setLoading = (isLoading) => {
             if (desktopBtn) {
                 desktopBtn.disabled = isLoading;
-                desktopBtn.innerHTML = isLoading ? '<i class="fas fa-spinner fa-spin me-2"></i> Processing...' : originalDesktopText;
+                desktopBtn.innerHTML = isLoading ? '<i class="fas fa-spinner fa-spin me-2"></i> Submitting, please wait...' : originalDesktopText;
             }
             if (mobileBtn) {
                 mobileBtn.disabled = isLoading;
-                mobileBtn.innerHTML = isLoading ? '<i class="fas fa-spinner fa-spin me-2"></i> Processing...' : originalMobileText;
+                mobileBtn.innerHTML = isLoading ? '<i class="fas fa-spinner fa-spin me-2"></i> Submitting, please wait...' : originalMobileText;
             }
         };
 
@@ -329,9 +329,8 @@
             alert("Error validating product. Please try again.");
             setLoading(false); // Stop loading on error
         }
-            alert("Error validating product. Please try again.");
-        }
     }
+
 
     function handleCancel() {
         document.getElementById('addProductForm').reset();
@@ -380,6 +379,8 @@
     }
 
     document.addEventListener("DOMContentLoaded", function() {
+        // Local Back Prevention Removed (Handled Globally in layout.blade.php)
+
         const nameInput = document.querySelector('input[name="name"]');
         if(nameInput){
             nameInput.addEventListener('input', function(e) {

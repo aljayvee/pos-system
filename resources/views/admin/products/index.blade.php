@@ -83,7 +83,8 @@
                 <div class="col-6 col-md-2">
                     <select name="filter" class="form-select border-0 bg-light shadow-sm rounded-pill" style="cursor: pointer;">
                         <option value="">All Status</option>
-                        <option value="low" {{ request('filter') == 'low' ? 'selected' : '' }}>Low Stock</option>
+                        <option value="low_stock" {{ request('filter') == 'low_stock' ? 'selected' : '' }}>Low Stock</option>
+                        <option value="out_of_stock" {{ request('filter') == 'out_of_stock' ? 'selected' : '' }}>Out of Stock</option>
                     </select>
                 </div>
 
@@ -196,13 +197,30 @@
                     All Items
                 </a>
 
-                {{-- Low Stock (Toggle) --}}
-                <a href="{{ request('filter') == 'low' ? route('products.index', request()->except('filter')) : route('products.index', array_merge(request()->all(), ['filter' => 'low'])) }}" 
-                   class="btn btn-sm rounded-pill text-nowrap {{ request('filter') == 'low' ? 'btn-danger text-white' : 'btn-light border text-secondary' }}">
+                {{-- Out of Stock (New) --}}
+                <a href="{{ request('filter') == 'out_of_stock' ? route('products.index', request()->except('filter')) : route('products.index', array_merge(request()->all(), ['filter' => 'out_of_stock'])) }}" 
+                   class="btn btn-sm rounded-pill text-nowrap {{ request('filter') == 'out_of_stock' ? 'btn-danger text-white' : 'btn-light border text-secondary' }}">
+                    Out of Stock
+                </a>
+
+                <a href="{{ request('filter') == 'low_stock' ? route('products.index', request()->except('filter')) : route('products.index', array_merge(request()->all(), ['filter' => 'low_stock'])) }}" 
+                   class="btn btn-sm rounded-pill text-nowrap {{ request('filter') == 'low_stock' ? 'btn-warning text-dark' : 'btn-light border text-secondary' }}">
                     Low Stock
                 </a>
+
+                {{-- Mobile Archived Button --}}
+                @if(request('archived'))
+                    <a href="{{ route('products.index') }}" class="btn btn-sm rounded-pill text-nowrap btn-warning text-dark">
+                        Active Items
+                    </a>
+                @else
+                    <a href="{{ route('products.index', ['archived' => 1]) }}" class="btn btn-sm rounded-pill text-nowrap btn-light border text-secondary">
+                        <i class="fas fa-archive me-1"></i>Archived
+                    </a>
+                @endif
                 
-                <div class="vr mx-1"></div>
+                {{-- Clear Separation Line --}}
+                <div class="mx-2 bg-dark bg-opacity-25 rounded-pill" style="width: 2px; min-height: 20px;"></div>
                 
                 @foreach($categories->take(10) as $cat)
                     <a href="{{ request('category') == $cat->id ? route('products.index', request()->except('category')) : route('products.index', array_merge(request()->except('page'), ['category' => $cat->id])) }}" 

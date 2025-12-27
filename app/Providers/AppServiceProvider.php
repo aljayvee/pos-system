@@ -39,21 +39,33 @@ class AppServiceProvider extends ServiceProvider
 
         // NEW: Share Notification Data with Admin Layout
         View::composer('admin.layout', function ($view) {
-            // 1. Low Stock Count
-            $lowStockCount = Product::whereColumn('stock', '<=', 'reorder_point')->count();
+            // Get Active Store ID (Safe fallback)
+            $storeId = 1;
+            if (\App\Models\Setting::where('key', 'enable_multi_store')->value('value') == '1') {
+                $storeId = session('active_store_id', auth()->user()->store_id ?? 1);
+            }
+
+            // 1. Low Stock Count (Exclusive of Out of Stock)
+            // Query Inventory directly for accurate store-specific stock
+            $lowStockCount = \App\Models\Inventory::where('store_id', $storeId)
+                                    ->whereColumn('stock', '<=', 'reorder_point')
+                                    ->where('stock', '>', 0)
+                                    ->count();
             
             // 2. Out of Stock Count
-            $outOfStockCount = Product::where('stock', 0)->count();
+            $outOfStockCount = \App\Models\Inventory::where('store_id', $storeId)
+                                    ->where('stock', 0)
+                                    ->count();
 
             // 3. Overdue Credit Count
             $overdueCount = CustomerCredit::where('is_paid', false)
                                           ->whereDate('due_date', '<', Carbon::now())
                                           ->count();
 
-                                          // 4. NEW: Expiring Soon (Next 7 Days + Already Expired)
-                $expiringCount = Product::whereNotNull('expiration_date')
-                                        ->where('expiration_date', '<=', now()->addDays(7))
-                                        ->count();
+            // 4. NEW: Expiring Soon (Next 7 Days + Already Expired)
+            $expiringCount = Product::whereNotNull('expiration_date')
+                                    ->where('expiration_date', '<=', now()->addDays(7))
+                                    ->count();
 
             $totalAlerts = $lowStockCount + $outOfStockCount + $overdueCount + $expiringCount;
 
@@ -62,21 +74,8 @@ class AppServiceProvider extends ServiceProvider
 
 
         // Share alert counts with all views (Sidebar badges)
-    View::composer('*', function ($view) {
-        if (auth()->check() && auth()->user()->role === 'admin') {
-            $lowStockCount = Product::whereColumn('stock', '<=', 'reorder_point')->count();
-            
-            $outOfStockCount = Product::where('stock', 0)->count();
-            
-            $overdueCount = CustomerCredit::where('is_paid', false)
-                                          ->whereDate('due_date', '<', now())
-                                          ->count();
-
-            $totalAlerts = $lowStockCount + $outOfStockCount + $overdueCount;
-
-            $view->with(compact('lowStockCount', 'outOfStockCount', 'overdueCount', 'totalAlerts'));
-        }
-    });
+        // REMOVED Redundant View::composer('*') to prevent N+1 Query Performance Issues
+        // The 'admin.layout' composer above already handles this for the main UI.
 
     // FORCE HTTPS IN PRODUCTION
         if($this->app->environment('production')) {

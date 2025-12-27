@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Storage;
 use App\Models\Inventory; // <--- IMPORTANT IMPORT
+use Illuminate\Pagination\Paginator;
 
 class ProductController extends Controller
 {
@@ -123,19 +124,33 @@ class ProductController extends Controller
             $query->latest(); 
         }
 
-        // 5. "Low Stock" Filter (Updated to check Branch Inventory)
-        if ($request->filled('filter') && $request->filter == 'low') {
-            // Filter post-query for simplicity, or add join logic
-             $products = $query->get()->filter(function($p) {
-                return $p->stock <= $p->reorder_point; // Accessor automatically gets branch stock
-            });
-
-            if ($products->isEmpty()) {
-                // Return an empty paginator if no results found
-                $products = new \Illuminate\Pagination\LengthAwarePaginator([], 0, 10);
+        // 5. "Low Stock" & "Out of Stock" Filters
+        if ($request->filled('filter')) {
+            $filter = $request->filter;
+            $allProducts = $query->get(); // Get collection to filter by accessor
+            
+            if ($filter == 'out_of_stock') {
+                $filtered = $allProducts->filter(function($p) {
+                    return $p->stock == 0;
+                });
+            } elseif ($filter == 'low_stock') {
+                $filtered = $allProducts->filter(function($p) {
+                    return $p->stock > 0 && $p->stock <= $p->reorder_point;
+                });
             } else {
-                $products = $products->toQuery()->paginate(10);
+                $filtered = $allProducts;
             }
+
+            // Manually Paginate the Filtered Collection
+            $page = Paginator::resolveCurrentPage() ?: 1;
+            $perPage = 10;
+            $products = new \Illuminate\Pagination\LengthAwarePaginator(
+                $filtered->forPage($page, $perPage)->values(), 
+                $filtered->count(), 
+                $perPage, 
+                $page, 
+                ['path' => Paginator::resolveCurrentPath(), 'query' => $request->query()]
+            );
         } else {
             $products = $query->paginate(10)->withQueryString();
         }

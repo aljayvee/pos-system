@@ -194,7 +194,7 @@
 
                 {{-- Action Buttons --}}
                 <div class="d-none d-lg-grid gap-2 mt-4">
-                    <button type="button" onclick="validateAndUpdate({{ $product->id }})" class="btn btn-warning btn-lg shadow-lg rounded-pill fw-bold text-dark">
+                    <button type="button" id="btn-update-desktop" onclick="validateAndUpdate({{ $product->id }})" class="btn btn-warning btn-lg shadow-lg rounded-pill fw-bold text-dark">
                         <i class="fas fa-save me-2"></i> Update Product
                     </button>
                     <a href="{{ route('products.index') }}" class="btn btn-light rounded-pill text-muted fw-bold">Cancel Changes</a>
@@ -204,7 +204,7 @@
 
         {{-- MOBILE: Static Bottom Button --}}
         <div class="d-lg-none px-3 mt-4 mb-5">
-            <button type="button" onclick="validateAndUpdate({{ $product->id }})" class="btn btn-primary w-100 rounded-pill fw-bold py-3 text-uppercase ls-1 shadow-sm">
+            <button type="button" id="btn-update-mobile" onclick="validateAndUpdate({{ $product->id }})" class="btn btn-primary w-100 rounded-pill fw-bold py-3 text-uppercase ls-1 shadow-sm">
                 Update Product
             </button>
         </div>
@@ -233,13 +233,17 @@
 </div>
 
 <script>
-    // Auto-Capitalization Script
-    document.querySelector('input[name="name"]').addEventListener('input', function(e) {
-        let words = this.value.split(' ');
-        for (let i = 0; i < words.length; i++) {
-            if (words[i].length > 0) words[i] = words[i][0].toUpperCase() + words[i].substr(1);
-        }
-        this.value = words.join(' ');
+    // Auto-Capitalization & Back Prevention
+    document.addEventListener("DOMContentLoaded", function() {
+        // Local Back Prevention Removed (Handled Globally in layout.blade.php)
+
+        document.querySelector('input[name="name"]').addEventListener('input', function(e) {
+            let words = this.value.split(' ');
+            for (let i = 0; i < words.length; i++) {
+                if (words[i].length > 0) words[i] = words[i][0].toUpperCase() + words[i].substr(1);
+            }
+            this.value = words.join(' ');
+        });
     });
 
     async function validateAndUpdate(currentId) {
@@ -267,9 +271,9 @@
 
         if (!name) { alert("Product Name is required"); return; }
         
-        // Select buttons
-        const desktopBtn = document.querySelector('button[onclick^="validateAndUpdate"]');
-        const mobileBtn = document.querySelector('.fixed-bottom button[onclick^="validateAndUpdate"]');
+        // Select buttons by ID
+        const desktopBtn = document.getElementById('btn-update-desktop');
+        const mobileBtn = document.getElementById('btn-update-mobile');
 
         const originalDesktopText = desktopBtn ? desktopBtn.innerHTML : '';
         const originalMobileText = mobileBtn ? mobileBtn.innerHTML : '';
@@ -278,11 +282,11 @@
         const setLoading = (isLoading) => {
             if (desktopBtn) {
                 desktopBtn.disabled = isLoading;
-                desktopBtn.innerHTML = isLoading ? '<i class="fas fa-spinner fa-spin me-2"></i> Processing...' : originalDesktopText;
+                desktopBtn.innerHTML = isLoading ? '<i class="fas fa-spinner fa-spin me-2"></i> Submitting, please wait...' : originalDesktopText;
             }
             if (mobileBtn) {
                 mobileBtn.disabled = isLoading;
-                mobileBtn.innerHTML = isLoading ? '<i class="fas fa-spinner fa-spin me-2"></i> Processing...' : originalMobileText;
+                mobileBtn.innerHTML = isLoading ? '<i class="fas fa-spinner fa-spin me-2"></i> Submitting, please wait...' : originalMobileText;
             }
         };
 

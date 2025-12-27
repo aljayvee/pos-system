@@ -11,14 +11,16 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('product_pricing_tiers', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('product_id')->constrained()->onDelete('cascade');
-            $table->integer('quantity'); // Pricing beak (e.g., 3)
-            $table->decimal('price', 10, 2); // Total price for that quantity (e.g., 100.00)
-            $table->string('name')->nullable(); // Optional label (e.g., "Wholesale")
-            $table->timestamps();
-        });
+        if (!Schema::hasTable('product_pricing_tiers')) {
+            Schema::create('product_pricing_tiers', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('product_id')->constrained()->onDelete('cascade');
+                $table->integer('quantity'); // Pricing beak (e.g., 3)
+                $table->decimal('price', 10, 2); // Total price for that quantity (e.g., 100.00)
+                $table->string('name')->nullable(); // Optional label (e.g., "Wholesale")
+                $table->timestamps();
+            });
+        }
     }
 
     /**
