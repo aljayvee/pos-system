@@ -245,7 +245,6 @@ class POSController extends Controller
                     }
                 }
 
-                // 6. ADJUST CUSTOMER CREDIT (If applicable)
                 if ($sale->payment_method === 'credit' && $sale->customer_id) {
                     $credit = CustomerCredit::where('sale_id', $saleId)
                                 ->lockForUpdate() // Lock the debt record
@@ -261,6 +260,14 @@ class POSController extends Controller
                     }
                 }
             }
+
+            // LOGGING
+            \App\Models\ActivityLog::create([
+                'user_id' => Auth::id(),
+                'store_id' => $storeId,
+                'action' => 'Sale Return',
+                'description' => "Return processed for Sale #{$saleId} | Refund: " . number_format($refundAmount ?? 0, 2)
+            ]);
 
             DB::commit();
             return response()->json(['success' => true, 'message' => 'Return processed successfully.']);

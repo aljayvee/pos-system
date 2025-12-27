@@ -284,6 +284,14 @@ class ProductController extends Controller
             'reorder_point' => $request->reorder_point ?? 10
         ]);
 
+        // LOGGING
+        ActivityLog::create([
+            'user_id' => Auth::id(),
+            'store_id' => $storeId,
+            'action' => 'Created Product',
+            'description' => "Created product: {$product->name} (Price: {$product->price}, Stock: {$request->stock})"
+        ]);
+
         DB::commit();
         return redirect()->route('products.index')->with('success', 'Product created successfully.');
 
@@ -383,6 +391,14 @@ class ProductController extends Controller
             }
             
             $inventory->save();
+
+            // LOGGING
+            ActivityLog::create([
+                'user_id' => Auth::id(),
+                'store_id' => $storeId,
+                'action' => 'Updated Product',
+                'description' => "Updated product: {$product->name} (Price: {$product->price}, Stock: {$inventory->stock})"
+            ]);
 
             DB::commit();
             return redirect()->route('products.index')->with('success', 'Product updated successfully.');
