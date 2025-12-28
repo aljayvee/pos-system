@@ -1,5 +1,5 @@
 <template>
-  <div class="d-flex vh-100 w-100 overflow-hidden bg-body font-sans">
+  <div class="d-flex min-vh-100 w-100 overflow-hidden bg-body font-sans">
     
     <!-- MOBILE OVERLAY -->
     <div 
@@ -104,7 +104,7 @@
                 <li class="nav-item">
                     <a href="/admin/inventory" class="nav-link d-flex align-items-center" :class="{ 'active': currentPath.includes('/inventory') }">
                        <div class="icon-wrapper"><i class="fas fa-warehouse"></i></div>
-                       <span class="text-nowrap fade-text ms-3 fw-medium" v-show="isOpen || isMobile">Management</span>
+                       <span class="text-nowrap fade-text ms-3 fw-medium" v-show="isOpen || isMobile">Inventory</span>
                     </a>
                 </li>
              </template>
@@ -164,6 +164,12 @@
                        <span class="text-nowrap fade-text ms-3 fw-medium" v-show="isOpen || isMobile">Settings</span>
                     </a>
                 </li>
+                <li class="nav-item" v-if="can('logs.view')">
+                    <a href="/admin/logs" class="nav-link d-flex align-items-center" :class="{ 'active': currentPath.includes('/logs') }">
+                       <div class="icon-wrapper"><i class="fas fa-history"></i></div>
+                       <span class="text-nowrap fade-text ms-3 fw-medium" v-show="isOpen || isMobile">Audit Logs</span>
+                    </a>
+                </li>
              </template>
           </ul>
       </div>
@@ -184,10 +190,8 @@
               style="background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.6);">
          
          <div class="d-flex align-items-center">
-             <button v-if="isMobile" @click="toggleSidebar" class="btn btn-light rounded-circle shadow-sm me-3 text-secondary border-0 hover-scale">
-                 <i class="fas fa-bars"></i>
-             </button>
-             <h5 class="h6 fw-bold text-dark mb-0 tracking-tight">{{ pageTitle }}</h5>
+
+             <h5 class="h6 fw-bold text-dark mb-0 tracking-tight">Admin Panel</h5>
          </div>
 
          <div class="d-flex align-items-center gap-3">
@@ -335,14 +339,14 @@
          </div>
       </header>
 
-      <main class="flex-fill overflow-auto p-4 pt-1" :class="{ 'pb-5 mb-5': isMobile }" style="min-height: 0;">
+      <main class="flex-fill overflow-auto p-4 pt-1" :class="{ 'pb-5 mb-5': isMobile }" style="min-height: 0; height: 100%;">
           <div class="container-fluid p-0" style="max-width: 1600px;">
               <slot></slot>
           </div>
       </main>
 
       <!-- MOBILE BOTTOM NAVIGATION (Native App Feel) -->
-      <nav v-if="isMobile" class="fixed-bottom bg-white border-top shadow-lg pb-safe d-flex justify-content-around align-items-center px-2 py-2" style="z-index: 1045;">
+      <nav v-if="isMobile" class="fixed-bottom bg-white border-top shadow-lg pb-safe d-flex justify-content-around align-items-center px-2 py-2" style="z-index: 1045; height: auto; min-height: 70px;">
           <!-- 1. DASHBOARD -->
           <a href="/admin/dashboard" class="mobile-nav-item" :class="{ 'active': currentPath === '/admin/dashboard' }">
               <i class="fas fa-home mb-1"></i>
@@ -644,7 +648,7 @@ export default {
 }
 
 @media (max-width: 991px) {
-    .sidebar-open { width: 85vw; max-width: 320px; margin: 0 !important; border-radius: 0 !important; height: 100vh; }
+    .sidebar-open { width: 85vw; max-width: 320px; margin: 0 !important; border-radius: 0 !important; min-height: 100vh; max-height: 100%; }
     .nav-link { padding: 1rem 1.2rem; font-size: 1.05rem; }
 }
 

@@ -14,12 +14,12 @@
         <h6 class="fw-bold text-secondary text-uppercase small mb-3 ls-tight opacity-75">Quick Actions</h6>
         <div class="d-flex justify-content-between px-2">
             
-            <a href="/cashier/pos" class="text-decoration-none text-center">
-                <div class="rounded-circle bg-gradient-primary text-white d-flex align-items-center justify-content-center shadow-lg mb-2 hover-scale transition-all" 
-                     style="width: 60px; height: 60px; font-size: 1.5rem;">
-                     <i class="fa-solid fa-cash-register" style="color: #ffffff;"></i>
+            <a href="{{ route('products.index') }}" class="text-decoration-none text-center">
+                <div class="rounded-circle bg-white text-primary border border-primary border-opacity-25 d-flex align-items-center justify-content-center shadow-sm mb-2 hover-scale transition-all" 
+                     style="width: 60px; height: 60px; font-size: 1.4rem;">
+                     <i class="fa-solid fa-boxes-stacked text-primary"></i>
                 </div>
-                <span class="d-block small fw-bold text-dark" style="font-size: 0.75rem;">POS</span>
+                <span class="d-block small fw-bold text-dark" style="font-size: 0.75rem;">Inventory</span>
             </a>
 
             <a href="{{ route('products.create') }}" class="text-decoration-none text-center">

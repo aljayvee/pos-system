@@ -16,6 +16,23 @@
     <meta name="app-url" content="{{ url('/') }}">
 
     <style>
+        button:focus {
+            outline: none !important;
+        }
+
+        /* FIX: Apply background to html to cover zoom whitespace */
+        html {
+            background-color: #f8f9fa;
+            height: 100%;
+        }
+
+        /* GLOBAL ZOOM 75% */
+        body {
+            zoom: 75%;
+            background-color: #f8f9fa; /* redundant but safe */
+            min-height: 100vh; 
+        }
+
         #global-loading-overlay {
             position: fixed;
             top: 0;

@@ -191,26 +191,26 @@
             </form>
             
             {{-- Quick Filters (Horizontal Scroll) --}}
-            <div class="d-flex gap-2 mt-2 overflow-auto pb-1" style="scrollbar-width: none;">
+            <div id="mobileFilterContainer" class="d-flex gap-2 mt-2 overflow-auto pb-1" style="scrollbar-width: none;">
                 {{-- All Items --}}
-                <a href="{{ route('products.index') }}" class="btn btn-sm rounded-pill text-nowrap {{ !request('filter') && !request('category') ? 'btn-dark text-white' : 'btn-light border text-secondary' }}">
+                <a href="{{ route('products.index') }}" class="btn btn-sm rounded-pill text-nowrap {{ !request('filter') && !request('category') && !request('archived') ? 'btn-dark text-white active-filter' : 'btn-light border text-secondary' }}">
                     All Items
                 </a>
 
                 {{-- Out of Stock (New) --}}
                 <a href="{{ request('filter') == 'out_of_stock' ? route('products.index', request()->except('filter')) : route('products.index', array_merge(request()->all(), ['filter' => 'out_of_stock'])) }}" 
-                   class="btn btn-sm rounded-pill text-nowrap {{ request('filter') == 'out_of_stock' ? 'btn-danger text-white' : 'btn-light border text-secondary' }}">
+                   class="btn btn-sm rounded-pill text-nowrap {{ request('filter') == 'out_of_stock' ? 'btn-danger text-white active-filter' : 'btn-light border text-secondary' }}">
                     Out of Stock
                 </a>
 
                 <a href="{{ request('filter') == 'low_stock' ? route('products.index', request()->except('filter')) : route('products.index', array_merge(request()->all(), ['filter' => 'low_stock'])) }}" 
-                   class="btn btn-sm rounded-pill text-nowrap {{ request('filter') == 'low_stock' ? 'btn-warning text-dark' : 'btn-light border text-secondary' }}">
+                   class="btn btn-sm rounded-pill text-nowrap {{ request('filter') == 'low_stock' ? 'btn-warning text-dark active-filter' : 'btn-light border text-secondary' }}">
                     Low Stock
                 </a>
 
                 {{-- Mobile Archived Button --}}
                 @if(request('archived'))
-                    <a href="{{ route('products.index') }}" class="btn btn-sm rounded-pill text-nowrap btn-warning text-dark">
+                    <a href="{{ route('products.index') }}" class="btn btn-sm rounded-pill text-nowrap btn-warning text-dark active-filter">
                         Active Items
                     </a>
                 @else
@@ -222,9 +222,9 @@
                 {{-- Clear Separation Line --}}
                 <div class="mx-2 bg-dark bg-opacity-25 rounded-pill" style="width: 2px; min-height: 20px;"></div>
                 
-                @foreach($categories->take(10) as $cat)
+                @foreach($categories as $cat)
                     <a href="{{ request('category') == $cat->id ? route('products.index', request()->except('category')) : route('products.index', array_merge(request()->except('page'), ['category' => $cat->id])) }}" 
-                       class="btn btn-sm rounded-pill text-nowrap {{ request('category') == $cat->id ? 'btn-primary text-white' : 'btn-light border text-secondary' }}">
+                       class="btn btn-sm rounded-pill text-nowrap {{ request('category') == $cat->id ? 'btn-primary text-white active-filter' : 'btn-light border text-secondary' }}">
                         {{ $cat->name }}
                     </a>
                 @endforeach
@@ -353,6 +353,19 @@
 
             new bootstrap.Modal(document.getElementById('productActionSheet')).show();
         }
+
+        document.addEventListener("DOMContentLoaded", function() {
+            const container = document.getElementById('mobileFilterContainer');
+            const activeBtn = container.querySelector('.active-filter');
+            if (container && activeBtn) {
+                const containerWidth = container.offsetWidth;
+                const btnLeft = activeBtn.offsetLeft;
+                const btnWidth = activeBtn.offsetWidth;
+                const scrollLeft = btnLeft - (containerWidth / 2) + (btnWidth / 2);
+                
+                container.scrollTo({ left: scrollLeft, behavior: 'smooth' });
+            }
+        });
     </script>
     
     <style>
