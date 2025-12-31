@@ -19,7 +19,7 @@ class SettingsController extends Controller
 
         // 1. Load Global Settings (Store 1) - Specifically for the Toggle
         $globalSettings = Setting::where('store_id', 1)->where('key', 'enable_multi_store')->pluck('value', 'key');
-        
+
         // 2. Load Branch Settings (Current Store)
         $branchSettings = Setting::where('store_id', $storeId)->pluck('value', 'key');
 
@@ -88,12 +88,12 @@ class SettingsController extends Controller
         // --- 1. VALIDATE BIR REQUIREMENTS ---
         // If enabling tax, ensure TIN and Permit exist (either in this request OR already in DB)
         if (isset($data['enable_tax']) && $data['enable_tax'] == '1') {
-            
-            $hasTin = !empty($data['store_tin']) || 
-                      \App\Models\Setting::where('store_id', $storeId)->where('key', 'store_tin')->where('value', '!=', '')->exists();
-            
-            $hasPermit = !empty($data['business_permit']) || 
-                         \App\Models\Setting::where('store_id', $storeId)->where('key', 'business_permit')->where('value', '!=', '')->exists();
+
+            $hasTin = !empty($data['store_tin']) ||
+                Setting::where('store_id', $storeId)->where('key', 'store_tin')->where('value', '!=', '')->exists();
+
+            $hasPermit = !empty($data['business_permit']) ||
+                Setting::where('store_id', $storeId)->where('key', 'business_permit')->where('value', '!=', '')->exists();
 
             if (!$hasTin || !$hasPermit) {
                 $data['enable_tax'] = '0'; // Force OFF
@@ -103,7 +103,7 @@ class SettingsController extends Controller
 
         // --- 2. SAVE SETTINGS (Existing Logic) ---
         foreach ($data as $key => $value) {
-            
+
             // Skip empty sensitive fields (don't overwrite existing data with blanks)
             if (in_array($key, ['store_tin', 'business_permit']) && empty($value)) {
                 continue;
@@ -112,20 +112,20 @@ class SettingsController extends Controller
             // Encrypt if provided
             if (in_array($key, ['store_tin', 'business_permit']) && !empty($value)) {
                 try {
-                    $value = \Illuminate\Support\Facades\Crypt::encryptString($value);
+                    $value = Crypt::encryptString($value);
                 } catch (\Exception $e) {
                     return back()->with('error', 'Encryption failed for ' . $key);
                 }
             }
 
             if ($key === 'enable_multi_store') {
-                \App\Models\Setting::updateOrCreate(['key' => $key, 'store_id' => 1], ['value' => $value]);
+                Setting::updateOrCreate(['key' => $key, 'store_id' => 1], ['value' => $value]);
             } else {
-                \App\Models\Setting::updateOrCreate(['key' => $key, 'store_id' => $storeId], ['value' => $value]);
+                Setting::updateOrCreate(['key' => $key, 'store_id' => $storeId], ['value' => $value]);
             }
         }
 
-        \App\Models\ActivityLog::create([
+        ActivityLog::create([
             'store_id' => $storeId,
             'user_id' => auth()->id(),
             'action' => 'Settings Update',
@@ -148,17 +148,17 @@ class SettingsController extends Controller
         $user = auth()->user();
 
         // 1. Check Admin Password
-        if (!\Illuminate\Support\Facades\Hash::check($request->password, $user->password)) {
+        if (!Hash::check($request->password, $user->password)) {
             return response()->json(['success' => false, 'message' => 'Incorrect Admin Password.']);
         }
 
         // 2. Fetch Stored Credentials
-        $storedTinEnc = \App\Models\Setting::where('store_id', $storeId)->where('key', 'store_tin')->value('value');
-        $storedPermitEnc = \App\Models\Setting::where('store_id', $storeId)->where('key', 'business_permit')->value('value');
+        $storedTinEnc = Setting::where('store_id', $storeId)->where('key', 'store_tin')->value('value');
+        $storedPermitEnc = Setting::where('store_id', $storeId)->where('key', 'business_permit')->value('value');
 
         try {
-            $storedTin = \Illuminate\Support\Facades\Crypt::decryptString($storedTinEnc);
-            $storedPermit = \Illuminate\Support\Facades\Crypt::decryptString($storedPermitEnc);
+            $storedTin = Crypt::decryptString($storedTinEnc);
+            $storedPermit = Crypt::decryptString($storedPermitEnc);
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'message' => 'Data error. Credentials invalid.']);
         }
@@ -173,7 +173,7 @@ class SettingsController extends Controller
         }
 
         // 4. Log Success
-        \App\Models\ActivityLog::create([
+        ActivityLog::create([
             'store_id' => $storeId,
             'user_id' => $user->id,
             'action' => 'Compliance Update',
@@ -185,49 +185,49 @@ class SettingsController extends Controller
 
 
     public function checkUpdate()
-{
-    $current = config('version');
-    $storeId = $this->getActiveStoreId();
-    
-    // Check if user is a Beta Tester
-    $isBeta = \App\Models\Setting::where('store_id', $storeId)->where('key', 'enable_beta')->value('value') == '1';
-    
-    // Beta testers look at 'beta-version.json', others look at 'version.json'
-    $url = $isBeta 
-        ? 'https://raw.githubusercontent.com/aljayvee/pos-system/main/beta-version.json' 
-        : 'https://raw.githubusercontent.com/aljayvee/pos-system/main/version.json';
+    {
+        $current = config('version');
+        $storeId = $this->getActiveStoreId();
 
-    try {
-        $response = Http::get($url);
-        if ($response->successful()) {
-            $latest = $response->json();
-            $hasUpdate = (int)$latest['build'] > (int)$current['build'];
+        // Check if user is a Beta Tester
+        $isBeta = Setting::where('store_id', $storeId)->where('key', 'enable_beta')->value('value') == '1';
 
-            return response()->json([
-                'has_update' => $hasUpdate,
-                'current' => $current['full'],
-                'latest' => $latest['full'] . ($isBeta ? ' (BETA)' : ''),
-                'type' => $latest['update_type'],
-                'changelog' => $latest['changelog']
-            ]);
+        // Beta testers look at 'beta-version.json', others look at 'version.json'
+        $url = $isBeta
+            ? 'https://raw.githubusercontent.com/aljayvee/pos-system/main/beta-version.json'
+            : 'https://raw.githubusercontent.com/aljayvee/pos-system/main/version.json';
+
+        try {
+            $response = Http::get($url);
+            if ($response->successful()) {
+                $latest = $response->json();
+                $hasUpdate = (int) $latest['build'] > (int) $current['build'];
+
+                return response()->json([
+                    'has_update' => $hasUpdate,
+                    'current' => $current['full'],
+                    'latest' => $latest['full'] . ($isBeta ? ' (BETA)' : ''),
+                    'type' => $latest['update_type'],
+                    'changelog' => $latest['changelog']
+                ]);
+            }
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Offline'], 500);
         }
-    } catch (\Exception $e) {
-        return response()->json(['error' => 'Offline'], 500);
     }
-}
 
     public function runUpdate(Request $request)
     {
         set_time_limit(300); // 5 minutes max
         $storeId = $this->getActiveStoreId();
-        
+
         // 1. Determine Branch
-        $isBeta = \App\Models\Setting::where('store_id', $storeId)->where('key', 'enable_beta')->value('value') == '1';
+        $isBeta = Setting::where('store_id', $storeId)->where('key', 'enable_beta')->value('value') == '1';
         $branch = $isBeta ? 'develop' : 'main';
-        
+
         // 2. Determine Path dynamically (Fixes hardcoded /www/pos)
-        $path = base_path(); 
-        
+        $path = base_path();
+
         // 3. Prepare Log Collection
         $log = [];
         $log[] = "Environment: " . php_uname();
@@ -236,7 +236,7 @@ class SettingsController extends Controller
 
         try {
             // Helper to run commands and trap output
-            $run = function($cmd) use (&$log, $path) {
+            $run = function ($cmd) use (&$log, $path) {
                 // Determine OS to silence stderr if needed, but we want to see it.
                 // Redirect stderr to stdout to capture errors
                 $command = "cd \"$path\" && $cmd 2>&1";
@@ -247,18 +247,18 @@ class SettingsController extends Controller
             };
 
             // --- GIT OPERATIONS ---
-            
+
             // Mark directory as safe (Fixes dubious ownership on Linux/OpenWrt)
             $run("git config --global --add safe.directory \"$path\"");
-            
+
             // Reset/Stash local changes (User's workflow)
             $run("git stash");
-            
+
             // PULL changes (User's preferred workflow)
             $run("git pull origin $branch");
 
             // --- POST-UPDATE TASKS ---
-            
+
             // Permissions (Only run on Linux to avoid access denied on Windows)
             if (PHP_OS_FAMILY !== 'Windows') {
                 $log[] = "Applying Linux Permissions...";
@@ -280,7 +280,7 @@ class SettingsController extends Controller
             }
 
             return response()->json([
-                'success' => true, 
+                'success' => true,
                 'message' => 'Update sequence completed.',
                 'output' => implode("\n", $log)
             ]);
@@ -288,7 +288,7 @@ class SettingsController extends Controller
         } catch (\Exception $e) {
             $log[] = "CRITICAL ERROR: " . $e->getMessage();
             return response()->json([
-                'success' => false, 
+                'success' => false,
                 'message' => 'Update failed: ' . $e->getMessage(),
                 'output' => implode("\n", $log)
             ]);

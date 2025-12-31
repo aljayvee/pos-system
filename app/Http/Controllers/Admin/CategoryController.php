@@ -33,7 +33,16 @@ class CategoryController extends Controller
     public function store(Request $request)
     {
         $request->validate(['name' => 'required|string|max:255']);
-        Category::create($request->all());
+        $category = Category::create($request->all());
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'category' => $category,
+                'message' => 'Category added successfully'
+            ]);
+        }
+
         return back()->with('success', 'Category added!');
     }
 

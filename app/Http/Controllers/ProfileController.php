@@ -22,14 +22,25 @@ class ProfileController extends Controller
 
         $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email,' . $user->id,
+            'photo' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
             'current_password' => 'nullable|required_with:password|current_password',
             'password' => 'nullable|min:6|confirmed',
         ]);
 
         // Update basic info
         $user->name = $request->name;
-        $user->email = $request->email;
+
+        // Handle Photo Upload
+        if ($request->hasFile('photo')) {
+            // Delete old photo if exists
+            if ($user->profile_photo_path) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($user->profile_photo_path);
+            }
+
+            // Store new photo
+            $path = $request->file('photo')->store('profile-photos', 'public');
+            $user->profile_photo_path = $path;
+        }
 
         // Update password if provided
         if ($request->filled('password')) {

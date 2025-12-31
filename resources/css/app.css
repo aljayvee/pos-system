@@ -1,5 +1,3 @@
-
-
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
 @source '../**/*.blade.php';
@@ -20,13 +18,16 @@
     width: 6px;
     height: 6px;
 }
+
 ::-webkit-scrollbar-track {
     background: #1e1e2d;
 }
+
 ::-webkit-scrollbar-thumb {
     background: #3b3b53;
     border-radius: 3px;
 }
+
 ::-webkit-scrollbar-thumb:hover {
     background: #3699ff;
 }
@@ -47,7 +48,7 @@
     background: #fff;
     color: #333;
     transition: all 0.3s;
-    box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
     overflow-y: auto;
 }
 
@@ -73,9 +74,10 @@
     background: #f1f1f1;
 }
 
-#sidebar ul li.active > a {
+#sidebar ul li.active>a {
     color: #fff;
-    background: #0d6efd; /* Bootstrap Primary Blue */
+    background: #0d6efd;
+    /* Bootstrap Primary Blue */
 }
 
 /* Label styling */
@@ -95,7 +97,8 @@
     padding: 20px;
     min-height: 100vh;
     transition: all 0.3s;
-    margin-left: 250px; /* Push content to the right */
+    margin-left: 250px;
+    /* Push content to the right */
 }
 
 /* MOBILE SPECIFIC: Hide sidebar by default on small screens */
@@ -103,31 +106,36 @@
     #sidebar {
         margin-left: -250px;
     }
+
     #sidebar.active {
         margin-left: 0;
     }
+
     #content {
         margin-left: 0;
     }
+
     #content.active {
-        margin-left: 250px; /* Optional: push content when menu opens */
+        margin-left: 250px;
+        /* Optional: push content when menu opens */
     }
-    
+
     /* Overlay */
     .overlay {
         display: none;
         position: fixed;
         width: 100vw;
         height: 100vh;
-        background: rgba(0, 0, 0, 0.7);
+
         z-index: 9998;
         opacity: 0;
         transition: all 0.5s ease-in-out;
         top: 0;
         left: 0;
     }
+
     .overlay.active {
         display: block;
-        opacity: 1;
+        opacity: 0;
     }
 }

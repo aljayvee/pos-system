@@ -32,7 +32,8 @@ class User extends Authenticatable implements WebAuthnAuthenticatable
         'permissions', // Added
         'is_active',
         'store_id',
-        'active_session_id'
+        'active_session_id',
+        'profile_photo_path',
     ];
 
     protected $hidden = [
@@ -82,7 +83,7 @@ class User extends Authenticatable implements WebAuthnAuthenticatable
 
         // 1. Get Role Defaults
         $roleConfig = Config::get('role_permission.' . $this->role, []);
-        
+
         // Convert Enums to strings
         foreach ($roleConfig as $perm) {
             if ($perm instanceof \BackedEnum) {

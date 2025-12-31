@@ -67,33 +67,33 @@
                         <div class="row g-2 g-lg-4 mb-3 mb-lg-4">
                             <div class="col-12 col-md-6">
                                 <label class="form-label fw-bold small text-secondary d-none d-lg-block">Category <span class="text-danger">*</span></label>
-                                <div class="form-floating form-floating-custom">
-                                    <select name="category_id" class="form-select bg-light border-0 fw-bold" id="categorySelect">
+                                <div class="input-group">
+                                    <select name="category_id" class="form-select bg-light border-0 fw-bold py-3" id="categorySelect" required>
+                                        <option value="" disabled>Select Category</option>
                                         @foreach($categories as $cat)
                                             <option value="{{ $cat->id }}" {{ $product->category_id == $cat->id ? 'selected' : '' }}>
                                                 {{ $cat->name }}
                                             </option>
                                         @endforeach
                                     </select>
-                                    <label for="categorySelect" class="d-lg-none">Category</label>
+                                    <button type="button" class="btn btn-primary px-3 shadow-none" data-bs-toggle="modal" data-bs-target="#quickCategoryModal" title="Add New Category">
+                                        <i class="fas fa-plus"></i>
+                                    </button>
                                 </div>
                             </div>
                             <div class="col-12 col-md-6">
                                 <label class="form-label fw-bold small text-secondary d-none d-lg-block">Unit (e.g. Pc, Kg, Box)</label>
-                                <div class="form-floating form-floating-custom">
-                                    <input type="text" name="unit" class="form-control bg-light border-0 fw-bold" list="unitOptions" value="{{ $product->unit }}" placeholder="e.g. Pc" required>
-                                    <label class="d-lg-none">Unit (e.g. Pc, Kg)</label>
-                                    <datalist id="unitOptions">
-                                        <option value="Pc">
-                                        <option value="Pack">
-                                        <option value="Box">
-                                        <option value="Bottle">
-                                        <option value="Can">
-                                        <option value="Kg">
-                                        <option value="L">
-                                        <option value="Set">
-                                    </datalist>
-                                </div>
+                                <input type="text" name="unit" class="form-control bg-light border-0 fw-bold py-3" list="unitOptions" value="{{ $product->unit }}" placeholder="Unit (e.g. Pc)" required>
+                                <datalist id="unitOptions">
+                                    <option value="Pc">
+                                    <option value="Pack">
+                                    <option value="Box">
+                                    <option value="Bottle">
+                                    <option value="Can">
+                                    <option value="Kg">
+                                    <option value="L">
+                                    <option value="Set">
+                                </datalist>
                             </div>
                         </div>
 
@@ -329,4 +329,5 @@
         }
     }
 </script>
+@include('admin.products.partials.quick-category-modal')
 @endsection

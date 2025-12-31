@@ -171,3 +171,134 @@ body {
 .float-card:hover {
     transform: translateY(-5px);
 }
+
+/* =========================================
+   MOBILE ACTION SHEETS (Native Feel)
+========================================= */
+@media (max-width: 991.98px) {
+    .modal-bottom-sheet .modal-dialog {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        margin: 0;
+        width: 100%;
+        max-width: 100%;
+        transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+        transform: translateY(100%);
+        pointer-events: none;
+        /* Let clicks pass through when hidden */
+    }
+
+    /* Bootstrap adds .show to the modal div, ensuring the dialog slides up */
+    .modal-bottom-sheet.show .modal-dialog {
+        transform: translateY(0);
+        pointer-events: auto;
+    }
+
+    .modal-bottom-sheet .modal-content {
+        border: none;
+        border-radius: 28px 28px 0 0;
+        background: rgba(255, 255, 255, 0.96);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.1);
+    }
+
+    /* ELIMINATE DARK BACKDROP */
+    /* Target any active bottom sheet (Bootstrap adds style="display: block" when active/transitioning) */
+    .modal-backdrop {
+        background-color: transparent !important;
+        opacity: 0 !important;
+    }
+
+    body:has(.modal-bottom-sheet[style*="block"]) .modal-backdrop,
+    body:has(.modal-bottom-sheet.show) .modal-backdrop,
+    body:has(.modal-bottom-sheet.collapsing) .modal-backdrop {
+        opacity: 0 !important;
+        background: transparent !important;
+    }
+
+    /* Ensure the modal wrapper itself provides the click area but no color */
+    .modal-bottom-sheet {
+        background: rgba(0, 0, 0, 0.01);
+        /* Tiny opacity to ensure events are caught if needed, or just transparent */
+    }
+
+    /* Drag Handle Indicator */
+    .sheet-handle {
+        width: 40px;
+        height: 5px;
+        background: #e2e8f0;
+        border-radius: 100px;
+        margin: 12px auto 8px auto;
+    }
+
+    /* Action List Group */
+    .mobile-action-group {
+        display: flex;
+        flex-direction: column;
+        border-radius: 16px;
+        overflow: hidden;
+        background: #ffffff;
+        margin-bottom: 16px;
+    }
+
+    .mobile-action-btn {
+        width: 100%;
+        background: #ffffff;
+        border: none;
+        border-bottom: 1px solid #f1f5f9;
+        padding: 16px 20px;
+        text-align: left;
+        font-size: 1rem;
+        font-weight: 500;
+        color: #334155;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        transition: background 0.1s;
+    }
+
+    .mobile-action-btn:active {
+        background: #f8fafc;
+    }
+
+    .mobile-action-btn:last-child {
+        border-bottom: none;
+    }
+
+    .mobile-action-btn i {
+        font-size: 1.1rem;
+        width: 24px;
+        text-align: center;
+        color: #64748b;
+    }
+
+    .mobile-action-btn.text-danger i {
+        color: #ef4444;
+    }
+
+    .mobile-action-btn.text-danger {
+        color: #ef4444;
+    }
+
+    /* Cancel Button */
+    .mobile-cancel-btn {
+        width: 100%;
+        background: #ffffff;
+        border: none;
+        border-radius: 16px;
+        padding: 16px;
+        text-align: center;
+        font-weight: 600;
+        color: #0f172a;
+        font-size: 1rem;
+    }
+
+    .mobile-cancel-btn:active {
+        background: #f8fafc;
+    }
+
+
+}

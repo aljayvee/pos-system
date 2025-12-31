@@ -634,5 +634,5 @@ public function verifyAdmin(Request $request)
     }
 
     return response()->json(['success' => false, 'message' => 'Invalid Admin Password'], 403);
-}
+    }
 }

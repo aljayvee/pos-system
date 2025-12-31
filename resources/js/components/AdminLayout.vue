@@ -1,5 +1,5 @@
 <template>
-  <div class="d-flex min-vh-100 w-100 overflow-hidden bg-body font-sans">
+  <div class="d-flex w-100 overflow-hidden bg-body font-sans flex-fill" style="height: 100%;">
     
     <!-- MOBILE OVERLAY -->
     <div 
@@ -19,8 +19,8 @@
 
       <!-- SIDEBAR (Floating Glass Panel) -->
       <aside 
-        class="d-flex flex-column sidebar-transition m-3 rounded-4 border border-white border-opacity-50 shadow-lg position-relative overflow-hidden"
-        :class="sidebarClasses"
+        class="d-flex flex-column sidebar-transition border border-white border-opacity-50 shadow-lg position-relative"
+        :class="[sidebarClasses, { 'mt-3 mx-3 rounded-4': !isMobile }]"
         style="z-index: 1050; background: rgba(255, 255, 255, 0.65); backdrop-filter: blur(16px);"
       >
         <!-- DECORATIVE BLUR -->
@@ -39,10 +39,13 @@
                </button>
 
                <div class="d-flex align-items-center text-nowrap">
-                   <div class="rounded-3 d-flex align-items-center justify-content-center text-white shadow-sm hover-scale transition-all" 
+                   <div v-if="!isMobile || !userPhoto" class="rounded-3 d-flex align-items-center justify-content-center text-white shadow-sm hover-scale transition-all" 
                         style="width: 42px; height: 42px; background: linear-gradient(135deg, #4f46e5 0%, #818cf8 100%);">
                       <i class="fas fa-layer-group fa-lg"></i>
                    </div>
+                   <!-- Mobile Photo Brand -->
+                   <img v-else :src="userPhoto" class="rounded-circle shadow-sm border" style="width: 42px; height: 42px; object-fit: cover;">
+
                    <!-- TITLE -->
                    <div class="ms-3 d-flex flex-column justify-content-center fade-text" v-show="isOpen || isMobile">
                        <span class="fw-bold fs-5 tracking-tight text-dark" v-if="!isMobile" style="font-family: 'Inter', sans-serif;">VERAPOS</span>
@@ -57,10 +60,10 @@
            </div>
         </div>
 
-      <div class="flex-fill overflow-auto px-3 py-2 custom-scrollbar position-relative z-10" :class="{ 'opacity-50 pe-none': isNavigating }" @click.capture="handleNavClick">
+      <div ref="sidebarContentRef" @scroll.passive="handleSidebarScroll" class="flex-fill overflow-auto px-3 py-2 custom-scrollbar position-relative z-10" :class="{ 'opacity-50 pe-none': isNavigating }" @click.capture="handleNavClick">
          
          <!-- POS BUTTON -->
-         <div class="mb-4" v-if="can('pos.access')">
+         <div class="mb-4" v-if="can('pos.access') && !isMobile">
              <a href="/cashier/pos" class="btn btn-primary w-100 d-flex align-items-center justify-content-center py-3 shadow-lg hover-translate text-uppercase fw-bold border-0" 
                 style="background: linear-gradient(135deg, #4f46e5 0%, #3730a3 100%); border-radius: 16px; letter-spacing: 0.5px;">
                  <i class="fas fa-cash-register"></i>
@@ -137,6 +140,16 @@
                     </a>
                 </li>
              </template>
+             
+             <!-- TRANSACTIONS (Desktop Only) -->
+             <template v-if="!isMobile && (can('sales.view') || can('reports.view'))">
+                 <li class="nav-item">
+                     <a href="/admin/transactions" class="nav-link d-flex align-items-center" :class="{ 'active': currentPath.includes('/transactions') }">
+                        <div class="icon-wrapper"><i class="fas fa-history"></i></div>
+                        <span class="text-nowrap fade-text ms-3 fw-medium" v-show="isOpen || isMobile">Transactions</span>
+                     </a>
+                 </li>
+             </template>
 
              <!-- ANALYTICS -->
              <template v-if="can('reports.view')">
@@ -161,7 +174,7 @@
                 <li class="nav-item" v-if="can('settings.manage')">
                     <a href="/admin/settings" class="nav-link d-flex align-items-center" :class="{ 'active': currentPath.includes('/settings') }">
                        <div class="icon-wrapper"><i class="fas fa-cog"></i></div>
-                       <span class="text-nowrap fade-text ms-3 fw-medium" v-show="isOpen || isMobile">Settings</span>
+                       <span class="text-nowrap fade-text ms-3 fw-medium" v-show="isOpen || isMobile">More Features</span>
                     </a>
                 </li>
                 <li class="nav-item" v-if="can('logs.view')">
@@ -183,11 +196,11 @@
     </aside>
 
     <!-- MAIN CONTENT WRAPPER -->
-    <div class="d-flex flex-column flex-fill position-relative w-100" style="min-width: 0;">
+    <div class="d-flex flex-column flex-fill position-relative w-100 bg-body" style="min-width: 0; height: 125vh; overflow-y: auto; overflow-x: hidden;">
       
       <!-- TOP NAVBAR (Floating Glass) -->
-      <header class="navbar navbar-expand px-4 py-3 m-3 mt-3 rounded-4 shadow-sm align-items-center justify-content-between position-relative z-20" 
-              style="background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.6);">
+      <header class="navbar navbar-expand px-4 py-3 m-3 mt-3 rounded-4 shadow-sm align-items-center justify-content-between position-sticky top-0" 
+              style="z-index: 1000; background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.6);">
          
          <div class="d-flex align-items-center">
 
@@ -276,10 +289,12 @@
             <!-- MY ACCOUNT DROPDOWN (PREMIUM) -->
             <div class="position-relative" v-click-outside="closeAccountDropdown">
                 <button @click="toggleAccountDropdown" class="btn btn-light d-flex align-items-center gap-2 rounded-pill px-1 pe-3 py-1 border-0 shadow-sm hover-translate transition-all" style="background: white;">
-                    <div class="rounded-circle text-white d-flex align-items-center justify-content-center fw-bold shadow-sm" 
+                    <div v-if="!userPhoto" class="rounded-circle text-white d-flex align-items-center justify-content-center fw-bold shadow-sm" 
                          style="width: 36px; height: 36px; font-size: 0.9rem; background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%);">
                         {{ userName.charAt(0).toUpperCase() }}
                     </div>
+                    <img v-else :src="userPhoto" class="rounded-circle shadow-sm" style="width: 36px; height: 36px; object-fit: cover;">
+                    
                     <span class="d-none d-sm-block fw-bold text-dark small ms-1">{{ userName }}</span>
                     <i class="fas fa-chevron-down text-muted small ms-1 transition-transform" :class="{ 'rotate-180': accountDropdownOpen }"></i>
                 </button>
@@ -295,10 +310,12 @@
                                      style="background-image: radial-gradient(#fff 1px, transparent 1px); background-size: 10px 10px;"></div>
                                 
                                 <div class="position-relative z-10">
-                                    <div class="rounded-circle bg-white text-primary d-flex align-items-center justify-content-center shadow-lg mx-auto mb-3" 
+                                    <div v-if="!userPhoto" class="rounded-circle bg-white text-primary d-flex align-items-center justify-content-center shadow-lg mx-auto mb-3" 
                                          style="width: 64px; height: 64px; font-size: 1.8rem; font-family: monospace;">
                                         {{ userName.charAt(0).toUpperCase() }}
                                     </div>
+                                    <img v-else :src="userPhoto" class="rounded-circle bg-white shadow-lg mx-auto mb-3 border border-4 border-white border-opacity-25" style="width: 64px; height: 64px; object-fit: cover;">
+
                                     <h6 class="fw-bold mb-1">{{ userName }}</h6>
                                     <span class="badge bg-white bg-opacity-25 rounded-pill px-3 py-1 small fw-normal">{{ userRole.toUpperCase() }}</span>
                                 </div>
@@ -339,7 +356,7 @@
          </div>
       </header>
 
-      <main class="flex-fill overflow-auto p-4 pt-1" :class="{ 'pb-5 mb-5': isMobile }" style="min-height: 0; height: 100%;">
+      <main class="flex-fill p-4 pt-1 bg-body" :class="{ 'pb-5 mb-5': isMobile }" style="padding-bottom: 100px !important;">
           <div class="container-fluid p-0" style="max-width: 1600px;">
               <slot></slot>
           </div>
@@ -372,7 +389,7 @@
           <!-- 4. TRANSACTIONS -->
           <a href="/admin/transactions" class="mobile-nav-item" :class="{ 'active': currentPath.includes('/transactions') }">
               <i class="fas fa-history mb-1"></i>
-              <span>History</span>
+              <span>Transactions</span>
           </a>
 
           <!-- 5. MENU -->
@@ -451,7 +468,7 @@
 
 <script>
 export default {
-  props: ['userName', 'userRole', 'userPermissions', 'pageTitle', 'csrfToken', 'outOfStock', 'lowStock', 'enableRegisterLogs'],
+  props: ['userName', 'userRole', 'userPermissions', 'userPhoto', 'pageTitle', 'csrfToken', 'outOfStock', 'lowStock', 'enableRegisterLogs'],
   data() {
     const isMobile = window.innerWidth < 992;
     let initialOpen = !isMobile;
@@ -486,14 +503,40 @@ export default {
   },
   mounted() {
       if (this.userRole && this.userRole.toLowerCase() === 'admin') {
-          this.fetchPendingApprovals();
-          this.pollInterval = setInterval(this.fetchPendingApprovals, 5000); 
+          this.fetchPendingApprovals(); // Initial fetch
+          
+          if (window.Echo) {
+              window.Echo.private('admin-notifications')
+                  .listen('.ApprovalRequestCreated', (e) => {
+                      console.log('New Approval Request:', e.request);
+                      this.pendingApprovals.push(e.request); // Assuming pendingApprovals exists or we trigger fetch
+                      this.showNewNotifToast = true;
+                      this.totalNotifications++; // Increment counter if you have one
+                      // Optionally re-fetch to be safe and get full relations
+                      this.fetchPendingApprovals();
+                  });
+          }
+      }
+      
+      // Restore Sidebar Scroll
+      if (!this.isMobile) {
+          const savedScroll = localStorage.getItem('sidebar_scroll_pos');
+          if (savedScroll && this.$refs.sidebarContentRef) {
+              this.$nextTick(() => {
+                  this.$refs.sidebarContentRef.scrollTop = parseInt(savedScroll);
+              });
+          }
       }
   },
   beforeUnmount() {
       if(this.pollInterval) clearInterval(this.pollInterval);
   },
   methods: {
+    handleSidebarScroll(e) {
+        if (!this.isMobile) {
+            localStorage.setItem('sidebar_scroll_pos', e.target.scrollTop);
+        }
+    },
     can(permission) {
         if (!this.userPermissions) return this.userRole === 'admin';
         return this.userPermissions.includes(permission);
@@ -534,6 +577,12 @@ export default {
         }
         const link = e.target.closest('a');
         if (link && link.href && link.href !== '#' && !link.href.startsWith('javascript')) {
+            // Check if clicking the same link
+            if (link.href === window.location.href) {
+                e.preventDefault();
+                return;
+            }
+
             this.isNavigating = true;
             setTimeout(() => { this.isNavigating = false; }, 5000);
         }
@@ -639,16 +688,50 @@ export default {
 .sidebar-transition { transition: width 0.3s cubic-bezier(0.25, 1, 0.5, 1), transform 0.3s ease; white-space: nowrap; }
 .sidebar-open { width: 280px; transform: translateX(0); }
 .sidebar-closed-desktop { width: 88px; }
+
+/* DESKTOP: Independent Scrolling */
+@media (min-width: 992px) {
+    aside {
+        overflow: hidden !important; /* Let inner div scroll */
+        height: 125vh !important; 
+        max-height: 125vh !important;
+        padding-bottom: 2rem;
+    }
+
+    /* FAILSAFE: Force hide text when closed */
+    .sidebar-closed-desktop .fade-text,
+    .sidebar-closed-desktop .nav-link span,
+    .sidebar-closed-desktop .nav-header,
+    .sidebar-closed-desktop .btn span {
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+        width: 0 !important;
+    }
+}
 .sidebar-closed-mobile { 
     width: 85vw; 
     max-width: 320px; 
-    transform: translateX(110%); /* Moved further to be safe */
+    transform: translateX(105%); 
     margin: 0 !important; 
     box-shadow: none !important; 
 }
 
 @media (max-width: 991px) {
-    .sidebar-open { width: 85vw; max-width: 320px; margin: 0 !important; border-radius: 0 !important; min-height: 100vh; max-height: 100%; }
+    aside { 
+        position: fixed !important; 
+        top: 0; 
+        right: 0; 
+        left: auto;
+        bottom: 0;
+        height: auto !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        border-radius: 0 !important;
+        z-index: 2000;
+        box-shadow: -4px 0 15px rgba(0,0,0,0.1) !important;
+    }
+    .sidebar-open { width: 85vw; max-width: 320px; transform: translateX(0); }
     .nav-link { padding: 1rem 1.2rem; font-size: 1.05rem; }
 }
 
