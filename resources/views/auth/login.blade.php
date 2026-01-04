@@ -1,212 +1,240 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Login - POS System</title>
-    
+
     {{-- PWA Manifest --}}
     <link rel="manifest" href="{{ asset('manifest.json') }}">
-    <meta name="theme-color" content="#e0f2fe">
+    <meta name="theme-color" content="#4f46e5">
 
     <meta name="app-url" content="{{ url('/') }}">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
     {{-- Fonts & Icons --}}
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    
-    {{-- Premium UI & Scripts --}}
-    @vite(['resources/css/premium-ui.css', 'resources/js/app.js'])
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    {{-- Scripts & Styles --}}
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 
     <style>
-        .login-container {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            padding: 20px;
-            position: relative;
-            overflow: hidden;
+        body {
+            font-family: 'Inter', sans-serif;
         }
 
-        /* Decorative Bubbles */
-        .bubble {
-            position: absolute;
-            background: linear-gradient(135deg, #a5b4fc 0%, #c4b5fd 100%);
-            border-radius: 50%;
-            opacity: 0.6;
-            filter: blur(60px);
-            z-index: -1;
-            animation: float 8s ease-in-out infinite;
-        }
-        .bubble-1 { width: 300px; height: 300px; top: -100px; left: -100px; }
-        .bubble-2 { width: 250px; height: 250px; bottom: 50px; right: -50px; animation-delay: -4s; background: linear-gradient(135deg, #67e8f9 0%, #93c5fd 100%); }
-
-        .login-card {
-            width: 100%;
-            max-width: 450px;
-            padding: 40px;
-            background: rgba(255, 255, 255, 0.7);
-        }
-
-        .brand-logo {
-            width: 80px;
-            height: 80px;
-            background: linear-gradient(135deg, #4f46e5 0%, #818cf8 100%);
-            border-radius: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 2rem;
-            margin: 0 auto 1.5rem;
-            box-shadow: 0 15px 30px -10px rgba(79, 70, 229, 0.5);
-            transform: rotate(-10deg);
-        }
-
-        .divider {
-            display: flex;
-            align-items: center;
-            text-align: center;
-            color: #9ca3af;
-            margin: 1.5rem 0;
-            font-size: 0.85rem;
-            font-weight: 500;
-        }
-        .divider::before, .divider::after {
-            content: '';
-            flex: 1;
-            border-bottom: 1px solid #e5e7eb;
-        }
-        .divider:not(:empty)::before { margin-right: .5em; }
-        .divider:not(:empty)::after { margin-left: .5em; }
-        
-        .passkey-btn {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            background: white;
-            border: 2px dashed #cbd5e1;
-            color: #475569;
-            width: 100%;
-            padding: 12px;
-            border-radius: 16px;
-            font-weight: 600;
-            transition: all 0.2s;
-        }
-        .passkey-btn:hover {
-            border-color: #4f46e5;
-            background: #f8fafc;
-            color: #4f46e5;
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
         }
     </style>
 </head>
-<body>
 
-    <div class="login-container">
-        <!-- Ambient Background -->
-        <div class="bubble bubble-1"></div>
-        <div class="bubble bubble-2"></div>
+<body class="bg-gray-50 text-slate-800">
 
-        <div class="glass-panel login-card float-card">
-            <div class="text-center mb-4">
-                <div class="brand-logo">
-                    <i class="fas fa-layer-group"></i>
+    <div class="min-h-screen flex w-full">
+
+        <!-- LARGE SCREEN: Left Split (Branding) -->
+        <div
+            class="hidden lg:flex lg:w-1/2 xl:w-7/12 bg-indigo-600 relative overflow-hidden flex-col justify-between p-12 text-white">
+            <!-- Decorative Background Elements -->
+            <div class="absolute top-0 left-0 w-full h-full overflow-hidden z-0">
+                <div class="absolute top-[-10%] right-[-5%] w-96 h-96 bg-indigo-500 rounded-full blur-3xl opacity-50">
                 </div>
-                <h3 class="fw-bold mb-1">Welcome Back</h3>
-                <p class="text-muted small">Access your dashboard</p>
+                <div
+                    class="absolute bottom-[-10%] left-[-10%] w-[500px] h-[500px] bg-indigo-800 rounded-full blur-3xl opacity-40">
+                </div>
+                <div
+                    class="absolute top-[40%] left-[20%] w-64 h-64 bg-indigo-400 rounded-full blur-2xl opacity-20 animate-pulse">
+                </div>
             </div>
 
-            <form action="{{ route('login') }}" method="POST">
-                @csrf
-                
-                {{-- Email Input --}}
-                <div class="form-floating-custom">
-                    <i class="fas fa-envelope icon"></i>
-                    <input type="email" name="email" id="emailInput" placeholder=" " required autofocus>
-                    <label for="emailInput">Email Address</label>
+            <!-- Content -->
+            <div class="relative z-10">
+                <div class="flex items-center gap-3 mb-8">
+                    <div class="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center backdrop-blur-sm">
+                        <i class="fas fa-layer-group text-xl"></i>
+                    </div>
+                    <span class="text-2xl font-bold tracking-tight">VeraPOS</span>
+                </div>
+            </div>
+
+            <div class="relative z-10 max-w-lg">
+                <h1 class="text-5xl font-bold mb-6 leading-tight">Manage your business with confidence.</h1>
+                <p class="text-indigo-100 text-lg leading-relaxed mb-8">
+                    Streamline your point of sale operations, track inventory in real-time, and gain actionable insights
+                    to grow your business.
+                </p>
+
+
+            </div>
+
+            <div class="relative z-10 text-xs text-indigo-300">
+                &copy; {{ date('Y') }} VERAPOS System. All rights reserved.
+            </div>
+        </div>
+
+        <!-- RIGHT SPLIT (Form) -->
+        <div class="w-full lg:w-1/2 xl:w-5/12 flex items-center justify-center p-6 sm:p-12 relative">
+
+            <!-- Mobile decorative bubble -->
+            <div
+                class="absolute top-0 right-0 w-64 h-64 bg-indigo-100 rounded-full blur-3xl opacity-60 lg:hidden -z-10 pointer-events-none">
+            </div>
+
+            <div class="w-full max-w-md space-y-8">
+
+                <!-- Header (Mobile/Desktop consistent) -->
+                <div class="text-center lg:text-left">
+                    <div class="lg:hidden flex justify-center mb-6">
+                        <div
+                            class="w-14 h-14 bg-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-indigo-500/30 transform rotate-3">
+                            <i class="fas fa-layer-group text-2xl"></i>
+                        </div>
+                    </div>
+                    <h2 class="text-3xl font-bold tracking-tight text-gray-900">Welcome back</h2>
+                    <p class="mt-2 text-sm text-gray-500">Please enter your details to sign in.</p>
                 </div>
 
-                {{-- Password Input --}}
-                <div class="form-floating-custom">
-                    <i class="fas fa-lock icon"></i>
-                    <input type="password" name="password" id="passwordInput" placeholder=" " required>
-                    <label for="passwordInput">Password</label>
-                </div>
+                <form action="{{ route('login') }}" method="POST" class="mt-8 space-y-6">
+                    @csrf
 
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox" name="remember" id="remember">
-                        <label class="form-check-label small text-muted" for="remember">Remember me</label>
+                    <div class="space-y-5">
+                        <!-- Email Input -->
+                        <div>
+                            <label for="emailInput" class="block text-sm font-medium text-gray-700 mb-1">Email
+                                address</label>
+                            <div class="relative">
+                                <div
+                                    class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                                    <i class="fas fa-envelope"></i>
+                                </div>
+                                <input id="emailInput" name="email" type="email" autocomplete="email" required autofocus
+                                    class="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 
+                                           focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-all shadow-sm
+                                           hover:border-gray-400" placeholder="name@company.com">
+                            </div>
+                        </div>
+
+                        <!-- Password Input -->
+                        <div>
+                            <label for="passwordInput"
+                                class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                            <div class="relative">
+                                <div
+                                    class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                                    <i class="fas fa-lock"></i>
+                                </div>
+                                <input id="passwordInput" name="password" type="password"
+                                    autocomplete="current-password" required class="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 
+                                           focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-all shadow-sm
+                                           hover:border-gray-400" placeholder="••••••••">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center">
+                            <input id="remember" name="remember" type="checkbox"
+                                class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded cursor-pointer">
+                            <label for="remember"
+                                class="ml-2 block text-sm text-gray-900 cursor-pointer select-none">Remember me</label>
+                        </div>
+                    </div>
+
+                    <button type="submit" id="loginBtn"
+                        class="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-semibold rounded-lg text-white 
+                               bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 
+                               transition-all duration-200 shadow-lg shadow-indigo-600/30 transform hover:-translate-y-0.5">
+                        <span class="absolute left-0 inset-y-0 flex items-center pl-3">
+                            <i
+                                class="fas fa-arrow-right text-indigo-400 group-hover:text-indigo-300 transition-colors"></i>
+                        </span>
+                        <span id="btnText">Sign in to account</span>
+                        <span id="btnSpinner" class="hidden ml-2"><i class="fas fa-circle-notch fa-spin"></i></span>
+                    </button>
+                </form>
+
+                <div class="relative my-8">
+                    <div class="absolute inset-0 flex items-center">
+                        <div class="w-full border-t border-gray-200"></div>
+                    </div>
+                    <div class="relative flex justify-center text-sm">
+                        <span class="px-3 bg-gray-50 text-gray-500 font-medium">Or continue with</span>
                     </div>
                 </div>
 
-                <button type="submit" id="loginBtn" class="btn-premium">
-                    <span id="btnText">Sign In</span>
-                    <span id="btnSpinner" class="spinner-border spinner-border-sm d-none ms-2"></span>
+                @if(config('safety_flag_features.webauthn'))
+                <button type="button" onclick="WebAuthn.login()"
+                    class="w-full flex items-center justify-center gap-3 py-3 px-4 border-2 border-dashed border-gray-300 rounded-xl text-sm font-semibold text-gray-700 
+                           hover:bg-white hover:border-indigo-500 hover:text-indigo-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 
+                           transition-all duration-200 bg-transparent">
+                    <i class="fas fa-fingerprint text-xl"></i>
+                    <span>Use Passkey</span>
                 </button>
-            </form>
+                @endif
 
-            <div class="divider">OR USE PASSKEY</div>
-
-            <button type="button" onclick="WebAuthn.login()" class="passkey-btn">
-                <i class="fas fa-fingerprint fa-lg"></i>
-                <span>Use FaceID / Fingerprint / PIN</span>
-            </button>
-
+            </div>
         </div>
     </div>
 
     {{-- SCRIPTS --}}
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-    {{-- Script Logic --}}
     <script>
-        // Use standard JS or import from main app.js if preferable
+        // Error Handling
         @if($errors->any())
-            document.addEventListener("DOMContentLoaded", function() {
-                let message = `
-                    <ul class="mb-0 text-start" style="list-style: none; padding: 0;">
-                        @foreach($errors->all() as $error)
-                            <li class="mb-1"><i class="fas fa-circle-exclamation me-2"></i>{{ $error }}</li>
-                        @endforeach
-                    </ul>
-                `;
-                Swal.fire({
+            document.addEventListener("DOMContentLoaded", function () {
+                const Toast = Swal.mixin({
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 4000,
+                    timerProgressBar: true,
+                    didOpen: (toast) => {
+                        toast.addEventListener('mouseenter', Swal.stopTimer)
+                        toast.addEventListener('mouseleave', Swal.resumeTimer)
+                    }
+                });
+
+                Toast.fire({
                     icon: 'error',
                     title: 'Login Failed',
-                    html: message,
-                    confirmButtonColor: '#4f46e5'
+                    html: `<ul class="text-sm text-left m-0 pl-4 list-disc">
+                                                @foreach($errors->all() as $error)
+                                                    <li>{{ $error }}</li>
+                                                @endforeach
+                                               </ul>`
                 });
             });
         @endif
 
-        // Login Button Loading State
-        document.querySelector('form').addEventListener('submit', function(e) {
+        // Button Loading State
+        document.querySelector('form').addEventListener('submit', function (e) {
             const btn = document.getElementById('loginBtn');
             const spinner = document.getElementById('btnSpinner');
             const text = document.getElementById('btnText');
-            
-            if(btn.disabled) return;
-            
+
+            if (btn.disabled) return;
+
             btn.disabled = true;
-            btn.style.opacity = '0.8';
-            text.innerText = 'Verifying...';
-            spinner.classList.remove('d-none');
+            btn.classList.add('cursor-not-allowed', 'opacity-80');
+            text.textContent = 'Verifying...';
+            spinner.classList.remove('hidden');
         });
-        
+
         // Auto-lowercase email
-        document.getElementById('emailInput')?.addEventListener('input', function() {
+        document.getElementById('emailInput')?.addEventListener('input', function () {
             this.value = this.value.toLowerCase();
         });
     </script>
 
     <script>
-        if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js');
+        if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js');
     </script>
 </body>
+
 </html>

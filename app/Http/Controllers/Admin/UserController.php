@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use App\Models\ActivityLog;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Hash;
+use App\Models\Store;
 
 class UserController extends Controller
 {
@@ -31,9 +32,9 @@ class UserController extends Controller
 
     public function create()
     {
-        // Fetch list of Admins for Approval Modal (if needed by Manager)
         $admins = User::where('role', 'admin')->where('is_active', true)->get(['id', 'name', 'email']);
-        return view('admin.users.create', compact('admins'));
+        $stores = Store::all(); // Pass stores
+        return view('admin.users.create', compact('admins', 'stores'));
     }
 
     public function store(Request $request)
@@ -75,7 +76,8 @@ class UserController extends Controller
             'email' => $request->email,
             'password' => Hash::make($request->password),
             'role' => $request->role,
-            'store_id' => $this->getActiveStoreId(),
+            // Allow Admin to set store, else default to current context
+            'store_id' => auth()->user()->role === 'admin' ? ($request->store_id ?? $this->getActiveStoreId()) : $this->getActiveStoreId(),
             'is_active' => $isActive
         ]);
 
@@ -126,8 +128,9 @@ class UserController extends Controller
 
         // Fetch list of Admins for Approval Modal
         $admins = User::where('role', 'admin')->where('is_active', true)->get(['id', 'name', 'email']);
+        $stores = Store::all();
 
-        return view('admin.users.edit', compact('user', 'rolePermissions', 'admins'));
+        return view('admin.users.edit', compact('user', 'rolePermissions', 'admins', 'stores'));
     }
 
     public function update(Request $request, User $user)
@@ -143,7 +146,8 @@ class UserController extends Controller
             'email' => ['required', 'email', Rule::unique('users')->ignore($user->id)],
             'role' => 'required|in:admin,cashier,manager,supervisor,stock_clerk,auditor', // Updated roles
             'password' => 'nullable|min:6',
-            'permissions' => 'nullable|array'
+            'permissions' => 'nullable|array',
+            'store_id' => 'nullable|exists:stores,id'
         ]);
 
         $data = [
@@ -201,6 +205,11 @@ class UserController extends Controller
 
         if ($request->filled('password')) {
             $data['password'] = Hash::make($request->password);
+        }
+
+        // Allow Admin to update store_id
+        if ($isAdmin && $request->has('store_id')) {
+            $data['store_id'] = $request->store_id;
         }
 
         $user->update($data);

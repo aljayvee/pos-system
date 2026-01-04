@@ -14,23 +14,41 @@
         <div
             class="d-none d-lg-flex flex-column flex-md-row justify-content-between align-items-md-center py-4 px-3 px-md-0 gap-3">
             <div>
-                <h1 class="h3 fw-bold mb-1 text-dark">Transactions</h1>
-                <p class="text-muted small mb-0">History of sales and orders</p>
+                <h1 class="h3 fw-bold mb-1 text-dark">{{ request('archived') ? 'Archived Transactions' : 'Transactions' }}
+                </h1>
+                <p class="text-muted small mb-0">
+                    {{ request('archived') ? 'History of voided/archived sales' : 'History of sales and orders' }}</p>
             </div>
 
-            <form action="{{ route('transactions.index') }}" method="GET" class="position-relative"
-                style="min-width: 300px;">
-                <i class="fas fa-search position-absolute top-50 start-0 translate-middle-y ms-3 text-muted"></i>
-                <input type="text" name="search" class="form-control ps-5 rounded-pill border-0 shadow-sm"
-                    placeholder="Search ID, Customer..." value="{{ request('search') }}"
-                    style="background: #fff; font-size: 0.95rem;">
-                @if(request('search'))
-                    <a href="{{ route('transactions.index') }}"
-                        class="position-absolute top-50 end-0 translate-middle-y me-3 text-muted">
-                        <i class="fas fa-times-circle"></i>
+            <div class="d-flex align-items-center gap-2">
+                @if(request('archived'))
+                    <a href="{{ route('transactions.index') }}" class="btn btn-outline-secondary rounded-pill fw-bold">
+                        <i class="fas fa-arrow-left me-1"></i> Check Active
+                    </a>
+                @else
+                    <a href="{{ route('transactions.index', ['archived' => 1]) }}"
+                        class="btn btn-light text-muted border rounded-pill fw-bold">
+                        <i class="fas fa-archive me-1"></i> Archived
                     </a>
                 @endif
-            </form>
+
+                <form action="{{ route('transactions.index') }}" method="GET" class="position-relative"
+                    style="min-width: 300px;">
+                    @if(request('archived'))
+                        <input type="hidden" name="archived" value="1">
+                    @endif
+                    <i class="fas fa-search position-absolute top-50 start-0 translate-middle-y ms-3 text-muted"></i>
+                    <input type="text" name="search" class="form-control ps-5 rounded-pill border-0 shadow-sm"
+                        placeholder="Search..." value="{{ request('search') }}"
+                        style="background: #fff; font-size: 0.95rem;">
+                    @if(request('search'))
+                        <a href="{{ route('transactions.index', ['archived' => request('archived')]) }}"
+                            class="position-absolute top-50 end-0 translate-middle-y me-3 text-muted">
+                            <i class="fas fa-times-circle"></i>
+                        </a>
+                    @endif
+                </form>
+            </div>
         </div>
 
         <div class="px-3 px-md-0 pt-3 pt-md-0">
@@ -84,12 +102,14 @@
                                                 </div>
                                                 <div>
                                                     <div class="fw-bold text-dark">
-                                                        {{ $sale->customer->name ?? 'Walk-in Customer' }}</div>
+                                                        {{ $sale->customer->name ?? 'Walk-in Customer' }}
+                                                    </div>
                                                     <div class="small text-muted">{{ $sale->user->name }}</div>
                                                 </div>
                                             </div>
                                         </td>
-                                        <td class="text-secondary small">{{ $sale->created_at->format('M d, Y • h:i A') }}</td>
+                                        <td class="text-secondary small">{{ $sale->created_at->format('M d, Y • h:i A') }}
+                                        </td>
                                         <td>
                                             @php
                                                 $badge = match ($sale->payment_method) {
@@ -103,9 +123,21 @@
                                                     default => 'fa-credit-card',
                                                 };
                                             @endphp
-                                            <span class="badge {{ $badge }} fw-normal px-2 py-1 rounded-pill">
-                                                <i class="fas {{ $icon }} me-1 small"></i> {{ ucfirst($sale->payment_method) }}
+                                            <i class="fas {{ $icon }} me-1 small"></i> {{ ucfirst($sale->payment_method) }}
                                             </span>
+
+                                            @if($sale->salesReturns->where('condition', 'good')->isNotEmpty())
+                                                <span
+                                                    class="badge bg-white text-success border border-success px-2 py-1 rounded-pill ms-1">
+                                                    <i class="fas fa-undo me-1 small"></i> Returned (Good)
+                                                </span>
+                                            @endif
+                                            @if($sale->salesReturns->where('condition', 'damaged')->isNotEmpty())
+                                                <span
+                                                    class="badge bg-white text-danger border border-danger px-2 py-1 rounded-pill ms-1">
+                                                    <i class="fas fa-exclamation-circle me-1 small"></i> Returned (Damaged)
+                                                </span>
+                                            @endif
                                         </td>
                                         <td class="text-end fw-bold text-dark fs-6 font-monospace">
                                             ₱{{ number_format($sale->total_amount, 2) }}</td>
@@ -136,10 +168,28 @@
                                         class="badge {{ $sale->payment_method == 'credit' ? 'bg-danger-subtle text-danger' : 'bg-success-subtle text-success' }} rounded-pill border {{ $sale->payment_method == 'credit' ? 'border-danger-subtle' : 'border-success-subtle' }}">
                                         {{ ucfirst($sale->payment_method) }}
                                     </span>
+
+                                    @if($sale->salesReturns->where('condition', 'good')->isNotEmpty())
+                                        <span class="badge bg-white text-success border border-success rounded-pill px-2">
+                                            <i class="fas fa-undo"></i>
+                                        </span>
+                                    @endif
+                                    @if($sale->salesReturns->where('condition', 'damaged')->isNotEmpty())
+                                        <span class="badge bg-white text-danger border border-danger rounded-pill px-2">
+                                            <i class="fas fa-exclamation-circle"></i>
+                                        </span>
+                                    @endif
+
                                     <span class="text-muted small">#{{ $sale->id }}</span>
                                 </div>
                                 <small class="text-muted">{{ $sale->created_at->format('M d, h:i A') }}</small>
                             </div>
+
+                            @if(request('archived'))
+                                <div class="text-center bg-danger-subtle text-danger small py-1 rounded fw-bold mb-2">
+                                    <i class="fas fa-ban me-1"></i> ARCHIVED (VOIDED)
+                                </div>
+                            @endif
 
                             <div class="d-flex justify-content-between align-items-end">
                                 <div class="d-flex align-items-center">
@@ -149,7 +199,8 @@
                                     </div>
                                     <div>
                                         <h6 class="fw-bold text-dark mb-0 line-clamp-1">
-                                            {{ $sale->customer->name ?? 'Walk-in Customer' }}</h6>
+                                            {{ $sale->customer->name ?? 'Walk-in Customer' }}
+                                        </h6>
                                         <div class="small text-muted">Cashier: {{ $sale->user->name }}</div>
                                     </div>
                                 </div>

@@ -40,21 +40,23 @@ class ProductController extends Controller
                 $stock = $row[3] ?? 0;
                 $sku = $row[4] ?? null;
 
-                if (!$name) continue; 
+                if (!$name)
+                    continue;
 
                 // Find or Create Category
                 $category = Category::firstOrCreate(['name' => trim($categoryName)]);
 
-                // Create Product Global Record
+                // Create Product Record (Scoped to Store)
                 $product = Product::create([
+                    'store_id' => $this->getActiveStoreId(), // <--- INJECT STORE ID
                     'name' => $name,
                     'category_id' => $category->id,
                     'price' => floatval($price),
-                    'stock' => 0, // Global stock is less relevant in multi-store, set 0 or aggregate later
+                    'stock' => 0,
                     'sku' => $sku,
                 ]);
 
-                // Update Inventory for CURRENT Store
+                // Update Inventory (Keep as is for compatibility)
                 $storeId = $this->getActiveStoreId();
                 Inventory::updateOrCreate(
                     ['product_id' => $product->id, 'store_id' => $storeId],
@@ -63,10 +65,10 @@ class ProductController extends Controller
 
                 $count++;
             }
-            
+
             DB::commit();
             fclose($handle);
-            
+
             return back()->with('success', "$count products imported successfully!");
 
         } catch (\Exception $e) {
@@ -89,9 +91,9 @@ class ProductController extends Controller
             $query->onlyTrashed();
         }
         if ($request->filled('search')) {
-            $query->where(function($q) use ($request) {
+            $query->where(function ($q) use ($request) {
                 $q->where('name', 'like', '%' . $request->search . '%')
-                  ->orWhere('sku', 'like', '%' . $request->search . '%');
+                    ->orWhere('sku', 'like', '%' . $request->search . '%');
             });
         }
         if ($request->filled('category')) {
@@ -99,42 +101,39 @@ class ProductController extends Controller
         }
 
         // 4. Dynamic Sorting Logic
-        $sort = $request->input('sort', 'created_at'); 
-        $dir  = $request->input('direction', 'desc');
+        $sort = $request->input('sort', 'created_at');
+        $dir = $request->input('direction', 'desc');
 
         // Handle Sorting Types
         if ($sort === 'category') {
             $query->join('categories', 'products.category_id', '=', 'categories.id')
-                  ->orderBy('categories.name', $dir)
-                  ->select('products.*');
-        } 
-        elseif ($sort === 'stock') {
+                ->orderBy('categories.name', $dir)
+                ->select('products.*');
+        } elseif ($sort === 'stock') {
             // Sort by BRANCH SPECIFIC Stock
-            $query->leftJoin('inventories', function($join) use ($storeId) {
-                    $join->on('products.id', '=', 'inventories.product_id')
-                         ->where('inventories.store_id', '=', $storeId);
-                })
+            $query->leftJoin('inventories', function ($join) use ($storeId) {
+                $join->on('products.id', '=', 'inventories.product_id')
+                    ->where('inventories.store_id', '=', $storeId);
+            })
                 ->orderBy(DB::raw('COALESCE(inventories.stock, 0)'), $dir)
                 ->select('products.*');
-        } 
-        elseif (in_array($sort, ['name', 'price'])) {
+        } elseif (in_array($sort, ['name', 'price'])) {
             $query->orderBy($sort, $dir);
-        } 
-        else {
-            $query->latest(); 
+        } else {
+            $query->latest();
         }
 
         // 5. "Low Stock" & "Out of Stock" Filters
         if ($request->filled('filter')) {
             $filter = $request->filter;
             $allProducts = $query->get(); // Get collection to filter by accessor
-            
+
             if ($filter == 'out_of_stock') {
-                $filtered = $allProducts->filter(function($p) {
+                $filtered = $allProducts->filter(function ($p) {
                     return $p->stock == 0;
                 });
             } elseif ($filter == 'low_stock') {
-                $filtered = $allProducts->filter(function($p) {
+                $filtered = $allProducts->filter(function ($p) {
                     return $p->stock > 0 && $p->stock <= $p->reorder_point;
                 });
             } else {
@@ -145,10 +144,10 @@ class ProductController extends Controller
             $page = Paginator::resolveCurrentPage() ?: 1;
             $perPage = 10;
             $products = new \Illuminate\Pagination\LengthAwarePaginator(
-                $filtered->forPage($page, $perPage)->values(), 
-                $filtered->count(), 
-                $perPage, 
-                $page, 
+                $filtered->forPage($page, $perPage)->values(),
+                $filtered->count(),
+                $perPage,
+                $page,
                 ['path' => Paginator::resolveCurrentPath(), 'query' => $request->query()]
             );
         } else {
@@ -178,7 +177,7 @@ class ProductController extends Controller
             abort(403);
         }
         $product = Product::withTrashed()->findOrFail($id);
-        if($product->saleItems()->exists()) {
+        if ($product->saleItems()->exists()) {
             return back()->with('error', 'Cannot permanently delete. This item has sales history.');
         }
         $product->forceDelete();
@@ -208,7 +207,7 @@ class ProductController extends Controller
         $query = Product::query();
 
         // Check for SKU or Name match
-        $query->where(function($q) use ($sku, $name) {
+        $query->where(function ($q) use ($sku, $name) {
             if ($sku) {
                 $q->where('sku', $sku);
             }
@@ -237,87 +236,100 @@ class ProductController extends Controller
     // -----------------------
 
     public function store(Request $request)
-{
-    if (!Auth::user()->hasPermission(\App\Enums\Permission::INVENTORY_EDIT->value)) {
-        abort(403);
-    }
-    $validated = $request->validate([
-        'name' => 'required',
-        'price' => 'required|numeric',
-        'unit' => 'required|string|max:50', // Extended max length
-        'category_id' => 'required|exists:categories,id',
-        'cost' => 'nullable|numeric|min:0',
-        'sku' => 'nullable|string|unique:products,sku',
-        'stock' => 'integer|min:0',
-        'reorder_point' => 'nullable|integer|min:0',
-        'expiration_date' => 'nullable|date',
-        'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:10240',
-        'tiers.*.quantity' => 'required|integer|min:2',
-        'tiers.*.price' => 'required|numeric|min:0',
-    ]);
-
-    DB::beginTransaction();
-    try {
-        // 1. Handle Image Upload FIRST so we have the path
-        $imagePath = null;
-        if ($request->hasFile('image')) {
-            $imagePath = $request->file('image')->store('products', 'public');
+    {
+        if (!Auth::user()->hasPermission(\App\Enums\Permission::INVENTORY_EDIT->value)) {
+            abort(403);
         }
+        $storeId = $this->getActiveStoreId();
 
-        // 2. Create Global Product Record (ONLY ONCE)
-        $product = Product::create([
-            'name' => \Illuminate\Support\Str::title($request->name),
-            'price' => $request->price,
-            'unit' => $request->unit,
-            'category_id' => $request->category_id,
-            'cost' => $request->cost,
-            'sku' => $request->sku,
-            'expiration_date' => $request->expiration_date,
-            'image' => $imagePath,
-            'stock' => 0, // dummy global stock
+        $validated = $request->validate([
+            'name' => 'required',
+            'price' => 'required|numeric',
+            'unit' => 'required|string|max:50',
+            'category_id' => 'required|exists:categories,id',
+            'tax_type' => 'required|in:vatable,vat_exempt,zero_rated', // <--- Validation
+            'cost' => 'nullable|numeric|min:0',
+
+            // SCOPED SKU VALIDATION
+            'sku' => [
+                'nullable',
+                'string',
+                Rule::unique('products')->where(fn($query) => $query->where('store_id', $storeId))
+            ],
+
+            'stock' => 'integer|min:0',
+            'reorder_point' => 'nullable|integer|min:0',
+            'expiration_date' => 'nullable|date',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:10240',
+            'tiers.*.quantity' => 'required|integer|min:2',
+            'tiers.*.price' => 'required|numeric|min:0',
         ]);
 
-        // Save Pricing Tiers
-        if ($request->has('tiers')) {
-            foreach ($request->tiers as $tier) {
-                if ($tier['quantity'] && $tier['price']) {
-                    $product->pricingTiers()->create([
-                        'quantity' => $tier['quantity'],
-                        'price' => $tier['price'],
-                        'name' => $tier['name'] ?? null
-                    ]);
+        DB::beginTransaction();
+        try {
+            // 1. Handle Image Upload FIRST so we have the path
+            $imagePath = null;
+            if ($request->hasFile('image')) {
+                $imagePath = $request->file('image')->store('products', 'public');
+            }
+
+            // 2. Create Product Record (Scoped)
+            $product = Product::create([
+                'store_id' => $storeId, // <--- INJECT STORE ID
+                'name' => \Illuminate\Support\Str::title($request->name),
+                'price' => $request->price,
+                'unit' => $request->unit,
+                'category_id' => $request->category_id,
+                'tax_type' => $request->tax_type, // <--- Store it
+                'cost' => $request->cost,
+                'sku' => $request->sku,
+                'expiration_date' => $request->expiration_date,
+                'image' => $imagePath,
+                'stock' => 0,
+            ]);
+
+            // Save Pricing Tiers
+            if ($request->has('tiers')) {
+                foreach ($request->tiers as $tier) {
+                    if ($tier['quantity'] && $tier['price']) {
+                        $product->pricingTiers()->create([
+                            'quantity' => $tier['quantity'],
+                            'price' => $tier['price'],
+                            'name' => $tier['name'] ?? null
+                        ]);
+                    }
                 }
             }
+
+            // 3. Create Inventory Record for current branch
+            $storeId = $this->getActiveStoreId();
+            Inventory::create([
+                'product_id' => $product->id,
+                'store_id' => $storeId,
+                'stock' => $request->stock ?? 0,
+                'reorder_point' => $request->reorder_point ?? 10
+            ]);
+
+            // LOGGING
+            ActivityLog::create([
+                'user_id' => Auth::id(),
+                'store_id' => $storeId,
+                'action' => 'Created Product',
+                'description' => "Created product: {$product->name} (Price: {$product->price}, Stock: {$request->stock})"
+            ]);
+
+            DB::commit();
+            return redirect()->route('products.index')->with('success', 'Product created successfully.');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            if ($imagePath)
+                Storage::disk('public')->delete($imagePath);
+
+            // Use back() to stay on the page and show the specific error message
+            return back()->withInput()->with('error', 'Failed to add product: ' . $e->getMessage());
         }
-
-        // 3. Create Inventory Record for current branch
-        $storeId = $this->getActiveStoreId();
-        Inventory::create([
-            'product_id' => $product->id,
-            'store_id' => $storeId,
-            'stock' => $request->stock ?? 0,
-            'reorder_point' => $request->reorder_point ?? 10
-        ]);
-
-        // LOGGING
-        ActivityLog::create([
-            'user_id' => Auth::id(),
-            'store_id' => $storeId,
-            'action' => 'Created Product',
-            'description' => "Created product: {$product->name} (Price: {$product->price}, Stock: {$request->stock})"
-        ]);
-
-        DB::commit();
-        return redirect()->route('products.index')->with('success', 'Product created successfully.');
-
-    } catch (\Exception $e) {
-        DB::rollBack();
-        if($imagePath) Storage::disk('public')->delete($imagePath);
-        
-        // Use back() to stay on the page and show the specific error message
-        return back()->withInput()->with('error', 'Failed to add product: ' . $e->getMessage());
     }
-}
 
     // 4. Show Edit Form
     public function edit(Product $product)
@@ -336,13 +348,23 @@ class ProductController extends Controller
         if (!Auth::user()->hasPermission(\App\Enums\Permission::INVENTORY_EDIT->value)) {
             abort(403);
         }
+        $storeId = $this->getActiveStoreId();
+
         $request->validate([
             'name' => 'required',
             'price' => 'required|numeric',
+            'price' => 'required|numeric',
             'category_id' => 'required|exists:categories,id',
-            'sku' => 'nullable|unique:products,sku,' . $product->id,
-            'unit' => 'required|string|max:50', // Extended max length
-            'stock' => 'nullable|integer|min:0', // Ensure this is validated
+            'tax_type' => 'required|in:vatable,vat_exempt,zero_rated', // <--- Validation
+
+            // SCOPED UNIQUE CHECK FOR UPDATE
+            'sku' => [
+                'nullable',
+                Rule::unique('products')->ignore($product->id)->where(fn($query) => $query->where('store_id', $storeId))
+            ],
+
+            'unit' => 'required|string|max:50',
+            'stock' => 'nullable|integer|min:0',
             'reorder_point' => 'nullable|integer|min:0',
             'expiration_date' => 'nullable|date',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:10240',
@@ -368,7 +390,7 @@ class ProductController extends Controller
 
             // Apply Title Case Formatting (Consistency)
             $request->merge([
-                'name' => \Illuminate\Support\Str::title($request->name) 
+                'name' => \Illuminate\Support\Str::title($request->name)
             ]);
 
             // Update Global Product Details
@@ -404,7 +426,7 @@ class ProductController extends Controller
             if ($request->has('reorder_point')) {
                 $inventory->reorder_point = $request->reorder_point;
             }
-            
+
             $inventory->save();
 
             // LOGGING
@@ -429,11 +451,11 @@ class ProductController extends Controller
     {
         // Re-fetch product to be safe
         $product = Product::findOrFail($product->id);
-        
+
         $isEnabled = \App\Models\Setting::where('key', 'enable_barcode')
-                        ->where('store_id', $this->getActiveStoreId())
-                        ->value('value') ?? '0';
-        
+            ->where('store_id', $this->getActiveStoreId())
+            ->value('value') ?? '0';
+
         if ($isEnabled !== '1') {
             return back()->with('error', 'Barcode printing is currently disabled in Settings.');
         }
@@ -441,7 +463,7 @@ class ProductController extends Controller
         if (!$product->sku) {
             return back()->with('error', 'Product does not have an SKU/Barcode to print.');
         }
-        
+
         return view('admin.products.barcode', compact('product'));
     }
 

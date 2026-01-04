@@ -19,14 +19,7 @@
                                 <i class="fas fa-store me-2"></i>Store
                             </button>
                         </li>
-                        @if(config('safety_flag_features.bir_tax_compliance'))
-                            <li class="nav-item" role="presentation">
-                                <button class="nav-link text-nowrap rounded-pill border ms-1" id="tax-tab" data-bs-toggle="tab"
-                                    data-bs-target="#tax" type="button" role="tab">
-                                    Tax
-                                </button>
-                            </li>
-                        @endif
+
                         <li class="nav-item" role="presentation">
                             <button class="nav-link text-nowrap rounded-pill border ms-1" id="loyalty-tab"
                                 data-bs-toggle="tab" data-bs-target="#loyalty" type="button" role="tab">
@@ -77,12 +70,7 @@
                                 <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#store"
                                     type="button"><i class="fas fa-store me-2"></i>Store</button>
                             </li>
-                            @if(config('safety_flag_features.bir_tax_compliance'))
-                                <li class="nav-item">
-                                    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tax"
-                                        type="button">Tax</button>
-                                </li>
-                            @endif
+
                             <li class="nav-item">
                                 <button class="nav-link" data-bs-toggle="tab" data-bs-target="#loyalty"
                                     type="button">Loyalty</button>
@@ -141,67 +129,7 @@
                                 </div>
                             </div>
 
-                            {{-- 2. TAX TAB --}}
-                            @if(config('safety_flag_features.bir_tax_compliance'))
-                                <div class="tab-pane fade" id="tax" role="tabpanel" aria-labelledby="tax-tab">
-                                    <div class="d-flex justify-content-between align-items-center mb-3">
-                                        <h5 class="card-title m-0">Tax Configuration</h5>
-                                        <div class="form-check form-switch">
-                                            <input type="hidden" name="enable_tax" value="0">
-                                            <input class="form-check-input" type="checkbox" id="taxSwitch" name="enable_tax"
-                                                value="1" {{ ($settings['enable_tax'] ?? '0') == '1' ? 'checked' : '' }}
-                                                onchange="toggleVis('tax-fields', this.checked)">
-                                        </div>
-                                    </div>
 
-                                    <div id="tax-fields" class="{{ ($settings['enable_tax'] ?? '0') == '1' ? '' : 'd-none' }}">
-                                        <div class="row g-3 mb-3">
-                                            <div class="col-md-6">
-                                                <label class="form-label">TIN</label>
-                                                <div class="input-group">
-                                                    <input type="password" name="store_tin" id="store_tin" class="form-control"
-                                                        value=""
-                                                        placeholder="{{ !empty($settings['store_tin']) ? 'Saved' : 'Enter TIN' }}"
-                                                        {{ !empty($settings['store_tin']) ? 'readonly' : '' }}>
-                                                    <button class="btn btn-outline-secondary" type="button"
-                                                        onclick="handleSecretToggle('store_tin')"><i
-                                                            class="fas fa-eye"></i></button>
-                                                </div>
-                                            </div>
-                                            <div class="col-md-6">
-                                                <label class="form-label">Business Permit</label>
-                                                <div class="input-group">
-                                                    <input type="password" name="business_permit" id="business_permit"
-                                                        class="form-control" value=""
-                                                        placeholder="{{ !empty($settings['business_permit']) ? 'Saved' : 'Enter Permit' }}"
-                                                        {{ !empty($settings['business_permit']) ? 'readonly' : '' }}>
-                                                    <button class="btn btn-outline-secondary" type="button"
-                                                        onclick="handleSecretToggle('business_permit')"><i
-                                                            class="fas fa-eye"></i></button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="row g-3">
-                                            <div class="col-md-4">
-                                                <label class="form-label">VAT Rate</label>
-                                                <div class="input-group">
-                                                    <input type="number" name="tax_rate" class="form-control"
-                                                        value="{{ $settings['tax_rate'] ?? '12' }}">
-                                                    <span class="input-group-text">%</span>
-                                                </div>
-                                            </div>
-                                            <div class="col-md-8">
-                                                <label class="form-label">Type</label>
-                                                <select name="tax_type" class="form-select">
-                                                    <option value="inclusive" {{ ($settings['tax_type'] ?? '') == 'inclusive' ? 'selected' : '' }}>Inclusive</option>
-                                                    <option value="exclusive" {{ ($settings['tax_type'] ?? '') == 'exclusive' ? 'selected' : '' }}>Exclusive</option>
-                                                    <option value="non_vat" {{ ($settings['tax_type'] ?? '') == 'non_vat' ? 'selected' : '' }}>Non-VAT</option>
-                                                </select>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            @endif
 
                             {{-- 3. LOYALTY TAB --}}
                             <div class="tab-pane fade" id="loyalty" role="tabpanel" aria-labelledby="loyalty-tab">

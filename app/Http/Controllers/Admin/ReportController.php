@@ -35,7 +35,7 @@ class ReportController extends Controller
         // Apply Store Filter
         if ($targetStore !== 'all') {
             $query->where('store_id', $targetStore);
-            $returnQuery->whereHas('sale', function($q) use ($targetStore) {
+            $returnQuery->whereHas('sale', function ($q) use ($targetStore) {
                 $q->where('store_id', $targetStore);
             });
         }
@@ -51,9 +51,9 @@ class ReportController extends Controller
             $returnQuery->whereBetween('created_at', [$start, $end]);
         } elseif ($type === 'monthly') {
             $query->whereMonth('created_at', Carbon::parse($startDate)->month)
-                  ->whereYear('created_at', Carbon::parse($startDate)->year);
+                ->whereYear('created_at', Carbon::parse($startDate)->year);
             $returnQuery->whereMonth('created_at', Carbon::parse($startDate)->month)
-                        ->whereYear('created_at', Carbon::parse($startDate)->year);
+                ->whereYear('created_at', Carbon::parse($startDate)->year);
         }
 
         $sales = $query->get();
@@ -66,7 +66,7 @@ class ReportController extends Controller
 
         // 4. Calculate Financials (NET SALES LOGIC)
         $gross_sales = $sales->sum('total_amount');
-        
+
         // Fetch returns with necessary relations for cost calculation
         $returns = $returnQuery->with(['sale.saleItems', 'product'])->get();
         $total_returns = $returns->sum('refund_amount');
@@ -81,11 +81,11 @@ class ReportController extends Controller
         // 1. Calculate Credit Collections for the period
         $collectionQuery = \App\Models\CreditPayment::query();
         if ($targetStore !== 'all') {
-             $collectionQuery->whereHas('credit.sale', function($q) use ($targetStore) {
+            $collectionQuery->whereHas('credit.sale', function ($q) use ($targetStore) {
                 $q->where('store_id', $targetStore);
-             });
+            });
         }
-        
+
         // Match Date Filter
         if ($type === 'daily') {
             $collectionQuery->whereDate('payment_date', $startDate);
@@ -94,13 +94,13 @@ class ReportController extends Controller
             $endW = Carbon::parse($startDate)->endOfWeek();
             $collectionQuery->whereBetween('payment_date', [$startW, $endW]);
         } elseif ($type === 'monthly') {
-             $collectionQuery->whereMonth('payment_date', Carbon::parse($startDate)->month)
-                             ->whereYear('payment_date', Carbon::parse($startDate)->year);
+            $collectionQuery->whereMonth('payment_date', Carbon::parse($startDate)->month)
+                ->whereYear('payment_date', Carbon::parse($startDate)->year);
         }
         $collected_amount = $collectionQuery->sum('amount');
 
         // 2. Calculate Cash Refunds only
-        $cash_refunds = $returns->filter(function($ret) {
+        $cash_refunds = $returns->filter(function ($ret) {
             return $ret->sale && $ret->sale->payment_method !== 'credit';
         })->sum('refund_amount');
 
@@ -108,16 +108,16 @@ class ReportController extends Controller
         $realized_revenue = ($cash_sales + $digital_sales + $collected_amount) - $cash_refunds;
 
         // Tithes (Based on Realized / Cash Basis)
-        $tithesEnabled = \App\Models\Setting::where('key', 'enable_tithes')->value('value') ?? '1'; 
+        $tithesEnabled = \App\Models\Setting::where('key', 'enable_tithes')->value('value') ?? '1';
         $tithesAmount = ($tithesEnabled == '1') ? max(0, $realized_revenue * 0.10) : 0;
 
         // Gross Profit Calculation (Sales - Cost - Returns)
         // Gross Profit Calculation (Realized / Cash Basis)
-        
+
         // A. Profit from Cash Sales
         // Filter soldItems to only include those from Cash/Digital sales
-        $cashSoldItems = $soldItems->filter(function($item) {
-             return $item->sale && in_array($item->sale->payment_method, ['cash', 'digital']);
+        $cashSoldItems = $soldItems->filter(function ($item) {
+            return $item->sale && in_array($item->sale->payment_method, ['cash', 'digital']);
         });
 
         $cashSalesCost = 0;
@@ -133,26 +133,27 @@ class ReportController extends Controller
         // Reuse the query logic from earlier but get models
         $collectionQueryModels = \App\Models\CreditPayment::query();
         if ($targetStore !== 'all') {
-             $collectionQueryModels->whereHas('credit.sale', function($q) use ($targetStore) {
+            $collectionQueryModels->whereHas('credit.sale', function ($q) use ($targetStore) {
                 $q->where('store_id', $targetStore);
-             });
+            });
         }
         if ($type === 'daily') {
             $collectionQueryModels->whereDate('payment_date', $startDate);
         } elseif ($type === 'weekly') {
             $collectionQueryModels->whereBetween('payment_date', [$startW, $endW]);
         } elseif ($type === 'monthly') {
-             $collectionQueryModels->whereMonth('payment_date', Carbon::parse($startDate)->month)
-                                   ->whereYear('payment_date', Carbon::parse($startDate)->year);
+            $collectionQueryModels->whereMonth('payment_date', Carbon::parse($startDate)->month)
+                ->whereYear('payment_date', Carbon::parse($startDate)->year);
         }
-        
+
         $collectionsParam = $collectionQueryModels->with(['credit.sale.saleItems'])->get();
-        
+
         $collectionProfit = 0;
         foreach ($collectionsParam as $payment) {
             $sale = $payment->credit->sale ?? null;
-            if (!$sale) continue;
-            
+            if (!$sale)
+                continue;
+
             $saleTotal = $sale->total_amount > 0 ? $sale->total_amount : 1;
             $paymentRatio = $payment->amount / $saleTotal;
 
@@ -164,7 +165,7 @@ class ReportController extends Controller
                     $saleTotalCost += ($c * $sItem->quantity);
                 }
             }
-            
+
             $recoveredCost = $saleTotalCost * $paymentRatio;
             $collectionProfit += ($payment->amount - $recoveredCost);
         }
@@ -173,21 +174,21 @@ class ReportController extends Controller
         // We only deduct profit if we refunded pure cash (since Credit Refunds don't affect realized profit yet)
         $cashReturns = $returns->filter(fn($r) => $r->sale && $r->sale->payment_method !== 'credit');
         $cashRefundAmount = $cashReturns->sum('refund_amount');
-        
+
         $cashReturnCost = 0;
         foreach ($cashReturns as $ret) {
-             $originalItem = null;
-             if ($ret->sale && $ret->sale->saleItems) {
-                 $originalItem = $ret->sale->saleItems->where('product_id', $ret->product_id)->first();
-             }
-             $uCost = ($originalItem && $originalItem->cost > 0) ? $originalItem->cost : ($ret->product->cost ?? 0);
-             $cashReturnCost += ($uCost * $ret->quantity);
+            $originalItem = null;
+            if ($ret->sale && $ret->sale->saleItems) {
+                $originalItem = $ret->sale->saleItems->where('product_id', $ret->product_id)->first();
+            }
+            $uCost = ($originalItem && $originalItem->cost > 0) ? $originalItem->cost : ($ret->product->cost ?? 0);
+            $cashReturnCost += ($uCost * $ret->quantity);
         }
         $profitLost = $cashRefundAmount - $cashReturnCost;
 
         // FINAL GROSS PROFIT (Realized)
         $gross_profit = $cashProfit + $collectionProfit - $profitLost;
-        
+
         // Maintain legacy variables for view if needed, or just overwrite
         // We set $total_cost and $net_cost to simplified values or 0 as they are less relevant in Hybrid Cash Basis
         // But let's calculate them for the Cash portion so "Margin" makes sense if calculated.
@@ -198,10 +199,10 @@ class ReportController extends Controller
 
         // Top Items (Net Quantity & Net Revenue)
         $topItems = SaleItem::select(
-                'product_id', 
-                DB::raw('SUM(quantity) as gross_qty'),
-                DB::raw('SUM(price * quantity) as gross_rev')
-            )
+            'product_id',
+            DB::raw('SUM(quantity) as gross_qty'),
+            DB::raw('SUM(price * quantity) as gross_rev')
+        )
             ->whereIn('sale_id', $salesIds)
             ->groupBy('product_id')
             ->with('product')
@@ -237,7 +238,7 @@ class ReportController extends Controller
             ->get()
             ->map(function ($c) use ($salesIds) {
                 // Calculate Returns for this customer
-                $returns = SalesReturn::whereHas('sale', function($q) use ($c, $salesIds) {
+                $returns = SalesReturn::whereHas('sale', function ($q) use ($c, $salesIds) {
                     $q->whereIn('id', $salesIds)->where('customer_id', $c->customer_id);
                 })->sum('refund_amount');
 
@@ -267,28 +268,46 @@ class ReportController extends Controller
             ->get();
 
         $salesByCategory = $categorySalesRaw->map(function ($cat) use ($salesIds) {
-             // Calculate Returns for this category
-             $returns = SalesReturn::join('products', 'sales_returns.product_id', '=', 'products.id')
+            // Calculate Returns for this category
+            $returns = SalesReturn::join('products', 'sales_returns.product_id', '=', 'products.id')
                 ->join('categories', 'products.category_id', '=', 'categories.id')
                 ->whereIn('sales_returns.sale_id', $salesIds)
                 ->where('categories.name', $cat->name)
                 ->sum('sales_returns.refund_amount');
 
-             return (object) [
-                 'name' => $cat->name,
-                 'total_revenue' => max(0, $cat->gross_revenue - $returns)
-             ];
+            return (object) [
+                'name' => $cat->name,
+                'total_revenue' => max(0, $cat->gross_revenue - $returns)
+            ];
         })->sortByDesc('total_revenue');
 
         $stores = \App\Models\Store::all();
 
         return view('admin.reports.index', compact(
-            'sales', 'total_sales', 'gross_sales', 'total_returns', 'total_transactions', 
-            'cash_sales', 'credit_sales', 'digital_sales', 'collected_amount', 'realized_revenue',
-            'type', 'startDate', 'endDate', 'date',
-            'topItems', 'topCustomers', 'salesByCategory', 'slowMovingItems',
-            'tithesAmount', 'tithesEnabled', 'gross_profit',
-            'stores', 'targetStore', 'isMultiStore'
+            'sales',
+            'total_sales',
+            'gross_sales',
+            'total_returns',
+            'total_transactions',
+            'cash_sales',
+            'credit_sales',
+            'digital_sales',
+            'collected_amount',
+            'realized_revenue',
+            'type',
+            'startDate',
+            'endDate',
+            'date',
+            'topItems',
+            'topCustomers',
+            'salesByCategory',
+            'slowMovingItems',
+            'tithesAmount',
+            'tithesEnabled',
+            'gross_profit',
+            'stores',
+            'targetStore',
+            'isMultiStore'
         ));
     }
 
@@ -296,7 +315,7 @@ class ReportController extends Controller
     public function inventoryReport()
     {
         $storeId = $this->getActiveStoreId();
-        
+
         $inventory = Product::join('inventories', 'products.id', '=', 'inventories.product_id')
             ->where('inventories.store_id', $storeId)
             ->select('products.*', 'inventories.stock as current_stock', 'inventories.reorder_point')
@@ -327,26 +346,30 @@ class ReportController extends Controller
         // 1. Fetch Products with Store-Specific Inventory & Sales Data
         // We use leftJoin for sales to include items with 0 sales (Non-Moving)
         $products = Product::select('products.*', 'inventories.stock as current_stock', 'inventories.reorder_point')
-            ->join('inventories', function($join) use ($storeId) {
+            ->join('inventories', function ($join) use ($storeId) {
                 $join->on('products.id', '=', 'inventories.product_id')
-                     ->where('inventories.store_id', '=', $storeId);
+                    ->where('inventories.store_id', '=', $storeId);
             })
             ->with(['category'])
-            ->withSum(['saleItems as total_qty_sold' => function($q) use ($startDate, $storeId) {
-                // IMPORTANT: Filter sales by STORE and DATE
-                $q->whereHas('sale', function($sq) use ($startDate, $storeId) {
-                    $sq->where('created_at', '>=', $startDate)
-                       ->where('store_id', $storeId);
-                });
-            }], 'quantity')
-            ->withSum(['saleItems as total_revenue_generated' => function($q) use ($startDate, $storeId) {
-                // Calculate Revenue for ABC Analysis
-                $q->select(DB::raw('SUM(price * quantity)'));
-                $q->whereHas('sale', function($sq) use ($startDate, $storeId) {
-                    $sq->where('created_at', '>=', $startDate)
-                       ->where('store_id', $storeId);
-                });
-            }], 'quantity') // Note: withSum requires a column, but we overrode the select. 
+            ->withSum([
+                'saleItems as total_qty_sold' => function ($q) use ($startDate, $storeId) {
+                    // IMPORTANT: Filter sales by STORE and DATE
+                    $q->whereHas('sale', function ($sq) use ($startDate, $storeId) {
+                        $sq->where('created_at', '>=', $startDate)
+                            ->where('store_id', $storeId);
+                    });
+                }
+            ], 'quantity')
+            ->withSum([
+                'saleItems as total_revenue_generated' => function ($q) use ($startDate, $storeId) {
+                    // Calculate Revenue for ABC Analysis
+                    $q->select(DB::raw('SUM(price * quantity)'));
+                    $q->whereHas('sale', function ($sq) use ($startDate, $storeId) {
+                        $sq->where('created_at', '>=', $startDate)
+                            ->where('store_id', $storeId);
+                    });
+                }
+            ], 'quantity') // Note: withSum requires a column, but we overrode the select. 
             // Alternative: Fetch simple sum and calc in PHP to be safer against nulls.
             ->get();
 
@@ -357,8 +380,8 @@ class ReportController extends Controller
         foreach ($products as $p) {
             $qtySold = $p->total_qty_sold ?? 0;
             // Fallback revenue calc if withSum is tricky
-            $revenue = $qtySold * $p->price; 
-            
+            $revenue = $qtySold * $p->price;
+
             $p->real_revenue = $revenue; // Attach for sorting
             $totalRevenue += $revenue;
 
@@ -408,20 +431,24 @@ class ReportController extends Controller
         // 4. Movement Classification (Sort by Velocity DESC to find Fast Movers)
         // We'll define "Fast" as the top 20% of items associated with sales activity
         // Or simpler: Based on absolute velocity? Let's use relative percentile for "Enterprise" feel.
-        
+
         // Let's stick to concrete logic for now:
         // Fast: > 1 item/day
         // Average: > 0.1 item/day
         // Slow: > 0
         // Non-Moving: 0
-        
+
         foreach ($forecastData as &$item) {
             $v = $item['velocity'];
-            
-            if ($v >= 1.0) $item['movement'] = 'Fast Moving';
-            elseif ($v > 0.1) $item['movement'] = 'Average';
-            elseif ($v > 0) $item['movement'] = 'Slow Moving';
-            else $item['movement'] = 'Non-Moving';
+
+            if ($v >= 1.0)
+                $item['movement'] = 'Fast Moving';
+            elseif ($v > 0.1)
+                $item['movement'] = 'Average';
+            elseif ($v > 0)
+                $item['movement'] = 'Slow Moving';
+            else
+                $item['movement'] = 'Non-Moving';
 
             // Stock Health Status
             if ($item['stock'] == 0) {
@@ -436,7 +463,7 @@ class ReportController extends Controller
 
             // Suggested Reorder
             // Target: 14 Days of Supply (Safety Stock)
-            $targetStock = $item['velocity'] * 14; 
+            $targetStock = $item['velocity'] * 14;
             if ($item['stock'] < $targetStock) {
                 $item['reorder_qty'] = ceil($targetStock - $item['stock']);
             } else {
@@ -450,11 +477,13 @@ class ReportController extends Controller
             // Priority 1: Status Importance
             $statusOrder = ['Out of Stock' => 1, 'Critical' => 2, 'Low' => 3, 'Healthy' => 4];
             $statusCompare = $statusOrder[$a['status']] <=> $statusOrder[$b['status']];
-            if ($statusCompare !== 0) return $statusCompare;
+            if ($statusCompare !== 0)
+                return $statusCompare;
 
             // Priority 2: ABC Class (A items first)
             $classCompare = strcmp($a['class'], $b['class']);
-            if ($classCompare !== 0) return $classCompare;
+            if ($classCompare !== 0)
+                return $classCompare;
 
             return 0;
         });
@@ -472,14 +501,14 @@ class ReportController extends Controller
     {
         $reportType = $request->input('report_type', 'sales');
         $filename = "{$reportType}_report_" . date('Y-m-d') . ".csv";
-        
+
         $headers = [
             "Content-type" => "text/csv",
             "Content-Disposition" => "attachment; filename=$filename",
             "Pragma" => "no-cache"
         ];
 
-        $callback = function() use ($reportType, $request) {
+        $callback = function () use ($reportType, $request) {
             $file = fopen('php://output', 'w');
 
             if ($reportType === 'sales') {
@@ -498,25 +527,26 @@ class ReportController extends Controller
 
     // --- HELPER FUNCTIONS FOR EXPORT ---
 
-    private function exportSalesLogic($file, $request) {
+    private function exportSalesLogic($file, $request)
+    {
         // BIR Sales Book Style Columns
-        fputcsv($file, ['OR Number', 'Date', 'Customer', 'Gross Sales', 'Vatable Sales', 'VAT Amount', 'VAT Exempt', 'Net Sales']);
-        
+        fputcsv($file, ['Invoice/Ref Number', 'Date', 'Customer', 'Gross Sales', 'Vatable Sales', 'VAT Amount', 'VAT Exempt', 'Net Sales']);
+
         $storeId = $this->getActiveStoreId();
         $startDate = $request->input('start_date', Carbon::today()->toDateString());
-        
+
         // Fetch Settings for Tax Rate
         $taxRate = (float) (\App\Models\Setting::where('key', 'tax_rate')->value('value') ?? 12);
-        $taxType = \App\Models\Setting::where('key', 'tax_type')->value('value') ?? 'inclusive'; 
+        $taxType = \App\Models\Setting::where('key', 'tax_type')->value('value') ?? 'inclusive';
 
         $sales = Sale::with(['user', 'customer'])
-                     ->where('store_id', $storeId)
-                     ->whereDate('created_at', $startDate)
-                     ->get();
+            ->where('store_id', $storeId)
+            ->whereDate('created_at', $startDate)
+            ->get();
 
         foreach ($sales as $sale) {
             $total = $sale->total_amount;
-            
+
             // Tax Logic
             $vatable = 0;
             $vatAmount = 0;
@@ -531,7 +561,7 @@ class ReportController extends Controller
             }
 
             fputcsv($file, [
-                $sale->id,
+                $sale->invoice_number ?? $sale->id,
                 $sale->created_at->format('Y-m-d H:i'),
                 $sale->customer->name ?? 'Walk-in',
                 number_format($total, 2, '.', ''), // Gross
@@ -543,7 +573,8 @@ class ReportController extends Controller
         }
     }
 
-    private function exportInventoryLogic($file) {
+    private function exportInventoryLogic($file)
+    {
         fputcsv($file, ['Product', 'Barcode', 'Category', 'Stock', 'Cost', 'Price', 'Status']);
         $storeId = $this->getActiveStoreId();
         $inventory = Product::join('inventories', 'products.id', '=', 'inventories.product_id')
@@ -554,7 +585,8 @@ class ReportController extends Controller
 
         foreach ($inventory as $item) {
             $status = ($item->current_stock <= $item->reorder_point) ? 'Low Stock' : 'Good';
-            if ($item->current_stock == 0) $status = 'Out of Stock';
+            if ($item->current_stock == 0)
+                $status = 'Out of Stock';
 
             fputcsv($file, [
                 $item->name,
@@ -568,7 +600,8 @@ class ReportController extends Controller
         }
     }
 
-    private function exportCreditsLogic($file) {
+    private function exportCreditsLogic($file)
+    {
         fputcsv($file, ['Customer', 'Sale ID', 'Date', 'Due Date', 'Total Debt', 'Paid', 'Balance']);
         $credits = CustomerCredit::with('customer')->where('is_paid', false)->get();
 
@@ -614,7 +647,11 @@ class ReportController extends Controller
         $netPayable = $outputVat - $inputVat;
 
         return view('admin.reports.vat', compact(
-            'salesData', 'purchaseData', 'netPayable', 'start', 'end'
+            'salesData',
+            'purchaseData',
+            'netPayable',
+            'start',
+            'end'
         ));
     }
 }

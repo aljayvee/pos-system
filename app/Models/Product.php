@@ -9,20 +9,28 @@ class Product extends Model
 {
     use SoftDeletes; // Enable Soft Deletes
 
+    protected static function booted()
+    {
+        static::addGlobalScope(new \App\Models\Scopes\StoreScope);
+    }
+
     protected $fillable = [
-    'name', 
-    'description', 
-    'category_id', 
-    'price', 
-    'cost',   // <--- Add this
-    'sku',    // <--- Add this
-    'stock', 
-    'unit',
-    'reorder_point',
-    'image', 
-    'reorder_point',
-    'expiration_date'
-];
+        'name',
+        'description',
+        'store_id', // <--- Added for Isolation
+        'category_id',
+        'category_id',
+        'tax_type', // <--- Added for BIR Per-Product Tax
+        'price',
+        'cost',   // <--- Add this
+        'sku',    // <--- Add this
+        'stock',
+        'unit',
+        'reorder_point',
+        'image',
+        'reorder_point',
+        'expiration_date'
+    ];
 
     // Optional: Tell Laravel this is a date so it formats correctly
     protected $casts = [
@@ -58,7 +66,7 @@ class Product extends Model
     {
         // Check if multi-store is enabled
         $multiStoreEnabled = \App\Models\Setting::where('key', 'enable_multi_store')->value('value') ?? '0';
-        
+
         // Determine Current Store ID (Default to 1)
         $storeId = 1;
         if ($multiStoreEnabled == '1') {
@@ -68,7 +76,7 @@ class Product extends Model
         // Fetch from Inventory Table
         // We use the relationship to avoid N+1 queries if eager loaded
         $inventory = $this->inventories->where('store_id', $storeId)->first();
-        
+
         return $inventory ? $inventory->stock : 0;
     }
 
@@ -77,7 +85,7 @@ class Product extends Model
     {
         $multiStoreEnabled = \App\Models\Setting::where('key', 'enable_multi_store')->value('value') ?? '0';
         $storeId = ($multiStoreEnabled == '1') ? session('active_store_id', auth()->user()->store_id ?? 1) : 1;
-        
+
         $inventory = $this->inventories->where('store_id', $storeId)->first();
         return $inventory ? $inventory->reorder_point : 10;
     }

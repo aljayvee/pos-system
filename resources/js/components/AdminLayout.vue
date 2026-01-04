@@ -165,6 +165,12 @@
              <!-- SYSTEM -->
              <template v-if="can('user.manage') || can('settings.manage')">
                 <li class="nav-header mt-4 mb-2 ps-2 text-uppercase text-xs fw-bold text-muted tracking-wider opacity-75" v-show="isOpen || isMobile">System</li>
+                <li class="nav-item" v-if="userRole === 'admin' && systemMode === 'multi'">
+                    <a href="/admin/stores" class="nav-link d-flex align-items-center" :class="{ 'active': currentPath.includes('/stores') }">
+                       <div class="icon-wrapper"><i class="fas fa-store"></i></div>
+                       <span class="text-nowrap fade-text ms-3 fw-medium" v-show="isOpen || isMobile">Store Management</span>
+                    </a>
+                </li>
                 <li class="nav-item" v-if="can('user.manage')">
                     <a href="/admin/users" class="nav-link d-flex align-items-center" :class="{ 'active': currentPath.includes('/users') }">
                         <div class="icon-wrapper"><i class="fas fa-user-shield"></i></div>
@@ -181,6 +187,14 @@
                     <a href="/admin/logs" class="nav-link d-flex align-items-center" :class="{ 'active': currentPath.includes('/logs') }">
                        <div class="icon-wrapper"><i class="fas fa-history"></i></div>
                        <span class="text-nowrap fade-text ms-3 fw-medium" v-show="isOpen || isMobile">Audit Logs</span>
+                    </a>
+                </li>
+                
+                <!-- BIR COMPLIANCE -->
+                <li class="nav-item" v-if="enableBirCompliance">
+                    <a href="/admin/bir" class="nav-link d-flex align-items-center" :class="{ 'active': currentPath.includes('/bir') }">
+                       <div class="icon-wrapper"><i class="fas fa-file-invoice-dollar"></i></div>
+                       <span class="text-nowrap fade-text ms-3 fw-medium" v-show="isOpen || isMobile">BIR Settings</span>
                     </a>
                 </li>
              </template>
@@ -333,6 +347,28 @@
                                     </div>
                                 </a>
 
+                                <div class="px-3 py-2">
+                                    <p class="small text-muted fw-bold mb-2 text-uppercase ls-1" style="font-size: 0.7rem;">Appearance</p>
+                                    <div class="d-flex bg-light rounded-pill p-1 border">
+                                        <button @click="setTheme('light')" 
+                                            class="btn btn-sm rounded-pill flex-fill d-flex align-items-center justify-content-center gap-1 transition-all"
+                                            :class="currentTheme === 'light' ? 'bg-white shadow-sm text-primary fw-bold' : 'text-muted hover-text-dark'">
+                                            <i class="fas fa-sun"></i>
+                                        </button>
+                                        <button @click="setTheme('dark')" 
+                                            class="btn btn-sm rounded-pill flex-fill d-flex align-items-center justify-content-center gap-1 transition-all"
+                                            :class="currentTheme === 'dark' ? 'bg-white shadow-sm text-primary fw-bold' : 'text-muted hover-text-dark'">
+                                            <i class="fas fa-moon"></i>
+                                        </button>
+                                        <button @click="setTheme('system')" 
+                                            class="btn btn-sm rounded-pill flex-fill d-flex align-items-center justify-content-center gap-1 transition-all"
+                                            :class="currentTheme === 'system' ? 'bg-white shadow-sm text-primary fw-bold' : 'text-muted hover-text-dark'"
+                                            title="System Default">
+                                            <i class="fas fa-desktop"></i>
+                                        </button>
+                                    </div>
+                                </div>
+
                                 <div class="dropdown-divider my-1 opacity-50"></div>
 
                                 <form action="/logout" method="POST">
@@ -467,8 +503,10 @@
 
 
 <script>
+import ThemeManager from '../theme';
+
 export default {
-  props: ['userName', 'userRole', 'userPermissions', 'userPhoto', 'pageTitle', 'csrfToken', 'outOfStock', 'lowStock', 'enableRegisterLogs'],
+  props: ['userName', 'userRole', 'userPermissions', 'userPhoto', 'pageTitle', 'csrfToken', 'outOfStock', 'lowStock', 'enableRegisterLogs', 'systemMode', 'enableBirCompliance'],
   data() {
     const isMobile = window.innerWidth < 992;
     let initialOpen = !isMobile;
@@ -498,9 +536,13 @@ export default {
       
       // Toast Logic
       previousApprovalsCount: 0,
-      showNewNotifToast: false
+      showNewNotifToast: false,
+      
+      // Theme
+      currentTheme: ThemeManager.getTheme()
     };
   },
+
   mounted() {
       if (this.userRole && this.userRole.toLowerCase() === 'admin') {
           this.fetchPendingApprovals(); // Initial fetch
@@ -532,6 +574,10 @@ export default {
       if(this.pollInterval) clearInterval(this.pollInterval);
   },
   methods: {
+    setTheme(theme) {
+        ThemeManager.setTheme(theme);
+        this.currentTheme = theme;
+    },
     handleSidebarScroll(e) {
         if (!this.isMobile) {
             localStorage.setItem('sidebar_scroll_pos', e.target.scrollTop);
@@ -786,9 +832,10 @@ export default {
 .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
 
 /* SCROLLBAR */
-.custom-scrollbar::-webkit-scrollbar { width: 5px; }
-.custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.3); border-radius: 4px; }
-.custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(148, 163, 184, 0.5); }
+.custom-scrollbar::-webkit-scrollbar { width: 4px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.5); border-radius: 4px; }
+.custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.8); }
 
 /* MOBILE DROPDOWN OVERRIDES (Bottom Sheet) */
 @media (max-width: 991px) {

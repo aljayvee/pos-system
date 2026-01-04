@@ -77,6 +77,11 @@ class User extends Authenticatable implements WebAuthnAuthenticatable
      * Get list of all effective permissions for the user (Role defaults + Overrides).
      * Used for Frontend UI flags.
      */
+    public function mpin()
+    {
+        return $this->hasOne(\App\Models\UserMpin::class);
+    }
+
     public function getEffectivePermissionsAttribute(): array
     {
         $effective = []; // Fix undefined variable

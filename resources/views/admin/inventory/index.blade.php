@@ -25,6 +25,12 @@
                     <a href="{{ route('purchases.create') }}" class="btn btn-primary shadow-sm rounded-pill fw-bold px-3">
                         <i class="fas fa-plus-circle me-1"></i> Restock
                     </a>
+                    @if(\App\Models\Setting::where('key', 'system_mode')->value('value') === 'multi')
+                        <a href="{{ route('transfers.create') }}"
+                            class="btn btn-info shadow-sm rounded-pill fw-bold px-3 text-white">
+                            <i class="fas fa-exchange-alt me-1"></i> Transfer
+                        </a>
+                    @endif
                     <a href="{{ route('inventory.adjust') }}"
                         class="btn btn-warning shadow-sm rounded-pill fw-bold px-3 text-dark">
                         <i class="fas fa-sliders-h me-1"></i> Adjust
@@ -250,8 +256,7 @@
             <div class="modal-dialog">
                 <div class="modal-content bg-transparent shadow-none backdrop-blur-0">
                     <!-- Wrapper for background -->
-                    <div class="bg-surface px-3 pb-4 pt-2 rounded-top-5"
-                        style="background: rgba(248,250,252, 0.95); backdrop-filter: blur(20px);">
+                    <div class="bg-surface px-3 pb-4 pt-2 rounded-top-5">
                         <div class="sheet-handle"></div>
 
                         <div class="text-center mb-4">
@@ -266,6 +271,14 @@
                                     <span>Restock Products</span>
                                     <i class="fas fa-chevron-right ms-auto text-muted small opacity-50"></i>
                                 </a>
+
+                                @if(\App\Models\Setting::where('key', 'system_mode')->value('value') === 'multi')
+                                    <a href="{{ route('transfers.create') }}" class="mobile-action-btn text-decoration-none">
+                                        <i class="fas fa-exchange-alt text-info"></i>
+                                        <span>Transfer Stock</span>
+                                        <i class="fas fa-chevron-right ms-auto text-muted small opacity-50"></i>
+                                    </a>
+                                @endif
 
                                 <a href="{{ route('inventory.adjust') }}" class="mobile-action-btn text-decoration-none">
                                     <i class="fas fa-sliders-h text-warning"></i>

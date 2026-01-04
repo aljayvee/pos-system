@@ -149,7 +149,9 @@
             user-photo="{{ Auth::user()->profile_photo_path ? asset('storage/' . Auth::user()->profile_photo_path) : '' }}"
             page-title="{{ $pageTitle ?? 'Dashboard' }}" csrf-token="{{ csrf_token() }}"
             :out-of-stock="{{ $outOfStockCount ?? 0 }}" :low-stock="{{ $lowStockCount ?? 0 }}"
-            :enable-register-logs="{{ \App\Models\Setting::where('key', 'enable_register_logs')->value('value') ?? 0 }}">
+            :enable-register-logs="{{ \App\Models\Setting::where('key', 'enable_register_logs')->value('value') ?? 0 }}"
+            :enable-bir-compliance="{{ config('safety_flag_features.bir_tax_compliance') ? 'true' : 'false' }}"
+            :system-mode="'{{ \App\Models\Setting::where('key', 'system_mode')->value('value') ?? 'single' }}'">
             @yield('content')
 
         </admin-layout>

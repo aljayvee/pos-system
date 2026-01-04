@@ -11,13 +11,14 @@ use Laragear\WebAuthn\Http\Requests\AttestedRequest;
 class WebAuthnController extends Controller
 {
     // 1. REGISTER (Attestation)
-    
+
     /**
      * Return the options to register a new credential.
      */
-    public function options(Request $request)
+    public function options(\Laragear\WebAuthn\Http\Requests\AttestationRequest $request)
     {
-        return $request->user()->makeWebAuthnCredential();
+        // Generates creation options for the current user
+        return $request->toCreate();
     }
 
     /**
@@ -35,10 +36,10 @@ class WebAuthnController extends Controller
     /**
      * Return the options to authenticate.
      */
-    public function loginOptions(Request $request)
+    public function loginOptions(\Laragear\WebAuthn\Http\Requests\AssertionRequest $request)
     {
-        // Simple login options (user selects credential)
-        return \Laragear\WebAuthn\WebAuthnParams::make();
+        // Generates assertion options (allows "userless" / passkey flow if email is empty)
+        return $request->toVerify($request->validate(['email' => 'sometimes|email|string']));
     }
 
     /**
@@ -48,12 +49,6 @@ class WebAuthnController extends Controller
     {
         if ($request->login()) {
             $user = Auth::user();
-            
-            // --- Copy-pasted/Adapted "Smart Check" from AuthController if needed ---
-            // For now, basic login is fine. 
-            // Ideally, we'd extract that logic to a shared Service too (e.g. SessionService),
-            // but for this task, the goal is getting Fingerprint working.
-            
             $request->session()->regenerate();
 
             return response()->json([

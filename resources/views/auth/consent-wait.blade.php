@@ -1,10 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Waiting for Approval - POS System</title>
-    
+
     {{-- PWA Manifest --}}
     <link rel="manifest" href="{{ asset('manifest.json') }}">
     <meta name="theme-color" content="#e0f2fe">
@@ -12,7 +13,7 @@
     {{-- Fonts & Icons --}}
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    
+
     {{-- Premium UI --}}
     @vite(['resources/css/premium-ui.css'])
 
@@ -39,8 +40,22 @@
             z-index: -1;
             animation: float 8s ease-in-out infinite;
         }
-        .bubble-1 { width: 300px; height: 300px; top: -100px; left: -100px; }
-        .bubble-2 { width: 250px; height: 250px; bottom: 50px; right: -50px; animation-delay: -4s; background: linear-gradient(135deg, #67e8f9 0%, #93c5fd 100%); }
+
+        .bubble-1 {
+            width: 300px;
+            height: 300px;
+            top: -100px;
+            left: -100px;
+        }
+
+        .bubble-2 {
+            width: 250px;
+            height: 250px;
+            bottom: 50px;
+            right: -50px;
+            animation-delay: -4s;
+            background: linear-gradient(135deg, #67e8f9 0%, #93c5fd 100%);
+        }
 
         .wait-card {
             width: 100%;
@@ -59,11 +74,22 @@
         }
 
         @keyframes pulse {
-            0% { transform: scale(0.95); opacity: 1; }
-            50% { transform: scale(1.1); opacity: 0.8; }
-            100% { transform: scale(0.95); opacity: 1; }
+            0% {
+                transform: scale(0.95);
+                opacity: 1;
+            }
+
+            50% {
+                transform: scale(1.1);
+                opacity: 0.8;
+            }
+
+            100% {
+                transform: scale(0.95);
+                opacity: 1;
+            }
         }
-        
+
         .progress-bar-custom {
             height: 6px;
             background: #e2e8f0;
@@ -72,7 +98,7 @@
             margin: 20px 0;
             position: relative;
         }
-        
+
         .progress-value {
             height: 100%;
             background: linear-gradient(90deg, #4f46e5, #818cf8);
@@ -81,6 +107,7 @@
         }
     </style>
 </head>
+
 <body>
 
     <div class="wait-container">
@@ -91,7 +118,7 @@
             <div class="pulse-icon">
                 <i class="fas fa-shield-alt"></i>
             </div>
-            
+
             <h3 class="fw-bold mb-2">Verification Required</h3>
             <p class="text-muted mb-4">Please check your email or main device to approve this login attempt.</p>
 
@@ -114,28 +141,38 @@
         // Check status every 3 seconds
         let checkInterval = setInterval(checkStatus, 3000);
         let progress = 0;
-        
+
         // Progress bar animation
         setInterval(() => {
             progress += 1; // 1% every 30ms = 3s loop roughly
-            if(progress > 100) progress = 0;
+            if (progress > 100) progress = 0;
             document.getElementById('progress').style.width = progress + '%';
         }, 30);
 
         function checkStatus() {
-            axios.get('{{ route('auth.consent.check') }}')
+            axios.get('{{ route('auth.consent.check') }}', {
+                params: { request_id: '{{ $request_id }}' }
+            })
                 .then(response => {
-                     if (response.data.status === 'approved') {
-                         clearInterval(checkInterval);
-                         window.location.href = "{{ route('admin.dashboard') }}";
-                     } else if (response.data.status === 'rejected') {
-                         clearInterval(checkInterval);
-                         alert('Login Request Rejected.');
-                         window.location.href = '{{ route('login') }}';
-                     }
+                    if (response.data.status === 'approved') {
+                        clearInterval(checkInterval);
+                        window.location.href = response.data.redirect || "{{ route('admin.dashboard') }}";
+                    } else if (response.data.status === 'denied') {
+                        clearInterval(checkInterval);
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Access Denied',
+                            text: 'Your login request was rejected by the main device.',
+                            confirmButtonText: 'Back to Login',
+                            allowOutsideClick: false
+                        }).then(() => {
+                            window.location.href = '{{ route('login') }}';
+                        });
+                    }
                 })
                 .catch(error => console.log('Checking status...'));
         }
     </script>
 </body>
+
 </html>

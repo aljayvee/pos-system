@@ -2,6 +2,31 @@
 @extends((Auth::user()->role == 'cashier' || request('context') == 'cashier') ? 'cashier.layout' : 'admin.layout')
 
 @section('content')
+    <style>
+        /* Dark Mode Support for Profile Page */
+        html.dark .bg-danger-subtle {
+            background-color: rgba(220, 53, 69, 0.15) !important;
+            border-color: rgba(220, 53, 69, 0.3) !important;
+        }
+
+        html.dark .text-dark {
+            color: #f8fafc !important;
+        }
+
+        html.dark .card {
+            background-color: #1e293b;
+            /* Slate 800 */
+            border-color: #334155;
+            color: #f8fafc;
+        }
+
+        html.dark .form-control {
+            background-color: #0f172a;
+            /* Slate 900 */
+            border-color: #334155;
+            color: #f8fafc;
+        }
+    </style>
     <div class="container py-4">
         <div class="row justify-content-center">
             <div class="col-md-8">
@@ -65,13 +90,17 @@
                             </div>
 
                             <hr>
-                            <h6 class="text-danger mb-3"><i class="fas fa-lock me-1"></i> Security</h6>
-
-                            <div class="mb-3">
-                                <label class="form-label">Current Password <small class="text-muted">(Required to change
-                                        password)</small></label>
-                                <input type="password" name="current_password" class="form-control">
+                            <h6 class="text-danger mb-3"><i class="fas fa-lock me-1"></i> Security Confirmation</h6>
+                            <div class="mb-3 bg-danger-subtle p-3 rounded border border-danger-subtle">
+                                <label class="form-label fw-bold text-danger">Current Password <span
+                                        class="text-danger">*</span></label>
+                                <input type="password" name="current_password" class="form-control" required
+                                    placeholder="Enter password to save changes">
+                                <small class="text-muted">You must enter your password to save configuration
+                                    changes.</small>
                             </div>
+
+                            <hr>
 
                             <div class="row">
                                 <div class="col-md-6 mb-3">
@@ -86,20 +115,54 @@
                             </div>
 
                             <hr>
-                            <h6 class="text-primary mb-3"><i class="fas fa-fingerprint me-1"></i> Biometric & Passkey
-                                Authentication</h6>
-
-                            <div class="d-flex align-items-center justify-content-between bg-light p-3 rounded-3 mb-3">
-                                <div>
-                                    <h6 class="mb-1 fw-bold">Register Passkey</h6>
-                                    <p class="mb-0 text-muted small">Enable login with Fingerprint, FaceID, PIN, or Windows
-                                        Hello.</p>
-                                </div>
-                                <button type="button" onclick="WebAuthn.register()"
-                                    class="btn btn-outline-primary rounded-pill">
-                                    <i class="fas fa-plus me-1"></i> Valid Device
-                                </button>
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h6 class="text-secondary mb-0"><i class="fas fa-key me-1"></i> MPIN Security</h6>
+                                <a href="{{ route('auth.mpin.forgot') }}" class="btn btn-sm btn-outline-danger">
+                                    <i class="fas fa-question-circle me-1"></i> Forgot MPIN?
+                                </a>
                             </div>
+
+                            <div class="row">
+                                @if(isset($hasMpin) && $hasMpin)
+                                    <div class="col-12 mb-3">
+                                        <label class="form-label fw-bold">Current MPIN <small class="text-muted">(Required to
+                                                change new MPIN)</small></label>
+                                        <input type="password" name="current_mpin" class="form-control" inputmode="numeric"
+                                            pattern="[0-9]*" minlength="7" maxlength="16"
+                                            placeholder="Enter current MPIN to authorize change">
+                                    </div>
+                                @endif
+
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Set/Change MPIN <small class="text-muted">(7-16
+                                            digits)</small></label>
+                                    <input type="password" name="mpin" class="form-control" inputmode="numeric"
+                                        pattern="[0-9]*" minlength="7" maxlength="16"
+                                        placeholder="{{ isset($hasMpin) && $hasMpin ? 'Unchanged' : 'Set your MPIN' }}">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Confirm MPIN</label>
+                                    <input type="password" name="mpin_confirmation" class="form-control" inputmode="numeric"
+                                        pattern="[0-9]*" minlength="7" maxlength="16">
+                                </div>
+                            </div>
+
+                            @if(config('safety_flag_features.webauthn'))
+                                <hr>
+                                <h6 class="text-primary mb-3"><i class="fas fa-fingerprint me-1"></i> Biometric & Passkey
+                                    Authentication</h6>
+                                <div class="d-flex align-items-center justify-content-between bg-light p-3 rounded-3 mb-3">
+                                    <div>
+                                        <h6 class="mb-1 fw-bold">Register Passkey</h6>
+                                        <p class="mb-0 text-muted small">Enable login with Fingerprint, FaceID, PIN, or Windows
+                                            Hello.</p>
+                                    </div>
+                                    <button type="button" onclick="WebAuthn.register()"
+                                        class="btn btn-outline-primary rounded-pill">
+                                        <i class="fas fa-plus me-1"></i> Valid Device
+                                    </button>
+                                </div>
+                            @endif
 
                             <div class="text-end mt-3">
                                 <button type="submit" class="btn btn-primary px-4">

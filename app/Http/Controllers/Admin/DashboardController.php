@@ -14,8 +14,9 @@ use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
-    public function index(\App\Services\AnalyticsService $analyticsService)
+    public function index()
     {
+        $analyticsService = new \App\Services\AnalyticsService();
         $today = \Carbon\Carbon::today()->toDateString();
         $startOfMonth = \Carbon\Carbon::now()->startOfMonth();
 
@@ -33,15 +34,15 @@ class DashboardController extends Controller
         $realizedSalesToday = $salesMetrics['realized_sales']; // [NEW]
         $profitToday = $profitMetrics['profit'];
         $transactionCountToday = $salesMetrics['transaction_count'];
-        
+
         // New Cash Flow Variables
         $debtCollectionsToday = $cashFlowMetrics['collections'];
         $estCashInDrawer = $cashFlowMetrics['net_cash_flow']; // Cash Sales + Collections - Cash Refunds
-        
+
         // Monthly Net Sales (Keep simple logic here or move to service later)
         $salesQuery = \App\Models\Sale::where('store_id', $storeId);
         $grossSalesMonth = (clone $salesQuery)->where('created_at', '>=', $startOfMonth)->sum('total_amount');
-        $refundsMonth = \App\Models\SalesReturn::whereHas('sale', function($q) use ($storeId) {
+        $refundsMonth = \App\Models\SalesReturn::whereHas('sale', function ($q) use ($storeId) {
             $q->where('store_id', $storeId);
         })->where('created_at', '>=', $startOfMonth)->sum('refund_amount');
         $salesMonth = $grossSalesMonth - $refundsMonth;
@@ -54,9 +55,9 @@ class DashboardController extends Controller
             ->where('inventories.store_id', $storeId)
             ->whereNull('products.deleted_at')
             // FIX: Compare against Product's reorder point (User Input), not just Inventory default
-            ->where(function($q) {
+            ->where(function ($q) {
                 $q->whereColumn('inventories.stock', '<=', 'products.reorder_point')
-                  ->where('inventories.stock', '>', 0); // Strictly low, not zero
+                    ->where('inventories.stock', '>', 0); // Strictly low, not zero
             })
             ->select(
                 'products.id',
@@ -67,7 +68,7 @@ class DashboardController extends Controller
             )
             ->take(10)
             ->get();
-            
+
         $outOfStockItems = \Illuminate\Support\Facades\DB::table('inventories')
             ->join('products', 'inventories.product_id', '=', 'products.id')
             ->where('inventories.store_id', $storeId)
@@ -99,7 +100,7 @@ class DashboardController extends Controller
         $chartLabels = [];
         $chartValues = [];
         $period = \Carbon\CarbonPeriod::create(\Carbon\Carbon::now()->subDays(29), \Carbon\Carbon::now());
-        
+
         foreach ($period as $date) {
             $formattedDate = $date->format('Y-m-d');
             $chartLabels[] = $date->format('M d');
@@ -107,10 +108,24 @@ class DashboardController extends Controller
             $chartValues[] = $sale ? $sale->total : 0;
         }
 
+        // 7. Store Info
+        $storeName = \App\Models\Store::where('id', $storeId)->value('name') ?? 'Unknown Store';
+
         return view('admin.dashboard', compact(
-            'salesToday', 'realizedSalesToday', 'salesMonth', 'transactionCountToday', 'totalCredits', 
-            'lowStockItems', 'outOfStockItems', 'chartLabels', 'chartValues', 'profitToday',
-            'expiringItems', 'debtCollectionsToday', 'estCashInDrawer'
+            'salesToday',
+            'realizedSalesToday',
+            'salesMonth',
+            'transactionCountToday',
+            'totalCredits',
+            'lowStockItems',
+            'outOfStockItems',
+            'chartLabels',
+            'chartValues',
+            'profitToday',
+            'expiringItems',
+            'debtCollectionsToday',
+            'estCashInDrawer',
+            'storeName'
         ));
     }
 }

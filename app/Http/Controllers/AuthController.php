@@ -23,7 +23,16 @@ class AuthController extends Controller
             'password' => 'required'
         ]);
 
-        if (Auth::attempt($credentials)) {
+        // Rate Limiting (Throttle Login Attempts)
+        $key = 'login_attempts:' . $request->ip();
+        if (RateLimiter::tooManyAttempts($key, 5)) {
+            $seconds = RateLimiter::availableIn($key);
+            return back()->withErrors(['email' => 'Too many login attempts. Please try again in ' . ceil($seconds / 60) . ' minutes.']);
+        }
+
+        $remember = $request->boolean('remember');
+
+        if (Auth::attempt($credentials, $remember)) {
             $user = Auth::user();
 
             // Check if user is active (Approval Workflow)
@@ -87,8 +96,14 @@ class AuthController extends Controller
             $request->session()->regenerate();
             $this->updateUserSession($user, $request);
 
+            // Clear Rate Limiter on Success
+            RateLimiter::clear($key);
+
             return $this->redirectBasedOnRole($user);
         }
+
+        // Increment Rate Limiter on Failure
+        RateLimiter::hit($key, 60);
 
         return back()->withErrors(['email' => 'Invalid credentials.']);
     }

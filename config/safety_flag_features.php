@@ -15,7 +15,9 @@ return [
     */
 
     'bir_tax_compliance' => false,
-    'online_payment' => false, 
-    'multi_store' => false, 
-    'log_integrity' => false,
+    'online_payment' => true,
+    'multi_store' => true,
+    'log_integrity' => true,
+    'cashier_stats_widgets' => false,
+    'webauthn' => false,
 ];

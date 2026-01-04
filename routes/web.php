@@ -20,7 +20,8 @@ use App\Http\Controllers\ProfileController;
 
 // Public Routes
 Route::get('/', function () {
-    return redirect('/login'); });
+    return redirect('/login');
+});
 Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
@@ -28,7 +29,11 @@ Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 // ADMIN Routes (Protected)
 // ADMIN Routes (Protected)
 // Allow all "Back Office" roles to enter the admin area
-Route::middleware(['auth', 'role:admin,manager,supervisor,stock_clerk,auditor'])->prefix('admin')->group(function () {
+Route::middleware(['auth', 'role:admin,manager,supervisor,stock_clerk,auditor', 'mpin.verify', \App\Http\Middleware\EnsureSystemSetup::class])->prefix('admin')->group(function () {
+
+    // ONBOARDING / SETUP WIZARD
+    Route::get('/setup', [\App\Http\Controllers\Admin\SetupController::class, 'index'])->name('admin.setup.index');
+    Route::post('/setup', [\App\Http\Controllers\Admin\SetupController::class, 'store'])->name('admin.setup.store');
 
     // Dashboard (Accessible by all back-office roles)
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('admin.dashboard');
@@ -65,6 +70,9 @@ Route::middleware(['auth', 'role:admin,manager,supervisor,stock_clerk,auditor'])
         Route::middleware(['role:inventory.adjust'])->group(function () {
             Route::get('/inventory/adjust', [InventoryController::class, 'adjust'])->name('inventory.adjust');
             Route::post('/inventory/adjust', [InventoryController::class, 'storeAdjustment'])->name('inventory.storeAdjustment');
+
+            // Stock Transfers
+            Route::resource('transfers', \App\Http\Controllers\Admin\TransferController::class)->only(['index', 'create', 'store']);
         });
     });
 
@@ -162,6 +170,12 @@ Route::middleware(['auth', 'role:admin,manager,supervisor,stock_clerk,auditor'])
         Route::get('/stores/switch/{id}', [\App\Http\Controllers\Admin\StoreController::class, 'switch'])->name('stores.switch');
     });
 
+    // 8. BIR COMPLIANCE (Feature Flagged)
+    Route::middleware(['role:settings.manage'])->group(function () {
+        Route::get('/bir', [\App\Http\Controllers\Admin\BIRSettingsController::class, 'index'])->name('admin.bir.index');
+        Route::post('/bir', [\App\Http\Controllers\Admin\BIRSettingsController::class, 'update'])->name('admin.bir.update');
+    });
+
 });
 
 // CASH REGISTER ROUTES
@@ -176,7 +190,7 @@ Route::middleware(['auth'])->group(function () {
 });
 
 // CASHIER Routes (Protected)
-Route::middleware(['auth', 'role:pos.access'])->prefix('cashier')->group(function () {
+Route::middleware(['auth', 'role:pos.access', 'mpin.verify'])->prefix('cashier')->group(function () {
     Route::get('/pos', [POSController::class, 'index'])->name('cashier.pos');
     Route::post('/transaction', [POSController::class, 'store'])->name('cashier.store');
     Route::get('/receipt/{sale}', [POSController::class, 'showReceipt'])->name('cashier.receipt');
@@ -222,6 +236,15 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/auth/force-email', [AuthController::class, 'sendForceLoginEmail'])->name('auth.force.email');
     // Note: The verify route does NOT need auth middleware strictly if clicking from email on a fresh phone, 
     // but usually better to have signed middleware.
+    // MPIN Routes
+    Route::get('/auth/mpin', [App\Http\Controllers\Auth\MpinController::class, 'showMpinForm'])->name('auth.mpin.login');
+    Route::post('/auth/mpin', [App\Http\Controllers\Auth\MpinController::class, 'verify'])->name('auth.mpin.verify');
+
+    Route::get('/auth/mpin/setup', [App\Http\Controllers\Auth\MpinController::class, 'showSetupForm'])->name('auth.mpin.setup');
+    Route::post('/auth/mpin/setup', [App\Http\Controllers\Auth\MpinController::class, 'store'])->name('auth.mpin.store');
+
+    Route::get('/auth/mpin/forgot', [App\Http\Controllers\Auth\MpinController::class, 'showForgotForm'])->name('auth.mpin.forgot');
+    Route::post('/auth/mpin/reset', [App\Http\Controllers\Auth\MpinController::class, 'verifyPasswordAndReset'])->name('auth.mpin.reset');
 });
 
 // MOVE THIS OUTSIDE THE AUTH GROUP (Publicly accessible with signature)

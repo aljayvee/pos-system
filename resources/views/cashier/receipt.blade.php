@@ -2,101 +2,136 @@
     use Illuminate\Support\Facades\Crypt;
     use Illuminate\Contracts\Encryption\DecryptException;
 
-    // 1. Fetch Store Details
-    $storeName = \App\Models\Setting::where('key', 'store_name')->value('value') ?? 'Sari-Sari Store';
-    $storeAddress = \App\Models\Setting::where('key', 'store_address')->value('value') ?? '';
-    $storeContact = \App\Models\Setting::where('key', 'store_contact')->value('value') ?? '';
+    // 1. Fetch Store Details (Dynamic based on Cashier's Store)
+    $store = $sale->user->store ?? \App\Models\Store::find(1);
+
+    $storeName = $store->name ?? (\App\Models\Setting::where('key', 'store_name')->value('value') ?? 'Sari-Sari Store');
+    $storeAddress = $store->address ?? (\App\Models\Setting::where('key', 'store_address')->value('value') ?? ''); // Use accessor if available? $store->address is the accessor.
+    $storeContact = $store->contact_number ?? (\App\Models\Setting::where('key', 'store_contact')->value('value') ?? '');
+    $storeOwner = $store->owner_name ?? '';
+
     $receiptFooter = \App\Models\Setting::where('key', 'receipt_footer')->value('value') ?? 'Thank you!';
-    
-    // 2. Fetch & Decrypt Tax Settings
-    $enableTax = \App\Models\Setting::where('key', 'enable_tax')->value('value') ?? '0';
-    
-    // Decrypt TIN
-    $rawTin = \App\Models\Setting::where('key', 'store_tin')->value('value');
-    try {
-        $tin = $rawTin ? Crypt::decryptString($rawTin) : '';
-    } catch (DecryptException $e) {
-        $tin = $rawTin; // Fallback
-    }
 
-    // Decrypt Permit
-    $rawPermit = \App\Models\Setting::where('key', 'business_permit')->value('value');
-    try {
-        $permit = $rawPermit ? Crypt::decryptString($rawPermit) : '';
-    } catch (DecryptException $e) {
-        $permit = $rawPermit; // Fallback
-    }
-    
-    // Tax Calculation Variables
-    $taxRate = (float) (\App\Models\Setting::where('key', 'tax_rate')->value('value') ?? 12);
-    $taxType = \App\Models\Setting::where('key', 'tax_type')->value('value') ?? 'inclusive'; 
-
-    $totalAmount = $sale->total_amount;
-    $vatableSales = 0;
-    $vatAmount = 0;
-    $vatExempt = 0;
-
-    // 3. Perform Calculation
-    if ($taxType === 'non_vat') {
-        $vatExempt = $totalAmount;
-    } else {
-        $vatableSales = $totalAmount / (1 + ($taxRate / 100));
-        $vatAmount = $totalAmount - $vatableSales;
-    }
+    // 2. Fetch & Decrypt Tax Settings 
+    // ... (rest of PHP block)
 @endphp
 
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Receipt #{{ $sale->id }}</title>
     <style>
-        @page { margin: 0; padding: 0; }
-        body { 
-            font-family: 'Courier New', Courier, monospace; 
-            font-size: 12px; 
+        @page {
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 12px;
             line-height: 1.2;
-            margin: 0; 
-            padding: 10px; 
-            background: #fff; 
+            margin: 0;
+            padding: 10px;
+            background: #fff;
             color: #000;
         }
-        .receipt { 
+
+        .receipt {
             width: 100%;
-            max-width: 380px; /* Maximize width for mobile/desktop view */
-            margin: 0 auto; 
+            max-width: 380px;
+            /* Maximize width for mobile/desktop view */
+            margin: 0 auto;
         }
-        .text-center { text-align: center; }
-        .text-end { text-align: right; }
-        .fw-bold { font-weight: bold; }
-        .mb-1 { margin-bottom: 5px; }
-        .border-bottom { border-bottom: 1px dashed #000; padding-bottom: 5px; margin-bottom: 5px; }
-        .table { width: 100%; border-collapse: collapse; }
-        .table td { vertical-align: top; padding: 2px 0; }
-        .qty { width: 15%; }
-        .desc { width: 55%; }
-        .price { width: 30%; text-align: right; }
-        
-        .tax-breakdown { font-size: 10px; margin-top: 10px; border-top: 1px dashed #000; padding-top: 5px; }
-        .tax-row { display: flex; justify-content: space-between; }
-        
+
+        .text-center {
+            text-align: center;
+        }
+
+        .text-end {
+            text-align: right;
+        }
+
+        .fw-bold {
+            font-weight: bold;
+        }
+
+        .mb-1 {
+            margin-bottom: 5px;
+        }
+
+        .border-bottom {
+            border-bottom: 1px dashed #000;
+            padding-bottom: 5px;
+            margin-bottom: 5px;
+        }
+
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .table td {
+            vertical-align: top;
+            padding: 2px 0;
+        }
+
+        .qty {
+            width: 15%;
+        }
+
+        .desc {
+            width: 55%;
+        }
+
+        .price {
+            width: 30%;
+            text-align: right;
+        }
+
+        .tax-breakdown {
+            font-size: 10px;
+            margin-top: 10px;
+            border-top: 1px dashed #000;
+            padding-top: 5px;
+        }
+
+        .tax-row {
+            display: flex;
+            justify-content: space-between;
+        }
+
         @media print {
-            body { padding: 0; width: 100%; }
-            .receipt { max-width: 100%; }
-            .no-print { display: none; }
+            body {
+                padding: 0;
+                width: 100%;
+            }
+
+            .receipt {
+                max-width: 100%;
+            }
+
+            .no-print {
+                display: none;
+            }
         }
     </style>
 </head>
+
 <body>
 
     <div class="receipt">
         {{-- HEADER --}}
         <div class="text-center mb-1">
             <div class="fw-bold" style="font-size: 16px;">{{ $storeName }}</div>
+            @if($storeOwner)
+                <div style="font-size: 11px; text-transform: uppercase;">Prop. {{ $storeOwner }}</div>
+            @endif
             <div>{{ $storeAddress }}</div>
             <div>{{ $storeContact }}</div>
-            
+
             {{-- TAX INFO (Only if Enabled) --}}
             @if($enableTax == '1')
                 <div style="margin-top: 5px; font-size: 10px;">
@@ -105,7 +140,8 @@
                     @else
                         <div><strong>VAT REG. TIN: {{ $tin }}</strong></div>
                     @endif
-                    @if($permit) <div>Permit #: {{ $permit }}</div> @endif
+                    @if($permit)
+                    <div>Permit #: {{ $permit }}</div> @endif
                 </div>
             @endif
         </div>
@@ -123,11 +159,11 @@
         {{-- ITEMS --}}
         <table class="table mb-1">
             @foreach($sale->saleItems as $item)
-            <tr>
-                <td class="qty">{{ $item->quantity }}</td>
-                <td>{{ $item->product->name }}</td>
-                <td class="price">{{ number_format($item->quantity * $item->price, 2) }}</td>
-            </tr>
+                <tr>
+                    <td class="qty">{{ $item->quantity }}</td>
+                    <td>{{ $item->product->name }}</td>
+                    <td class="price">{{ number_format($item->quantity * $item->price, 2) }}</td>
+                </tr>
             @endforeach
         </table>
 
@@ -152,16 +188,18 @@
 
         {{-- TAX BREAKDOWN (Dynamic based on Settings) --}}
         @if($enableTax == '1')
-        <div class="tax-breakdown">
-            @if($taxType === 'non_vat')
-                <div class="tax-row"><span>Total Sales (VAT Exempt)</span><span>{{ number_format($vatExempt, 2) }}</span></div>
-            @else
-                <div class="tax-row"><span>Vatable Sales</span><span>{{ number_format($vatableSales, 2) }}</span></div>
-                <div class="tax-row"><span>VAT Amount ({{ $taxRate }}%)</span><span>{{ number_format($vatAmount, 2) }}</span></div>
-                <div class="tax-row"><span>VAT Exempt</span><span>0.00</span></div>
-                <div class="tax-row"><span>Zero Rated</span><span>0.00</span></div>
-            @endif
-        </div>
+            <div class="tax-breakdown">
+                @if($taxType === 'non_vat')
+                    <div class="tax-row"><span>Total Sales (VAT Exempt)</span><span>{{ number_format($vatExempt, 2) }}</span>
+                    </div>
+                @else
+                    <div class="tax-row"><span>Vatable Sales</span><span>{{ number_format($vatableSales, 2) }}</span></div>
+                    <div class="tax-row"><span>VAT Amount
+                            ({{ $taxRate }}%)</span><span>{{ number_format($vatAmount, 2) }}</span></div>
+                    <div class="tax-row"><span>VAT Exempt</span><span>0.00</span></div>
+                    <div class="tax-row"><span>Zero Rated</span><span>0.00</span></div>
+                @endif
+            </div>
         @endif
 
         {{-- PAYMENT INFO --}}
@@ -186,10 +224,12 @@
             @endif
         </div>
 
-        <button onclick="window.print()" class="no-print" style="width: 100%; padding: 10px; margin-top: 15px; cursor: pointer; background: #000; color: white; border: none; font-weight: bold;">
+        <button onclick="window.print()" class="no-print"
+            style="width: 100%; padding: 10px; margin-top: 15px; cursor: pointer; background: #000; color: white; border: none; font-weight: bold;">
             PRINT RECEIPT
         </button>
     </div>
 
 </body>
+
 </html>

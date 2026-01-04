@@ -19,13 +19,13 @@ class AdminSeeder extends Seeder
             'role' => 'admin',
         ]);
 
-        // 2. Create Cashier
-        User::create([
-            'name' => 'Cashier One',
-            'email' => 'cashier@pos.com',
-            'password' => Hash::make('password'), // Password is 'password'
-            'role' => 'cashier',
-        ]);
+        // 2. Create Cashier (REMOVED as per Out-of-box requirement)
+        // User::create([
+        //     'name' => 'Cashier One',
+        //     'email' => 'cashier@pos.com',
+        //     'password' => Hash::make('password'),
+        //     'role' => 'cashier',
+        // ]);
 
         // 3. Create Dummy Products
         $products = []

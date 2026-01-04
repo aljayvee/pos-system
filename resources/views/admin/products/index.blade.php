@@ -272,50 +272,86 @@
                 </div>
             </div>
 
-            {{-- Product List --}}
-            <div class="list-group list-group-flush mx-0">
+            {{-- Product List (Swipe Enabled) --}}
+            <div class="list-group list-group-flush mx-0" id="productListContainer">
                 @forelse($products as $product)
-                    <div class="list-group-item p-3 border-bottom d-flex align-items-center gap-3"
-                        onclick="openProductActionSheet({{ $product->id }}, '{{ addslashes($product->name) }}', '{{ route('products.edit', $product->id) }}', '{{ route('products.destroy', $product->id) }}', {{ $barcodeEnabled ? 1 : 0 }}, '{{ route('products.barcode', $product->id) }}')"
-                        style="cursor: pointer;">
+                    <div class="list-group-item p-0 border-bottom overflow-hidden position-relative swipe-item-container"
+                        data-id="{{ $product->id }}">
 
-                        {{-- Avatar --}}
-                        {{-- Avatar --}}
-                        @if($product->image)
-                            <img src="{{ asset('storage/' . $product->image) }}"
-                                class="rounded-3 object-fit-cover border flex-shrink-0" style="width: 50px; height: 50px;"
-                                alt="{{ $product->name }}">
-                        @else
-                            <div class="rounded-3 bg-primary bg-opacity-10 text-primary d-flex align-items-center justify-content-center fw-bold flex-shrink-0"
-                                style="width: 50px; height: 50px;">
-                                {{ substr($product->name, 0, 1) }}
-                            </div>
-                        @endif
+                        {{-- Background Actions --}}
+                        <div class="position-absolute top-0 bottom-0 start-0 w-100 d-flex justify-content-between z-0">
+                            {{-- Edit (Left Side - Revealed on Swipe Right) --}}
+                            @can('inventory.edit')
+                                <div class="bg-warning text-dark d-flex align-items-center justify-content-start px-4 h-100"
+                                    style="width: 50%;" onclick="window.location.href='{{ route('products.edit', $product->id) }}'">
+                                    <i class="fas fa-pen fa-lg"></i>
+                                </div>
+                            @else
+                                <div class="bg-secondary text-white d-flex align-items-center justify-content-start px-4 h-100"
+                                    style="width: 50%;">
+                                    <i class="fas fa-lock fa-lg"></i>
+                                </div>
+                            @endcan
 
-                        {{-- Details --}}
-                        <div class="flex-grow-1 overflow-hidden">
-                            <div class="d-flex justify-content-between align-items-center mb-1">
-                                <span class="fw-bold text-dark text-truncate">{{ $product->name }}</span>
-                                <span class="fw-bold text-primary">₱{{ number_format($product->price, 2) }}</span>
-                            </div>
-                            <div class="d-flex justify-content-between align-items-center">
-                                <span class="text-muted small text-truncate"
-                                    style="max-width: 150px;">{{ $product->category->name ?? 'Uncategorized' }}</span>
-
-                                {{-- Stock Badge --}}
-                                @if($product->stock == 0)
-                                    <span class="badge bg-danger-subtle text-danger rounded-pill x-small">Out of Stock</span>
-                                @elseif($product->stock <= $product->reorder_point)
-                                    <span class="badge bg-warning-subtle text-warning text-dark-emphasis rounded-pill x-small">Low:
-                                        {{ $product->stock }}</span>
-                                @else
-                                    <span class="text-secondary x-small"><b>Stock(s):</b> {{ $product->stock }}<b> Unit:</b>
-                                        {{ $product->unit }}</span>
-                                @endif
-                            </div>
+                            {{-- Delete (Right Side - Revealed on Swipe Left) --}}
+                            @can('inventory.edit')
+                                <div class="bg-danger text-white d-flex align-items-center justify-content-end px-4 h-100 ms-auto"
+                                    style="width: 50%;"
+                                    onclick="confirmDeleteProduct({{ $product->id }}, '{{ addslashes($product->name) }}')">
+                                    <i class="fas fa-trash-alt fa-lg"></i>
+                                </div>
+                            @endcan
                         </div>
 
-                        <i class="fas fa-chevron-right text-muted opacity-25"></i>
+                        {{-- Foreground Content --}}
+                        <div class="swipe-content bg-white p-3 d-flex align-items-center gap-3 position-relative z-1 transition-transform"
+                            style="transform: translateX(0px);"
+                            onclick="openProductActionSheet({{ $product->id }}, '{{ addslashes($product->name) }}', '{{ route('products.edit', $product->id) }}', '{{ route('products.destroy', $product->id) }}', {{ $barcodeEnabled ? 1 : 0 }}, '{{ route('products.barcode', $product->id) }}')">
+
+                            {{-- Avatar --}}
+                            @if($product->image)
+                                <img src="{{ asset('storage/' . $product->image) }}"
+                                    class="rounded-3 object-fit-cover border flex-shrink-0" style="width: 50px; height: 50px;"
+                                    alt="{{ $product->name }}">
+                            @else
+                                <div class="rounded-3 bg-primary bg-opacity-10 text-primary d-flex align-items-center justify-content-center fw-bold flex-shrink-0"
+                                    style="width: 50px; height: 50px;">
+                                    {{ substr($product->name, 0, 1) }}
+                                </div>
+                            @endif
+
+                            {{-- Details --}}
+                            <div class="flex-grow-1 overflow-hidden">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <span class="fw-bold text-dark text-truncate">{{ $product->name }}</span>
+                                    <span class="fw-bold text-primary">₱{{ number_format($product->price, 2) }}</span>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="text-muted small text-truncate"
+                                        style="max-width: 150px;">{{ $product->category->name ?? 'Uncategorized' }}</span>
+
+                                    {{-- Stock Badge --}}
+                                    @if($product->stock == 0)
+                                        <span class="badge bg-danger-subtle text-danger rounded-pill x-small">Out of Stock</span>
+                                    @elseif($product->stock <= $product->reorder_point)
+                                        <span
+                                            class="badge bg-warning-subtle text-warning text-dark-emphasis rounded-pill x-small">Low:
+                                            {{ $product->stock }}</span>
+                                    @else
+                                        <span class="text-secondary x-small"><b>Stock(s):</b> {{ $product->stock }}<b> Unit:</b>
+                                            {{ $product->unit }}</span>
+                                    @endif
+                                </div>
+                            </div>
+
+                            <i class="fas fa-chevron-right text-muted opacity-25"></i>
+                        </div>
+
+                        {{-- Hidden Delete Form --}}
+                        <form id="delete-form-{{ $product->id }}" action="{{ route('products.destroy', $product->id) }}"
+                            method="POST" class="d-none">
+                            @csrf @method('DELETE')
+                        </form>
                     </div>
                 @empty
                     <div class="text-center py-5">
@@ -344,8 +380,7 @@
             <div class="modal-dialog">
                 <div class="modal-content bg-transparent shadow-none backdrop-blur-0">
                     <!-- Wrapper for background -->
-                    <div class="bg-surface px-3 pb-4 pt-2 rounded-top-5"
-                        style="background: rgba(248,250,252, 0.95); backdrop-filter: blur(20px);">
+                    <div class="bg-surface px-3 pb-4 pt-2 rounded-top-5">
                         <div class="sheet-handle"></div>
 
                         <div class="text-center mb-4">
@@ -388,6 +423,9 @@
 
         <script>
             function openProductActionSheet(id, name, editUrl, deleteUrl, hasBarcode, barcodeUrl) {
+                // If it was a swipe interaction, don't open the sheet
+                if (window.isSwiping) return;
+
                 document.getElementById('actionSheetTitle').innerText = name;
                 document.getElementById('actionEdit').href = editUrl;
                 document.getElementById('actionDeleteForm').action = deleteUrl;
@@ -403,17 +441,98 @@
                 new bootstrap.Modal(document.getElementById('productActionSheet')).show();
             }
 
+            function confirmDeleteProduct(id, name) {
+                Swal.fire({
+                    title: 'Delete Product?',
+                    text: `Are you sure you want to delete "${name}"? This cannot be undone.`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#dc3545',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: 'Yes, delete it!',
+                    cancelButtonText: 'Cancel',
+                    width: '320px' // Mobile friendly width
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        document.getElementById('delete-form-' + id).submit();
+                    }
+                });
+            }
+
             document.addEventListener("DOMContentLoaded", function () {
                 const container = document.getElementById('mobileFilterContainer');
-                const activeBtn = container.querySelector('.active-filter');
+                const activeBtn = container?.querySelector('.active-filter');
                 if (container && activeBtn) {
                     const containerWidth = container.offsetWidth;
                     const btnLeft = activeBtn.offsetLeft;
                     const btnWidth = activeBtn.offsetWidth;
                     const scrollLeft = btnLeft - (containerWidth / 2) + (btnWidth / 2);
-
                     container.scrollTo({ left: scrollLeft, behavior: 'smooth' });
                 }
+
+                // --- SWIPE LOGIC ---
+                const swipeItems = document.querySelectorAll('.swipe-content');
+                let openSwipe = null;
+
+                swipeItems.forEach(item => {
+                    let startX = 0;
+                    let currentX = 0;
+                    let isDragging = false;
+                    let threshold = 80;
+
+                    item.addEventListener('touchstart', (e) => {
+                        startX = e.touches[0].clientX;
+                        isDragging = true;
+                        window.isSwiping = false; // Reset
+                        item.style.transition = 'none';
+
+                        // Close others
+                        if (openSwipe && openSwipe !== item) {
+                            openSwipe.style.transform = 'translateX(0)';
+                            openSwipe = null;
+                        }
+                    }, { passive: true });
+
+                    item.addEventListener('touchmove', (e) => {
+                        if (!isDragging) return;
+
+                        currentX = e.touches[0].clientX;
+                        let diff = currentX - startX;
+
+                        // Identify if swipe or scroll
+                        if (Math.abs(diff) > 5) window.isSwiping = true;
+
+                        // Limit drag range
+                        if (diff > 100) diff = 100; // Right limit
+                        if (diff < -100) diff = -100; // Left limit
+
+                        item.style.transform = `translateX(${diff}px)`;
+                    }, { passive: true });
+
+                    item.addEventListener('touchend', (e) => {
+                        if (!isDragging) return;
+                        isDragging = false;
+                        item.style.transition = 'transform 0.3s ease-out';
+
+                        let diff = currentX - startX;
+
+                        // Check Thresholds
+                        if (diff < -threshold) {
+                            // Swiped Left -> Reveal Right (Delete)
+                            item.style.transform = `translateX(-100px)`;
+                            openSwipe = item;
+                        } else if (diff > threshold) {
+                            // Swiped Right -> Reveal Left (Edit)
+                            item.style.transform = `translateX(100px)`;
+                            openSwipe = item;
+                        } else {
+                            // Snap back
+                            item.style.transform = `translateX(0)`;
+                            if (openSwipe === item) openSwipe = null;
+                            setTimeout(() => { window.isSwiping = false; }, 50);
+                        }
+                    });
+                });
             });
         </script>
 

@@ -19,8 +19,8 @@ class CategoryController extends Controller
     public function getProducts(Category $category)
     {
         return response()->json($category->products()
-            ->select('id', 'name', 'price', 'image') 
-            ->get()->map(function($p) {
+            ->select('id', 'name', 'price', 'image')
+            ->get()->map(function ($p) {
                 return [
                     'name' => $p->name,
                     'price' => number_format($p->price, 2),
@@ -33,7 +33,11 @@ class CategoryController extends Controller
     public function store(Request $request)
     {
         $request->validate(['name' => 'required|string|max:255']);
-        $category = Category::create($request->all());
+
+        $data = $request->all();
+        $data['store_id'] = $this->getActiveStoreId(); // <--- Inject Store ID
+
+        $category = Category::create($data);
 
         if ($request->wantsJson()) {
             return response()->json([

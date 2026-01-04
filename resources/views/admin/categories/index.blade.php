@@ -261,8 +261,7 @@
         <div class="modal-dialog">
             <div class="modal-content bg-transparent shadow-none backdrop-blur-0">
                 <!-- Content Wrapper with background -->
-                <div class="bg-surface px-3 pb-4 pt-2 rounded-top-5"
-                    style="background: rgba(248,250,252, 0.95); backdrop-filter: blur(20px);">
+                <div class="bg-surface px-3 pb-4 pt-2 rounded-top-5">
                     <div class="sheet-handle"></div>
 
                     <div class="text-center mb-4">

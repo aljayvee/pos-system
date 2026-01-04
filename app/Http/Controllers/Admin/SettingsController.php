@@ -132,6 +132,14 @@ class SettingsController extends Controller
             'description' => 'Updated configuration for Branch #' . $storeId
         ]);
 
+        // SYNC: If store_name was updated, sync it to the actual Store model
+        if (isset($data['store_name']) && !empty($data['store_name'])) {
+            $store = \App\Models\Store::find($storeId);
+            if ($store) {
+                $store->update(['name' => $data['store_name']]);
+            }
+        }
+
         return back()->with('success', 'Settings updated successfully.');
     }
 
