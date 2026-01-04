@@ -1,75 +1,142 @@
-# VeraPOS
+# VeraPOS System Documentation
 
-A modern, robust Point of Sale (POS) system built with Laravel and Vue.js, designed for high-performance retail management.
+**Developer:** Aljayvee Versola
+**Version:** 1.0.0
 
-## Key Features
+---
 
--   **POS Interface**: Optimized for both touch and desktop, with barcode scanning and session management.
--   **Inventory Management**: Track stock, handling unit conversions, and low-stock alerts.
--   **Multi-Buy Pricing**: Flexible pricing strategies (Buy X Get Y, Tiered Discounts).
--   **User Roles**: Granular permissions for Admins, Managers, and Cashiers.
--   **Reporting**: Real-time sales analytics and detailed reports.
--   **Mobile Native Experience**: Responsive design with bottom sheets and touch-friendly controls.
+## 📖 Overview
 
-## Development Setup
+**VeraPOS** is a high-performance, modern Point of Sale (POS) and Inventory Management System designed for retail businesses. Built with **Laravel 12** and **Vue.js**, it offers a seamless, mobile-first experience for cashiers while providing robust analytics and compliance tools for administrators.
 
-1.  **Clone the repository**
-2.  **Install dependencies**:
-    ```bash
-    composer install
-    npm install
-    ```
-3.  **Environment Setup**:
-    ```bash
-    cp .env.example .env
-    php artisan key:generate
-    ```
-4.  **Database Migration**:
-    ```bash
-    php artisan migrate --seed
-    ```
-5.  **Run Development Server**:
-    ```bash
-    php artisan serve
-    npm run dev
-    php artisan queue:work --timeout=60
-    ```
 
-## Testing
+---
 
-This project utilizes PHPUnit for automated testing.
+## 🚀 Key Features
 
-### Running Tests
+### 🛒 Point of Sale (Cashier)
+-   **Mobile-First Design:** Fully responsive interface optimized for mobile devices with touch-friendly controls and bottom-sheet navigation.
+-   **Barcode Scanning:** Integrated camera-based barcode scanner for mobile and support for USB scanners on desktop.
+-   **Smart Cart Management:**
+    -   Multi-buy pricing (Buy X Get Y, Wholesale/Tiered pricing).
+    -   Stock validation in real-time.
+    -   Support for multiple payment methods (Cash, E-Wallet, Credit/Utang).
+-   **Customer Association:**
+    -   Link sales to Walk-in or Registered Customers.
+    -   "New Customer Utang" flow for credit sales.
+-   **Offline Resiliency:** Service Worker support for basic offline functionality.
 
-To run the full test suite, execute:
+### 📦 Inventory Management
+-   **Real-time Stock Tracking:** Automatic deduction upon sale.
+-   **Stock Transfers:** Manage movement of goods between different store branches.
+-   **Low Stock Alerts:** Visual badges and filters for items near reorder points.
+-   **Product Variants:** Support for different sizes, colors, or units.
+
+### 📊 Admin Dashboard & Analytics
+-   **Sales Analytics:** Daily, weekly, and monthly visual graphs.
+-   **Financial Reporting:** Cash vs. Accrual basis configuration.
+-   **Top Products:** Identify best-selling items instantly.
+-   **User Management:** Role-based access control (Admin, Manager, Cashier).
+
+### 🔐 Security features
+-   **MPIN Protection:** Secure sensitive actions (voids, returns, settings) with a 6-digit PIN.
+-   **Role-Based Access:** Strict separation between Cashier and Admin functions.
+-   **Register Locking:** Session-based register management (Open/Close Register).
+
+---
+
+## 🛠️ System Requirements
+
+-   **PHP:** 8.1 or higher
+-   **Composer:** 2.x
+-   **Node.js:** 16.x or higher
+-   **Database:** MySQL / MariaDB
+
+---
+
+## ⚙️ Installation & Setup Guide
+
+Follow these steps to deploy VeraPOS on a new system.
+
+### 1. Clone the Repository
+```bash
+git clone https://github.com/aljayvee/pos-system.git
+cd pos-system
+```
+
+### 2. Install Backend Dependencies
+```bash
+composer install
+```
+
+### 3. Install Frontend Dependencies
+```bash
+npm install
+```
+
+### 4. Environment Configuration
+Duplicate the example environment file and configure your database credentials.
+```bash
+copy .env.example .env
+```
+Open `.env` and update the following:
+```ini
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=pos_db
+DB_USERNAME=root
+DB_PASSWORD=
+
+# Security Flags (Optional)
+SAFETY_FLAG_BIR_COMPLIANCE=true
+```
+
+### 5. Generate Application Key
+```bash
+php artisan key:generate
+```
+
+### 6. Database Setup
+Run migrations and seed the database with default roles, admin account, and test products.
+```bash
+php artisan migrate --seed
+```
+> **Default Admin Credentials:**
+> - Email: `admin@pos.com`
+> - Password: `Admin123456`
+
+### 7. Build Assets
+For development (Hot Reload):
+```bash
+npm run dev
+```
+For production:
+```bash
+npm run build
+```
+
+### 8. Run the Server
+Start the local development server:
+```bash
+php artisan serve
+```
+Access the application at `http://127.0.0.1:8000`.
+
+---
+
+## 🧪 Running Tests
+
+Ensure system stability by running the automated test suite.
 
 ```bash
 php artisan test
 ```
 
-Or directly via PHPUnit:
+---
 
-```bash
-./vendor/bin/phpunit
-```
+## 📜 License
 
-### Test Suites
-
-#### Unit Tests (`tests/Unit`)
--   **`CashRegisterServiceTest`**: Verifies the core logic of the Cashier module.
-    -   `test_open_session_creates_record`: Ensures cash register sessions are correctly initialized with opening amounts.
-    -   `test_calculate_expected_cash`: Validates the financial calculations, ensuring that opening cash + cash sales match the expected total (ignoring non-cash methods).
-    -   *Note*: These tests use specific database transactions (`DB::beginTransaction()` / `DB::rollBack()`) to ensure no test data persists in your local database.
--   **`PricingServiceTest`**: Verifies the multi-buy pricing logic.
-    -   `test_calculate_total_multiple_tiers_greedy`: Ensures complex combinations of pricing tiers are applied correctly (e.g., verifying that the system prioritizes the largest applicable bundle first).
-
-#### Feature Tests (`tests/Feature`)
--   Includes standard HTTP tests to verify route accessibility and controller responses.
-
-## Security
-
-If you discover any security related issues, please email the administrator instead of using the issue tracker.
-
-## License
-
-Private / Proprietary.
+**Proprietary Software.**
+Copyright © 2025-2026 Aljayvee Versola. All Rights Reserved.
+Unauthorized copying, distribution, or modification of this code is strictly prohibited.
