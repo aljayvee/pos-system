@@ -59,6 +59,9 @@ class TaxLogicTest extends TestCase
             ['store_id' => $this->store->id, 'key' => 'tax_rate', 'value' => '0.12'],
         ]);
 
+        // ENABLE BIR MODE for detailed tax logic
+        config(['safety_flag_features.bir_tax_compliance' => true]);
+
         DB::table('settings')->updateOrInsert(
             ['store_id' => 1, 'key' => 'enable_multi_store'],
             ['value' => '1']
@@ -132,7 +135,6 @@ class TaxLogicTest extends TestCase
                 'customer_id' => 'walk-in'
             ]);
 
-        $response->dump();
         $response->assertStatus(200);
         $saleId = $response->json('sale_id');
 

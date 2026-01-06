@@ -14,7 +14,8 @@ use Illuminate\Support\Facades\Http;
 class SettingsTest extends TestCase
 {
     // Use DatabaseTransactions to rollback changes after test
-    use \Illuminate\Foundation\Testing\DatabaseTransactions;
+    // Use RefreshDatabase to migrate schema for in-memory sqlite
+    use RefreshDatabase;
 
     protected function setUp(): void
     {
@@ -27,11 +28,18 @@ class SettingsTest extends TestCase
 
         // Ensure Store 1 exists or mock it? 
         // Logic uses store_id 1 for global.
+
+        // Mock Setup Complete
+        \Illuminate\Support\Facades\DB::table('settings')->updateOrInsert(
+            ['store_id' => 1, 'key' => 'setup_complete'],
+            ['value' => '1']
+        );
     }
 
     public function test_settings_page_loads_without_error()
     {
         $response = $this->actingAs($this->user)
+            ->withSession(['mpin_verified' => true]) // Bypass MPIN
             ->get(route('settings.index'));
 
         $response->assertStatus(200);
@@ -53,6 +61,7 @@ class SettingsTest extends TestCase
         ];
 
         $response = $this->actingAs($this->user)
+            ->withSession(['mpin_verified' => true])
             ->post(route('settings.update'), $newData);
 
         $response->assertSessionHas('success');
@@ -80,6 +89,7 @@ class SettingsTest extends TestCase
         );
 
         $response = $this->actingAs($this->user)
+            ->withSession(['mpin_verified' => true])
             ->postJson(route('settings.reveal'), [
                 'password' => 'password123',
                 'key' => 'store_tin'
@@ -106,6 +116,7 @@ class SettingsTest extends TestCase
         Setting::updateOrCreate(['key' => 'business_permit', 'store_id' => $storeId], ['value' => Crypt::encryptString($permit)]);
 
         $response = $this->actingAs($this->user)
+            ->withSession(['mpin_verified' => true])
             ->postJson(route('settings.verify_disable_bir'), [
                 'password' => 'password123',
                 'tin' => $tin,

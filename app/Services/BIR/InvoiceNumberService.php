@@ -17,7 +17,13 @@ class InvoiceNumberService
     {
         return DB::transaction(function () use ($storeId) {
             // Lock the store record to prevent race conditions on the SI Number
-            $store = Store::where('id', $storeId)->lockForUpdate()->firstOrFail();
+            $query = Store::where('id', $storeId);
+
+            if (DB::getDriverName() !== 'sqlite') {
+                $query->lockForUpdate();
+            }
+
+            $store = $query->firstOrFail();
 
             $current = $store->last_si_number;
 

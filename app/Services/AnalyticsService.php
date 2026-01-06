@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use Illuminate\Support\Facades\DB;
 use App\Models\Sale;
 use App\Models\SaleItem;
 use App\Models\SalesReturn;
@@ -26,12 +27,12 @@ class AnalyticsService
             ->sum('total_amount');
 
         // 2. Total Refunds (All Return Types - Cash, Credit Reversals, etc.)
-        $returnsCollection = SalesReturn::whereHas('sale', function($q) use ($storeId) {
-                $q->where('store_id', $storeId);
-            })
+        $returnsCollection = SalesReturn::whereHas('sale', function ($q) use ($storeId) {
+            $q->where('store_id', $storeId);
+        })
             ->whereDate('created_at', $date)
             ->get();
-            
+
         $totalRefunds = $returnsCollection->sum('refund_amount');
 
         // 3. Net Sales
@@ -51,11 +52,11 @@ class AnalyticsService
             ->sum('total_amount');
 
         $collections = CreditPayment::whereDate('payment_date', $date)
-            ->whereHas('credit.sale', function($q) use ($storeId) {
+            ->whereHas('credit.sale', function ($q) use ($storeId) {
                 $q->where('store_id', $storeId);
             })
             ->sum('amount');
-            
+
         $realizedSales = $cashAndDigitalSales + $collections - $totalRefunds;
 
         return [
@@ -80,56 +81,62 @@ class AnalyticsService
     public function getDailyProfitMetrics(int $storeId, string $date, float $netSales, $returnsCollection): array
     {
         // 1. Profit from Cash/Digital Sales (Realized Immediately)
-        // Filter to exclude Credit Sales
-        $cashSoldItems = SaleItem::whereHas('sale', function($q) use ($storeId, $date) {
-                $q->where('store_id', $storeId)
-                  ->whereDate('created_at', $date)
-                  ->whereIn('payment_method', ['cash', 'digital']); // Exclude credit
-            })
-            ->with(['product'])
-            ->get();
-
-        $cashSalesCost = 0;
-        foreach($cashSoldItems as $item) {
-            $unitCost = $item->cost > 0 ? $item->cost : ($item->product->cost ?? 0);
-            $cashSalesCost += ($unitCost * $item->quantity);
-        }
+        // OPTIMIZED: Use SQL Aggregation instead of loading all models
+        $cashSalesCost = DB::table('sale_items')
+            ->join('sales', 'sales.id', '=', 'sale_items.sale_id')
+            ->join('products', 'products.id', '=', 'sale_items.product_id')
+            ->where('sales.store_id', $storeId)
+            ->whereDate('sales.created_at', $date)
+            ->whereIn('sales.payment_method', ['cash', 'digital'])
+            ->sum(DB::raw('sale_items.quantity * COALESCE(NULLIF(sale_items.cost, 0), products.cost, 0)'));
 
         // 2. Profit from Debt Collections (Realized Now)
         // Logic: Collection Amount - Proportional Cost of that amount
         $collections = CreditPayment::whereDate('payment_date', $date)
-            ->whereHas('credit.sale', function($q) use ($storeId) {
+            ->whereHas('credit.sale', function ($q) use ($storeId) {
                 $q->where('store_id', $storeId);
             })
-            ->with(['credit.sale.saleItems']) 
-            // Note: Optimizing this might require deeper eager loading or specialized query 
-            // but for daily metrics this loop is acceptable.
+            ->with(['credit']) // Needed for sale_id
             ->get();
 
         $collectionProfit = 0;
         $totalCollectionCost = 0;
 
-        foreach ($collections as $payment) {
-            $sale = $payment->credit->sale ?? null;
-            if (!$sale) continue;
+        if ($collections->isNotEmpty()) {
+            // OPTIMIZED: Batch fetch sale costs to avoid N+1 problem
+            $saleIds = $collections->pluck('credit.sale_id')->unique()->filter();
 
-            $saleTotal = $sale->total_amount > 0 ? $sale->total_amount : 1; // Avoid div by zero
-            $paymentRatio = $payment->amount / $saleTotal;
+            if ($saleIds->isNotEmpty()) {
+                $salesData = DB::table('sales')
+                    ->join('sale_items', 'sale_items.sale_id', '=', 'sales.id')
+                    ->join('products', 'products.id', '=', 'sale_items.product_id')
+                    ->whereIn('sales.id', $saleIds)
+                    ->select(
+                        'sales.id',
+                        'sales.total_amount',
+                        DB::raw('SUM(sale_items.quantity * COALESCE(NULLIF(sale_items.cost, 0), products.cost, 0)) as total_cost')
+                    )
+                    ->groupBy('sales.id', 'sales.total_amount')
+                    ->get()
+                    ->keyBy('id'); // Key by Sale ID for O(1) lookup
 
-            // Calculate Total Cost of that original sale
-            $originalSaleCost = 0;
-            if ($sale->saleItems) {
-                foreach ($sale->saleItems as $sItem) {
-                    $c = $sItem->cost > 0 ? $sItem->cost : ($sItem->product->cost ?? 0);
-                    $originalSaleCost += ($c * $sItem->quantity);
+                foreach ($collections as $payment) {
+                    $saleId = $payment->credit->sale_id;
+                    $saleInfo = $salesData[$saleId] ?? null;
+
+                    if (!$saleInfo)
+                        continue;
+
+                    $saleTotal = $saleInfo->total_amount > 0 ? $saleInfo->total_amount : 1;
+                    $paymentRatio = $payment->amount / $saleTotal;
+
+                    // Recovered Cost for this payment
+                    $recoveredCost = $saleInfo->total_cost * $paymentRatio;
+
+                    $collectionProfit += ($payment->amount - $recoveredCost);
+                    $totalCollectionCost += $recoveredCost;
                 }
             }
-
-            // Recovered Cost for this payment
-            $recoveredCost = $originalSaleCost * $paymentRatio;
-            
-            $collectionProfit += ($payment->amount - $recoveredCost);
-            $totalCollectionCost += $recoveredCost;
         }
 
         // 3. Cost of Returns (Deduct from Cost / Add to Profit)
@@ -137,44 +144,44 @@ class AnalyticsService
         // If we refund a Credit sale, we haven't recognized the cost yet, so we shouldn't "recover" it?
         // Actually, if we refund a Credit Sale, the Credit Balance decreases.
         // Let's stick to Cash Refunds for Cash Basis Profit.
-        
+
         $cashReturnCost = 0;
         foreach ($returnsCollection as $ret) {
-             if ($ret->sale && $ret->sale->payment_method === 'credit') {
-                 continue; // Ignore credit returns for Realized Profit (Cost wasn't recognized yet)
-             }
+            if ($ret->sale && $ret->sale->payment_method === 'credit') {
+                continue; // Ignore credit returns for Realized Profit (Cost wasn't recognized yet)
+            }
 
-             // Find cost
-             $originalItem = null;
-             if ($ret->sale && $ret->sale->saleItems) {
-                 $originalItem = $ret->sale->saleItems->where('product_id', $ret->product_id)->first();
-             }
-             $returnUnitCost = ($originalItem && $originalItem->cost > 0) ? $originalItem->cost : ($ret->product->cost ?? 0);
-             $cashReturnCost += ($returnUnitCost * $ret->quantity);
+            // Find cost
+            $originalItem = null;
+            if ($ret->sale && $ret->sale->saleItems) {
+                $originalItem = $ret->sale->saleItems->where('product_id', $ret->product_id)->first();
+            }
+            $returnUnitCost = ($originalItem && $originalItem->cost > 0) ? $originalItem->cost : ($ret->product->cost ?? 0);
+            $cashReturnCost += ($returnUnitCost * $ret->quantity);
         }
 
         // REALIZED Gross Cost = (Cost of Cash Sales + Cost of Collections) - Cost of Cash Returns
         $realizedGrossCost = ($cashSalesCost + $totalCollectionCost) - $cashReturnCost;
-        
+
         // REALIZED Profit = (Cash Sales + Collections) - Returns - Realized Cost
         // But simpler: Sum margin of Cash Sales + Sum margin of Collections - Sum margin lost on Returns
         // Let's use the explicit Revenue - Cost approach.
-        
+
         // We need Realized Revenue here to be precise, but we can reconstruct it or trust the logic
         // CashSalesRev + CollectionRev - CashRefundRev
         // Using the passed $netSales is risky because it includes Credit Sales!
-        
+
         // Let's calculate Profit directly from the components we iterated:
-        
+
         // A. Cash Sales Profit
         $cashSalesRev = Sale::where('store_id', $storeId)
             ->whereDate('created_at', $date)
             ->whereIn('payment_method', ['cash', 'digital'])
             ->sum('total_amount');
-            
+
         // B. Collections Profit (calculated above as $collectionProfit)
         //    $collectionProfit includes (Amount - Cost)
-        
+
         // C. Cash Returns Impact (Negative Profit)
         $cashRefunds = $returnsCollection->filter(fn($r) => $r->sale && $r->sale->payment_method !== 'credit')->sum('refund_amount');
         // Profit lost = RefundAmount - RecoveredCost
@@ -201,7 +208,7 @@ class AnalyticsService
     {
         // CreditPayments link to CustomerCredit -> Sale -> Store
         return CreditPayment::whereDate('payment_date', $date)
-            ->whereHas('credit.sale', function($q) use ($storeId) {
+            ->whereHas('credit.sale', function ($q) use ($storeId) {
                 $q->where('store_id', $storeId);
             })
             ->sum('amount');
@@ -227,10 +234,10 @@ class AnalyticsService
         $collections = $this->getDebtCollections($storeId, $date);
 
         // 3. Cash Refunds (Returns where original sale was CASH)
-        $cashRefunds = SalesReturn::whereHas('sale', function($q) use ($storeId) {
-                $q->where('store_id', $storeId)
-                  ->where('payment_method', 'cash'); // Only subtract refunds if we actually gave back cash
-            })
+        $cashRefunds = SalesReturn::whereHas('sale', function ($q) use ($storeId) {
+            $q->where('store_id', $storeId)
+                ->where('payment_method', 'cash'); // Only subtract refunds if we actually gave back cash
+        })
             ->whereDate('created_at', $date)
             ->sum('refund_amount');
 
