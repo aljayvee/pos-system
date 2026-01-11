@@ -5,29 +5,20 @@ namespace App\Http\Middleware;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
+use App\Models\User;
 
 class EnsureSystemSetup
 {
     /**
      * Handle an incoming request.
-     *
-     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
      */
     public function handle(Request $request, Closure $next): Response
     {
-        // Only enforce for authenticated Admins
-        if (auth()->check() && auth()->user()->role === 'admin') {
-
-            // Allow if seeking setup routes or logout
-            if ($request->routeIs('admin.setup.*') || $request->routeIs('logout')) {
-                return $next($request);
-            }
-
-            // Check if setup is complete
-            $setupComplete = \App\Models\Setting::where('key', 'setup_complete')->value('value');
-
-            if (!$setupComplete || $setupComplete == '0') {
-                return redirect()->route('admin.setup.index');
+        // If system is empty (no users), enforce setup
+        // But allow setup routes to pass through to avoid infinite loops
+        if (User::count() === 0) {
+            if (!$request->is('setup*') && !$request->is('css/*') && !$request->is('js/*')) {
+                return redirect()->route('setup.index');
             }
         }
 

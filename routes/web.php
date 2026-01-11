@@ -26,16 +26,26 @@ Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
+// Forgot Password (OTP)
+Route::get('/forgot-password', [\App\Http\Controllers\Auth\PasswordResetController::class, 'showLinkRequestForm'])->name('password.request');
+Route::post('/forgot-password', [\App\Http\Controllers\Auth\PasswordResetController::class, 'sendResetLinkEmail'])->name('password.email');
+Route::get('/reset-password', [\App\Http\Controllers\Auth\PasswordResetController::class, 'showResetForm'])->name('password.reset.form');
+Route::post('/reset-password', [\App\Http\Controllers\Auth\PasswordResetController::class, 'reset'])->name('password.update');
+
 // ADMIN Routes (Protected)
 // ADMIN Routes (Protected)
 // Allow all "Back Office" roles to enter the admin area
-Route::middleware(['auth', 'role:admin,manager,supervisor,stock_clerk,auditor', 'mpin.verify', \App\Http\Middleware\EnsureSystemSetup::class])->prefix('admin')->group(function () {
+// Setup Routes (Public middleware but guarded)
+Route::group(['middleware' => ['web']], function () {
+    Route::get('/setup', [\App\Http\Controllers\Admin\SetupController::class, 'index'])->name('setup.index');
+    Route::post('/setup/step1', [\App\Http\Controllers\Admin\SetupController::class, 'storeStep1'])->name('setup.step1');
+    Route::post('/setup/send-otp', [\App\Http\Controllers\Admin\SetupController::class, 'sendOtp'])->name('setup.send_otp');
+    Route::post('/setup/verify', [\App\Http\Controllers\Admin\SetupController::class, 'verifyAndCreate'])->name('setup.verify');
+});
 
-    // ONBOARDING / SETUP WIZARD
-    Route::get('/setup', [\App\Http\Controllers\Admin\SetupController::class, 'index'])->name('admin.setup.index');
-    Route::post('/setup', [\App\Http\Controllers\Admin\SetupController::class, 'store'])->name('admin.setup.store');
+// ADMIN Routes (Protected)
+Route::middleware(['auth', 'role:admin,manager,supervisor,stock_clerk,auditor', 'mpin.verify'])->prefix('admin')->group(function () {
 
-    // Dashboard (Accessible by all back-office roles)
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('admin.dashboard');
 
     // 1. INVENTORY MANAGEMENT
@@ -45,12 +55,14 @@ Route::middleware(['auth', 'role:admin,manager,supervisor,stock_clerk,auditor', 
         // Write Access Restricted to 'inventory.edit'
         Route::middleware(['role:inventory.edit'])->group(function () {
             Route::resource('categories', CategoryController::class)->except(['index', 'show']);
+            Route::get('/products/batch-create', [App\Http\Controllers\Admin\ProductController::class, 'batchCreate'])->name('products.batch_create');
+            Route::post('/products/batch-store', [App\Http\Controllers\Admin\ProductController::class, 'batchStore'])->name('products.batch_store');
+            Route::post('/products/import', [App\Http\Controllers\Admin\ProductController::class, 'import'])->name('products.import');
+            Route::post('/products/check-duplicate', [App\Http\Controllers\Admin\ProductController::class, 'checkDuplicate'])->name('products.check_duplicate');
+            Route::get('/products/{product}/barcode', [App\Http\Controllers\Admin\ProductController::class, 'printBarcode'])->name('products.barcode');
+            Route::post('/products/{product}/restore', [App\Http\Controllers\Admin\ProductController::class, 'restore'])->name('products.restore');
+            Route::delete('/products/{product}/force-delete', [App\Http\Controllers\Admin\ProductController::class, 'forceDelete'])->name('products.force_delete');
             Route::resource('products', ProductController::class)->except(['index', 'show']);
-
-            Route::post('/products/check-duplicate', [ProductController::class, 'checkDuplicate'])->name('products.check_duplicate');
-            Route::post('/products/import', [ProductController::class, 'import'])->name('products.import');
-            Route::post('/products/{id}/restore', [ProductController::class, 'restore'])->name('products.restore');
-            Route::delete('/products/{id}/force-delete', [ProductController::class, 'forceDelete'])->name('products.force_delete');
 
             Route::resource('purchases', \App\Http\Controllers\Admin\PurchaseController::class)->only(['create', 'store', 'destroy']);
         });
@@ -222,7 +234,19 @@ Route::middleware(['auth', 'role:pos.access', 'mpin.verify'])->prefix('cashier')
 // Authenticated User Routes (Profile)
 Route::middleware(['auth'])->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::post('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::post('/profile/info', [ProfileController::class, 'updateInfo'])->name('profile.update.info');
+    Route::post('/profile/photo', [ProfileController::class, 'updatePhoto'])->name('profile.update.photo');
+    Route::post('/profile/security', [ProfileController::class, 'updateSecurity'])->name('profile.update.security');
+
+    // Email Verify
+    Route::post('/profile/verify-email/send', [ProfileController::class, 'initiateEmailVerification'])->name('profile.verify_email.send');
+    Route::post('/profile/verify-email/check', [ProfileController::class, 'checkEmailVerification'])->name('profile.verify_email.check');
+
+    // Secure Email Change
+    Route::post('/profile/email/initiate', [ProfileController::class, 'initiateEmailChange'])->name('profile.email.initiate');
+    Route::post('/profile/email/verify-current', [ProfileController::class, 'verifyCurrentEmailOtp'])->name('profile.email.verify_current');
+    Route::post('/profile/email/request-new', [ProfileController::class, 'requestNewEmailOtp'])->name('profile.email.request_new');
+    Route::post('/profile/email/confirm-update', [ProfileController::class, 'confirmNewEmail'])->name('profile.email.confirm_update');
 
 
     // Device 2
@@ -244,7 +268,16 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/auth/mpin/setup', [App\Http\Controllers\Auth\MpinController::class, 'store'])->name('auth.mpin.store');
 
     Route::get('/auth/mpin/forgot', [App\Http\Controllers\Auth\MpinController::class, 'showForgotForm'])->name('auth.mpin.forgot');
-    Route::post('/auth/mpin/reset', [App\Http\Controllers\Auth\MpinController::class, 'verifyPasswordAndReset'])->name('auth.mpin.reset');
+
+    // Step 1: Verify Credentials
+    Route::post('/auth/mpin/reset/verify', [App\Http\Controllers\Auth\MpinController::class, 'verifyResetCredentials'])->name('auth.mpin.reset.verify');
+
+    // Step 2: Set New MPIN
+    Route::get('/auth/mpin/reset/new', [App\Http\Controllers\Auth\MpinController::class, 'showResetMpinForm'])->name('auth.mpin.reset.form');
+    Route::post('/auth/mpin/reset/new', [App\Http\Controllers\Auth\MpinController::class, 'resetMpin'])->name('auth.mpin.reset.perform');
+
+    // NEW: OTP Reset for MPIN
+    Route::post('/auth/mpin/reset/send-otp', [App\Http\Controllers\Auth\MpinController::class, 'sendResetOtp'])->name('auth.mpin.reset.send.otp');
 });
 
 // MOVE THIS OUTSIDE THE AUTH GROUP (Publicly accessible with signature)

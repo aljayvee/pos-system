@@ -11,10 +11,17 @@ use Illuminate\Support\Facades\Hash;
 class MpinController extends Controller
 {
     protected $mpinService;
+    protected $otpService;
+    protected $notifier;
 
-    public function __construct(MpinService $mpinService)
-    {
+    public function __construct(
+        MpinService $mpinService,
+        \App\Services\Otp\OtpServiceInterface $otpService,
+        \App\Services\Notification\OtpNotificationService $notifier
+    ) {
         $this->mpinService = $mpinService;
+        $this->otpService = $otpService;
+        $this->notifier = $notifier;
     }
 
     /**
@@ -72,6 +79,7 @@ class MpinController extends Controller
         $attempts = \Illuminate\Support\Facades\RateLimiter::attempts($key) + 1;
 
         $decaySeconds = match (true) {
+            $attempts >= 20 => 1200, // 20 minutes if persistant
             $attempts >= 10 => 900, // 15 minutes if persistant
             $attempts >= 5 => 300,  // 5 minutes lockout
             default => 60,          // 1 minute default
@@ -139,25 +147,86 @@ class MpinController extends Controller
     /**
      * Verify password and allow reset.
      */
-    public function verifyPasswordAndReset(Request $request)
+    // --- OTP Reset Flow ---
+
+    public function sendResetOtp()
+    {
+        $user = Auth::user();
+        $code = $this->otpService->generate($user->email, 'mpin_reset');
+        $this->notifier->sendViaEmail($user, $code, 'Reset MPIN');
+
+        return response()->json(['success' => true, 'message' => 'OTP sent to ' . $user->email]);
+    }
+
+    /**
+     * Verify both Password AND OTP, then allow MPIN reset.
+     */
+    /**
+     * Step 1: Verify Credentials (Email, Password, OTP).
+     */
+    public function verifyResetCredentials(Request $request)
     {
         $request->validate([
+            'email' => 'required|email',
             'password' => 'required',
-            'mpin' => 'required|digits_between:7,16|confirmed',
+            'otp' => 'required|digits:6',
         ]);
 
         $user = Auth::user();
 
+        // 1. Email Check
+        if (strtolower($request->email) !== strtolower($user->email)) {
+            return back()->withErrors(['email' => 'Email address does not match your account.']);
+        }
+
+        // 2. Password Check
         if (!Hash::check($request->password, $user->password)) {
             return back()->withErrors(['password' => 'Incorrect password']);
         }
 
-        $this->mpinService->setMpin($user, $request->mpin);
+        // 3. OTP Check
+        if (!$this->otpService->validate($user->email, $request->otp, 'mpin_reset')) {
+            return back()->withErrors(['otp' => 'Invalid or expired OTP.']);
+        }
 
-        // Auto-verify
-        $request->session()->put('mpin_verified', true);
+        // Success: Set temporary session flag to allow access to reset step
+        session(['mpin_reset_authorized' => true]);
 
-        return $this->redirectBasedOnRole($user)->with('success', 'MPIN reset successfully.');
+        return redirect()->route('auth.mpin.reset.form');
+    }
+
+    /**
+     * Step 2: Show MPIN Reset Form.
+     */
+    public function showResetMpinForm()
+    {
+        if (!session('mpin_reset_authorized')) {
+            return redirect()->route('auth.mpin.forgot')->withErrors(['otp' => 'Session expired. Please verify again.']);
+        }
+
+        return view('auth.mpin-reset-password'); // New view name matching user request pattern
+    }
+
+    /**
+     * Step 2 Action: Set New MPIN.
+     */
+    public function resetMpin(Request $request)
+    {
+        if (!session('mpin_reset_authorized')) {
+            return redirect()->route('auth.mpin.forgot');
+        }
+
+        $request->validate([
+            'mpin' => 'required|digits_between:7,16|confirmed',
+        ]);
+
+        $this->mpinService->setMpin(Auth::user(), $request->mpin);
+
+        // Clear reset flag, set verified flag
+        session()->forget('mpin_reset_authorized');
+        session(['mpin_verified' => true]);
+
+        return $this->redirectBasedOnRole(Auth::user())->with('success', 'MPIN changed successfully.');
     }
 
     protected function redirectBasedOnRole($user)

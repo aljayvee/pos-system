@@ -1,6 +1,10 @@
 // Theme Manager
 const ThemeManager = {
     getContext() {
+        // Allow explicit context override via meta tag
+        const meta = document.querySelector('meta[name="theme-context"]');
+        if (meta) return meta.content;
+
         // Determine context based on URL
         const path = window.location.pathname;
         if (path.includes('/admin')) return 'admin';

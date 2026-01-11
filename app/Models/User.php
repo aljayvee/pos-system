@@ -26,6 +26,11 @@ class User extends Authenticatable implements WebAuthnAuthenticatable
      */
     protected $fillable = [
         'name',
+        'first_name',
+        'last_name',
+        'middle_name',
+        'birthdate',
+        'gender', // Added gender
         'email',
         'password',
         'role',
@@ -110,5 +115,9 @@ class User extends Authenticatable implements WebAuthnAuthenticatable
         }
 
         return array_values($effective);
+    }
+    public function getAgeAttribute()
+    {
+        return $this->birthdate ? \Carbon\Carbon::parse($this->birthdate)->age : null;
     }
 }

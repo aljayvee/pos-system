@@ -11,20 +11,26 @@ class ActivityLog extends Model
     protected static function booted()
     {
         static::creating(function ($log) {
-            // 1. Ensure created_at is set for consistent hashing
+            // 1. Ensure created_at is strictly set BEFORE hashing
             if (!$log->created_at) {
                 $log->setCreatedAt(now());
             }
-            // 2. Set hash to NULL explicitly (to be processed by Queue)
-            $log->hash = null; 
-            $log->previous_hash = null; 
+
+            // 2. Fetch Previous Hash (Critical for Chain)
+            // We must find the VERY last record committed to DB.
+            $lastLog = static::latest('id')->first();
+            $log->previous_hash = $lastLog ? $lastLog->hash : 'GENESIS_BLOCK';
+
+            // 3. Generate HMAC Hash
+            // We use the service directly here to ensure the hash is generated with the EXACT Same logic
+            // Note: We avoid Dependency Injection in model events if possible, but for simplicity:
+            $service = app(\App\Services\LogIntegrityService::class);
+            $log->hash = $service->generateHash($log);
         });
 
         static::created(function ($log) {
-            // 3. Dispatch Background Job (Only if enabled)
-            if (config('safety_flag_features.log_integrity')) {
-                \App\Jobs\ProcessLogHash::dispatch();
-            }
+            // 4. (Optional) We could double check or backup here, 
+            // but 'creating' set the hash, so we are good.
         });
     }
 

@@ -114,16 +114,16 @@
 
                         {{-- Receipt Zig-Zag Bottom Effect (CSS Trick) --}}
                         <div style="
-                            position: absolute;
-                            bottom: -10px;
-                            left: 0;
-                            width: 100%;
-                            height: 20px;
-                            background: linear-gradient(135deg, white 10px, transparent 0) 0 10px,
-                                        linear-gradient(225deg, white 10px, transparent 0) 0 10px;
-                            background-size: 20px 20px;
-                            background-repeat: repeat-x;
-                        "></div>
+                                position: absolute;
+                                bottom: -10px;
+                                left: 0;
+                                width: 100%;
+                                height: 20px;
+                                background: linear-gradient(135deg, white 10px, transparent 0) 0 10px,
+                                            linear-gradient(225deg, white 10px, transparent 0) 0 10px;
+                                background-size: 20px 20px;
+                                background-repeat: repeat-x;
+                            "></div>
                     </div>
 
                     {{-- Action Footer (Desktop Only - Mobile is Sticky) --}}
@@ -142,13 +142,19 @@
                                 </a>
                             </div>
                             <div class="col-4">
-                                <form action="{{ route('transactions.destroy', $sale->id) }}" method="POST"
-                                    onsubmit="return confirm('VOID TRANSACTION?');">
-                                    @csrf @method('DELETE')
-                                    <button type="submit" class="btn btn-outline-danger w-100 py-2 rounded-3">
-                                        <i class="fas fa-ban me-2"></i> Void
+                                @if($sale->salesReturns->isNotEmpty())
+                                    <button type="button" class="btn btn-outline-secondary w-100 py-2 rounded-3" disabled>
+                                        <i class="fas fa-ban me-2"></i> Void (Returned)
                                     </button>
-                                </form>
+                                @else
+                                    <form action="{{ route('transactions.destroy', $sale->id) }}" method="POST"
+                                        onsubmit="return confirm('VOID TRANSACTION?');">
+                                        @csrf @method('DELETE')
+                                        <button type="submit" class="btn btn-outline-danger w-100 py-2 rounded-3">
+                                            <i class="fas fa-ban me-2"></i> Void
+                                        </button>
+                                    </form>
+                                @endif
                             </div>
                         </div>
                     </div>
@@ -165,15 +171,24 @@
                             </a>
                         </div>
                         <div class="col-3">
-                            <form action="{{ route('transactions.destroy', $sale->id) }}" method="POST" class="h-100"
-                                onsubmit="return confirm('CRITICAL WARNING:\n\nThis will VOID the entire transaction:\n- Restore stock\n- Remove sales record\n- Cancel credit/points\n\nAre you sure?');">
-                                @csrf @method('DELETE')
-                                <button type="submit"
-                                    class="btn btn-light w-100 py-3 rounded-4 text-danger border d-flex flex-column align-items-center justify-content-center h-100 shadow-sm">
-                                    <i class="fas fa-ban mb-2 fa-lg"></i> <small style="font-size: 0.65rem;"
-                                        class="fw-bold">Void</small>
+                            @if($sale->salesReturns->isNotEmpty())
+                                <button type="button"
+                                    class="btn btn-light w-100 py-3 rounded-4 text-muted border d-flex flex-column align-items-center justify-content-center h-100 shadow-sm"
+                                    disabled>
+                                    <i class="fas fa-ban mb-2 fa-lg opacity-50"></i> <small style="font-size: 0.5rem;"
+                                        class="fw-bold opacity-50">VOID DIS.</small>
                                 </button>
-                            </form>
+                            @else
+                                <form action="{{ route('transactions.destroy', $sale->id) }}" method="POST" class="h-100"
+                                    onsubmit="return confirm('CRITICAL WARNING:\n\nThis will VOID the entire transaction:\n- Restore stock\n- Remove sales record\n- Cancel credit/points\n\nAre you sure?');">
+                                    @csrf @method('DELETE')
+                                    <button type="submit"
+                                        class="btn btn-light w-100 py-3 rounded-4 text-danger border d-flex flex-column align-items-center justify-content-center h-100 shadow-sm">
+                                        <i class="fas fa-ban mb-2 fa-lg"></i> <small style="font-size: 0.65rem;"
+                                            class="fw-bold">Void</small>
+                                    </button>
+                                </form>
+                            @endif
                         </div>
                         <div class="col-6">
                             <a href="{{ route('transactions.print', $sale->id) }}" target="_blank"

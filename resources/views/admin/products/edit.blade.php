@@ -131,38 +131,7 @@
                                 </div>
                             </div>
 
-                            {{-- Pricing Section --}}
-                            <div
-                                class="p-0 p-lg-4 bg-transparent bg-lg-light rounded-4 mt-3 mt-lg-4 mb-0 mb-lg-4 border-lg">
-                                <h6 class="fw-bold mb-3 text-dark d-none d-lg-block"><i class="fas fa-tag me-2"></i>Pricing
-                                </h6>
-                                <div class="row g-3">
-                                    <div class="col-12 col-md-6">
-                                        <label class="form-label fw-bold text-dark d-none d-lg-block">Selling Price (SRP)
-                                            <span class="text-danger">*</span></label>
-                                        <div
-                                            class="input-group input-group-lg shadow-sm rounded-3 overflow-hidden border-0">
-                                            <span
-                                                class="input-group-text bg-success bg-opacity-10 text-success fw-bold border-0 fs-5">₱</span>
-                                            <input type="number" step="0.01" name="price"
-                                                class="form-control bg-light border-0 fw-bold fs-4 text-dark"
-                                                value="{{ $product->price }}" required>
-                                        </div>
-                                        <div class="form-text small d-lg-none ms-1">Selling Price</div>
-                                    </div>
-                                    <div class="col-12 col-md-6">
-                                        <label class="form-label text-muted d-none d-lg-block">Cost Price (Puhanan)</label>
-                                        <div
-                                            class="input-group input-group-lg shadow-sm rounded-3 overflow-hidden border-0">
-                                            <span class="input-group-text bg-light border-0 text-muted fs-5">₱</span>
-                                            <input type="number" step="0.01" name="cost"
-                                                class="form-control bg-light border-0 fw-bold fs-4 text-secondary"
-                                                value="{{ $product->cost }}">
-                                        </div>
-                                        <div class="form-text small d-lg-none ms-1">Cost Price (Optional)</div>
-                                    </div>
-                                </div>
-                            </div>
+
 
                             {{-- DESKTOP: Image Upload --}}
                             <div class="mb-2 d-none d-lg-block mt-4">
@@ -194,8 +163,43 @@
                         @include('admin.products.partials.pricing_tiers')
                     </div>
 
-                    {{-- Right Column: Inventory & Barcode --}}
-                    <div class="col-lg-4">
+                    {{-- Pricing Card --}}
+                    <div class="card shadow-sm border-0 rounded-0 rounded-lg-4 overflow-hidden mb-3 mb-lg-4">
+                        <div class="card-header bg-white py-3 border-bottom d-none d-lg-block">
+                            <h6 class="fw-bold mb-0 text-dark"><i class="fas fa-tag me-2 text-success"></i>Pricing</h6>
+                        </div>
+                        <div class="card-body p-3 p-lg-4">
+                            <div class="row g-3">
+                                <div class="col-12 col-md-6">
+                                    <label class="form-label fw-bold text-dark d-none d-lg-block">Selling Price (SRP) <span
+                                            class="text-danger">*</span></label>
+                                    <div class="input-group input-group-lg shadow-sm rounded-3 overflow-hidden border-0">
+                                        <span
+                                            class="input-group-text bg-success bg-opacity-10 text-success fw-bold border-0 fs-5">₱</span>
+                                        <input type="number" step="0.01" name="price"
+                                            class="form-control bg-light border-0 fw-bold fs-4 text-dark"
+                                            value="{{ $product->price }}" required>
+                                    </div>
+                                    <div class="form-text small d-lg-none ms-1">Selling Price</div>
+                                </div>
+                                <div class="col-12 col-md-6">
+                                    <label class="form-label text-muted d-none d-lg-block">Cost Price</label>
+                                    <div class="input-group input-group-lg shadow-sm rounded-3 overflow-hidden border-0">
+                                        <span class="input-group-text bg-light text-muted border-0 fs-5">₱</span>
+                                        <input type="number" step="0.01" name="cost"
+                                            class="form-control bg-light border-0 fw-bold fs-4 text-secondary"
+                                            value="{{ $product->cost }}">
+                                    </div>
+                                    <div class="form-text small d-lg-none ms-1">Cost Price (Optional)</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                {{-- Right Column: Inventory & Barcode --}}
+                <div class="col-lg-4">
 
                         {{-- Barcode Card --}}
                         <div class="card shadow-sm border-0 rounded-0 rounded-lg-4 mb-3 mb-lg-4">
@@ -307,6 +311,20 @@
                     if (words[i].length > 0) words[i] = words[i][0].toUpperCase() + words[i].substr(1);
                 }
                 this.value = words.join(' ');
+            });
+
+            // TRIGGER UPDATE ON ENTER KEY
+            document.getElementById('editProductForm').addEventListener('keydown', function(event) {
+                if (event.key === 'Enter') {
+                    const target = event.target;
+                    if (target.tagName === 'INPUT') {
+                         event.preventDefault();
+                         // We need the ID. It is available via blade injection in the onclick handler below,
+                         // but we can also get it from the variable passed to the view or just use the function argument.
+                         // Since we are in the script tag, we can output the ID using Blade.
+                         validateAndUpdate({{ $product->id }});
+                    }
+                }
             });
         });
 

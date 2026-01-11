@@ -13,18 +13,20 @@ class ActivityLogController extends Controller
     public function index(Request $request, LogIntegrityService $integrityService)
     {
         // Check integrity on page load (lightweight enough for now, or cache it)
+        // Check integrity on page load
         $integrityStatus = $integrityService->verifyChain();
+        // $integrityStatus is now an array: ['status' => 'OK'] or ['status' => 'TAMPERED', ...]
 
         $query = ActivityLog::with('user')->latest();
 
         // 1. Search (Description or User Name)
         if ($request->filled('search')) {
             $search = $request->search;
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->where('description', 'like', "%{$search}%")
-                  ->orWhereHas('user', function($u) use ($search) {
-                      $u->where('name', 'like', "%{$search}%");
-                  });
+                    ->orWhereHas('user', function ($u) use ($search) {
+                        $u->where('name', 'like', "%{$search}%");
+                    });
             });
         }
 
@@ -39,7 +41,7 @@ class ActivityLogController extends Controller
         }
 
         $logs = $query->paginate(20)->withQueryString();
-        
+
         return view('admin.logs.index', compact('logs', 'integrityStatus'));
     }
 }

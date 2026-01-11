@@ -324,11 +324,56 @@
         let existingProductId = null;
 
         async function validateAndSubmit() {
+            // 1. DEFINE RECOMMENDED FIELDS
+            const requiredFields = [
+                { selector: 'input[name="name"]', label: 'Product Name' },
+                { selector: 'select[name="category_id"]', label: 'Category' },
+                // Tax Type is usually hidden or defaulted, check existence first
+                { selector: 'select[name="tax_type"]', label: 'Tax Type' },
+                { selector: 'input[name="unit"]', label: 'Unit' },
+                { selector: 'input[name="price"]', label: 'Selling Price' }
+            ];
+
+            let firstError = null;
+            let missingLabels = [];
+
+            // 2. VALIDATE FIELDS
+            requiredFields.forEach(field => {
+                const el = document.querySelector(field.selector);
+                if (el) {
+                    // Reset previous invalid state
+                    el.classList.remove('is-invalid');
+
+                    // Check validity
+                    if (!el.value || el.value.trim() === '') {
+                        el.classList.add('is-invalid');
+                        missingLabels.push(field.label);
+                        if (!firstError) firstError = el;
+
+                        // Add listener to remove error on input
+                        el.addEventListener('input', function () {
+                            this.classList.remove('is-invalid');
+                        }, { once: true });
+                    }
+                }
+            });
+
+            // 3. HANDLE ERRORS
+            if (missingLabels.length > 0) {
+                // Scroll to first error
+                if (firstError) {
+                    firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    firstError.focus();
+                }
+
+                // Show Error Message
+                alert("Please fill in the following recommended fields:\n- " + missingLabels.join("\n- "));
+                return; // STOP SUBMISSION
+            }
+
             const nameInput = document.querySelector('input[name="name"]');
             const skuInput = document.querySelector('input[name="sku"]');
             const form = document.getElementById('addProductForm');
-
-            if (!nameInput.value) { alert("Product Name is required"); return; }
 
             const formData = {
                 name: nameInput.value,
@@ -459,6 +504,20 @@
                     this.value = words.join(' ');
                 });
             }
+
+            // TRIGGER SUBMIT ON ENTER KEY
+            document.getElementById('addProductForm').addEventListener('keydown', function (event) {
+                if (event.key === 'Enter') {
+                    const target = event.target;
+                    // Only trigger if focused on an input (text/number/date etc) and NOT a textarea or button
+                    // Also ensure we are not in the Scanner Modal (scanner has its own controls)
+                    // Check if target is an INPUT tag
+                    if (target.tagName === 'INPUT') {
+                        event.preventDefault(); // Prevent default form submit which skips validation
+                        validateAndSubmit();
+                    }
+                }
+            });
 
         });
     </script>

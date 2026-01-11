@@ -9,10 +9,17 @@ use Illuminate\Support\Facades\Hash;
 class ProfileController extends Controller
 {
     protected $mpinService;
+    protected $otpService;
+    protected $notifier;
 
-    public function __construct(\App\Services\Auth\MpinService $mpinService)
-    {
+    public function __construct(
+        \App\Services\Auth\MpinService $mpinService,
+        \App\Services\Otp\OtpServiceInterface $otpService,
+        \App\Services\Notification\OtpNotificationService $notifier
+    ) {
         $this->mpinService = $mpinService;
+        $this->otpService = $otpService;
+        $this->notifier = $notifier;
     }
 
     // 1. Show Profile Page
@@ -23,59 +30,229 @@ class ProfileController extends Controller
         return view('admin.profile', compact('user', 'hasMpin'));
     }
 
-    // 2. Update Profile
-    public function update(Request $request)
+    // 2. Update Basic Info (Name, Birthdate, Gender)
+    public function updateInfo(Request $request)
     {
-        \Illuminate\Support\Facades\Log::info('Profile Update Request', [
-            'has_file' => $request->hasFile('photo'),
-            'all' => $request->all(),
-            'user_id' => Auth::id()
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'birthdate' => 'nullable|date',
+            'gender' => 'nullable|string|in:Male,Female,Other',
         ]);
+
+        $user = Auth::user();
+        $user->name = $request->name;
+        $user->birthdate = $request->birthdate;
+        $user->gender = $request->gender;
+        $user->save();
+
+        return back()->with('success', 'Profile details updated successfully.');
+    }
+
+    // 3. Update Photo
+    public function updatePhoto(Request $request)
+    {
+        $request->validate([
+            'photo' => 'required|image|mimes:jpeg,png,jpg|max:2048',
+        ]);
+
+        $user = Auth::user();
+
+        if ($user->profile_photo_path) {
+            \Illuminate\Support\Facades\Storage::disk('public')->delete($user->profile_photo_path);
+        }
+
+        $path = $request->file('photo')->store('profile-photos', 'public');
+        $user->profile_photo_path = $path;
+        $user->save();
+
+        return back()->with('success', 'Profile photo updated.');
+    }
+
+    // 4. Update Security (Password & MPIN)
+    public function updateSecurity(Request $request)
+    {
         $user = Auth::user();
 
         $request->validate([
-            'name' => 'required|string|max:255',
-            'photo' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
-            'current_password' => 'required|current_password', // Always required for security
+            'current_password' => 'required|current_password',
             'password' => 'nullable|min:6|confirmed',
-            'current_mpin' => 'nullable|required_with:mpin|digits_between:7,16', // Required if setting new MPIN
+            'current_mpin' => 'nullable|required_with:mpin|digits_between:7,16',
             'mpin' => 'nullable|digits_between:7,16|confirmed',
         ]);
 
-        // Update basic info
-        $user->name = $request->name;
-
-        // Handle Photo Upload
-        if ($request->hasFile('photo')) {
-            // Delete old photo if exists
-            if ($user->profile_photo_path) {
-                \Illuminate\Support\Facades\Storage::disk('public')->delete($user->profile_photo_path);
-            }
-
-            // Store new photo
-            $path = $request->file('photo')->store('profile-photos', 'public');
-            $user->profile_photo_path = $path;
-        }
-
-        // Update password if provided
+        // Update Password
         if ($request->filled('password')) {
             $user->password = Hash::make($request->password);
         }
 
-        // Update MPIN if provided
+        // Update MPIN
         if ($request->filled('mpin')) {
-            // Verify existing MPIN if one exists
             if ($this->mpinService->hasMpin($user)) {
                 if (!$this->mpinService->verifyMpin($user, $request->current_mpin)) {
                     return back()->withErrors(['current_mpin' => 'The provided current MPIN is incorrect.']);
                 }
             }
-
             $this->mpinService->setMpin($user, $request->mpin);
         }
 
         $user->save();
 
-        return back()->with('success', 'Profile updated successfully.');
+        return back()->with('success', 'Security settings updated successfully.');
+    }
+    // 3. Initiate Email Verification
+    public function initiateEmailVerification(Request $request)
+    {
+        $user = Auth::user();
+
+        if ($user->hasVerifiedEmail()) {
+            return response()->json(['success' => false, 'message' => 'Email is already verified.']);
+        }
+
+        $code = $this->otpService->generate($user->email, 'email_verification');
+
+        // Send OTP
+        try {
+            $this->notifier->sendViaEmail($user, $code, 'Verify Your Email');
+            return response()->json(['success' => true, 'message' => 'Verification code sent to your email.']);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Email Verification OTP Send Error: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Failed to send verification email. Please try again.']);
+        }
+    }
+
+    // 4. Check Email Verification
+    public function checkEmailVerification(Request $request)
+    {
+        $request->validate(['code' => 'required|string|size:6']);
+        $user = Auth::user();
+
+        if ($this->otpService->validate($user->email, $request->code, 'email_verification')) {
+            $user->markEmailAsVerified();
+            return response()->json(['success' => true, 'message' => 'Email verified successfully!']);
+        }
+
+        return response()->json(['success' => false, 'message' => 'Invalid or expired verification code.']);
+    }
+    // ==========================================
+    // SECURE EMAIL CHANGE FLOW
+    // ==========================================
+
+    // Step 1: Verify Password & Send OTP to Current Email
+    public function initiateEmailChange(Request $request)
+    {
+        $request->validate(['password' => 'required|current_password']);
+
+        $user = Auth::user();
+
+        // Generate OTP for current email to prove ownership access
+        $code = $this->otpService->generate($user->email, 'email_change_current');
+
+        try {
+            $this->notifier->sendViaEmail($user, $code, 'Security Verification: Email Change Request');
+            return response()->json(['success' => true, 'message' => 'Password verified. OTP sent to your current email.']);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => 'Failed to send OTP.']);
+        }
+    }
+
+    // Step 2: Verify Current OTP
+    public function verifyCurrentEmailOtp(Request $request)
+    {
+        $request->validate(['otp' => 'required|string|size:6']);
+        $user = Auth::user();
+
+        if ($this->otpService->validate($user->email, $request->otp, 'email_change_current')) {
+            // Mark step 1 as complete only in session/cache if needed, 
+            // but for now we trust the client to move to step 3 immediately 
+            // (real security would require server-side state tracking here)
+            session(['email_change_verified_current' => true]);
+            return response()->json(['success' => true, 'message' => 'Current email verified. Please enter new email.']);
+        }
+
+        return response()->json(['success' => false, 'message' => 'Invalid OTP.']);
+    }
+
+    // Step 3: Request OTP for New Email
+    public function requestNewEmailOtp(Request $request)
+    {
+        if (!session('email_change_verified_current')) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized sequence.']);
+        }
+
+        $validator = \Illuminate\Support\Facades\Validator::make($request->all(), [
+            'new_email' => 'required|email|unique:users,email'
+        ]);
+
+        if ($validator->fails()) {
+            // Check if specific error is about uniqueness
+            if ($validator->errors()->has('new_email')) {
+                $errors = $validator->errors()->get('new_email');
+                foreach ($errors as $error) {
+                    if (str_contains(strtolower($error), 'taken') || str_contains(strtolower($error), 'exists')) {
+                        return response()->json(['success' => false, 'message' => 'Email Already Taken']);
+                    }
+                }
+                return response()->json(['success' => false, 'message' => $errors[0]]);
+            }
+            return response()->json(['success' => false, 'message' => 'Invalid email address.']);
+        }
+
+        $newEmail = $request->new_email;
+        $code = $this->otpService->generate($newEmail, 'email_change_new'); // Key by new email!
+
+        // Store temp email in session for final step
+        session(['temp_new_email' => $newEmail]);
+
+        try {
+            // Hack for Notifier Service if it requires User model:
+            $tempUser = clone Auth::user();
+            $tempUser->email = $newEmail;
+            $this->notifier->sendViaEmail($tempUser, $code, 'Verify Your New Email Address');
+
+            return response()->json(['success' => true, 'message' => 'OTP sent to ' . $newEmail]);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => 'Failed to send OTP to new email.']);
+        }
+    }
+
+    // Step 4: Confirm New Email & Update
+    public function confirmNewEmail(Request $request)
+    {
+        $request->validate(['otp' => 'required|string|size:6']);
+
+        if (!session('email_change_verified_current') || !session('temp_new_email')) {
+            return response()->json(['success' => false, 'message' => 'Session expired. Please start over.']);
+        }
+
+        $newEmail = session('temp_new_email');
+
+        if ($this->otpService->validate($newEmail, $request->otp, 'email_change_new')) {
+            $user = Auth::user();
+            $oldEmail = $user->email;
+
+            // UPDATE EMAIL
+            $user->email = $newEmail;
+            $user->email_verified_at = now(); // Mark new email as verified since we just did it
+            $user->save();
+
+            // Cleanup
+            session()->forget(['email_change_verified_current', 'temp_new_email']);
+
+            // Optional: Notify OLD email that it has been changed
+            try {
+                // We need to send to the OLD email. 
+                $oldUserStub = clone $user;
+                $oldUserStub->email = $oldEmail;
+                // We can use a generic notification or just skip for now to keep it simple as requested flow didn't strictly demand it, 
+                // but user said "Notify the owner that it change his recovery email".
+                $this->notifier->sendViaEmail($oldUserStub, 'Your account email was just changed to ' . $newEmail, 'Security Alert: Email Changed');
+            } catch (\Exception $e) {
+                // Non-blocking
+            }
+
+            return response()->json(['success' => true, 'message' => 'Email updated successfully!']);
+        }
+
+        return response()->json(['success' => false, 'message' => 'Invalid OTP.']);
     }
 }

@@ -194,6 +194,93 @@ class ProductController extends Controller
         return view('admin.products.create', compact('categories'));
     }
 
+    // --- BATCH CREATE ---
+    public function batchCreate()
+    {
+        if (!Auth::user()->hasPermission(\App\Enums\Permission::INVENTORY_EDIT->value)) {
+            abort(403);
+        }
+        $categories = Category::all();
+        return view('admin.products.batch_create', compact('categories'));
+    }
+
+    public function batchStore(Request $request)
+    {
+        if (!Auth::user()->hasPermission(\App\Enums\Permission::INVENTORY_EDIT->value)) {
+            abort(403);
+        }
+
+        $request->validate([
+            'products' => 'required|array|min:1',
+            'products.*.name' => 'required|string',
+            'products.*.category_id' => 'required|exists:categories,id',
+            'products.*.price' => 'required|numeric|min:0',
+            'products.*.cost' => 'nullable|numeric|min:0',
+            'products.*.unit' => 'required|string',
+            'products.*.sku' => 'nullable|string',
+            'products.*.expiration_date' => 'nullable|date',
+            'products.*.reorder_point' => 'nullable|integer|min:0',
+        ]);
+
+        $storeId = $this->getActiveStoreId();
+        $count = 0;
+
+        DB::beginTransaction();
+        try {
+            foreach ($request->products as $item) {
+                // Skip empty rows if name is missing (double check)
+                if (empty($item['name']))
+                    continue;
+
+                // Check SKU Uniqueness if SKU is provided
+                if (!empty($item['sku'])) {
+                    $exists = Product::where('store_id', $storeId)->where('sku', $item['sku'])->exists();
+                    if ($exists) {
+                        throw new \Exception("SKU '{$item['sku']}' already exists for product '{$item['name']}'.");
+                    }
+                }
+
+                $product = Product::create([
+                    'store_id' => $storeId,
+                    'name' => \Illuminate\Support\Str::title($item['name']),
+                    'category_id' => $item['category_id'],
+                    'price' => $item['price'],
+                    'cost' => $item['cost'] ?? null,
+                    'unit' => $item['unit'],
+                    'sku' => $item['sku'] ?? null,
+                    'tax_type' => $item['tax_type'] ?? 'vatable',
+                    'expiration_date' => $item['expiration_date'] ?? null,
+                    'stock' => 0, // Default 0
+                ]);
+
+                // Create Inventory
+                Inventory::create([
+                    'product_id' => $product->id,
+                    'store_id' => $storeId,
+                    'stock' => isset($item['stock']) ? intval($item['stock']) : 0,
+                    'reorder_point' => isset($item['reorder_point']) ? intval($item['reorder_point']) : 10,
+                ]);
+
+                $count++;
+            }
+
+            ActivityLog::create([
+                'user_id' => Auth::id(),
+                'store_id' => $storeId,
+                'action' => 'Batch Created Products',
+                'description' => "Batch created {$count} products."
+            ]);
+
+            DB::commit();
+            return redirect()->route('products.index')->with('success', "{$count} products added successfully.");
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->withInput()->with('error', 'Batch save failed: ' . $e->getMessage());
+        }
+    }
+    // --------------------
+
     // ... inside ProductController class ...
 
     // --- ADD THIS METHOD ---

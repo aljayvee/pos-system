@@ -134,7 +134,7 @@
                                             @if($product->image)
                                                 <img src="{{ asset('storage/' . $product->image) }}"
                                                     class="rounded-circle object-fit-cover border me-3"
-                                                    style="width: 40px; height: 40px;" alt="{{ $product->name }}">
+                                                    style="width: 40px; height: 40px;" alt="{{ $product->name }}" loading="lazy">
                                             @else
                                                 <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center me-3"
                                                     style="width: 40px; height: 40px;">
@@ -199,7 +199,7 @@
                             @if($product->image)
                                 <img src="{{ asset('storage/' . $product->image) }}"
                                     class="rounded-3 object-fit-cover border flex-shrink-0" style="width: 50px; height: 50px;"
-                                    alt="{{ $product->name }}">
+                                    alt="{{ $product->name }}" loading="lazy">
                             @else
                                 <div class="bg-light rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
                                     style="width: 50px; height: 50px;">

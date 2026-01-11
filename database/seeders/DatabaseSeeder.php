@@ -16,7 +16,7 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call([
-            AdminSeeder::class,
+                // AdminSeeder::class, // Disabled for Fresh Start / Setup Wizard
             RestoreMasterStore::class,
         ]);
     }

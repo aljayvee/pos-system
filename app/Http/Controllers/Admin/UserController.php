@@ -40,11 +40,15 @@ class UserController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email',
-            'password' => 'required|min:6|confirmed',
-            'role' => 'required|in:admin,cashier,manager,supervisor,stock_clerk,auditor',
-            'approver_id' => 'nullable|exists:users,id' // Validate approver if sent
+            'first_name' => 'required|string|max:255',
+            'last_name' => 'required|string|max:255',
+            'email' => 'required|string|email|max:255|unique:users',
+            'role' => 'required|string',
+            'assigned_branch' => 'nullable|string',
+            'password' => 'required|string|min:8|confirmed',
+            'birthdate' => 'nullable|date',
+            'gender' => 'nullable|string|in:Male,Female,Other',
+            'approver_id' => 'nullable|exists:users,id'
         ]);
 
         // STRICT RULE: Manager cannot create Admin (Backend Check)
@@ -71,11 +75,20 @@ class UserController extends Controller
             }
         }
 
+        $fullName = $request->first_name . ' ' . $request->last_name;
+
         $user = User::create([
-            'name' => $request->name,
+            'name' => $request->first_name . ' ' . $request->last_name,
+            'first_name' => $request->first_name,
+            'last_name' => $request->last_name,
             'email' => $request->email,
-            'password' => Hash::make($request->password),
             'role' => $request->role,
+            'assigned_branch' => $request->assigned_branch,
+            'password' => Hash::make($request->password),
+            'birthdate' => $request->birthdate,
+            // 'age' => $request->age, // Removed
+            'gender' => $request->gender,
+            'permissions' => [],
             // Allow Admin to set store, else default to current context
             'store_id' => auth()->user()->role === 'admin' ? ($request->store_id ?? $this->getActiveStoreId()) : $this->getActiveStoreId(),
             'is_active' => $isActive

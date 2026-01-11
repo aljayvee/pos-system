@@ -361,11 +361,8 @@
         {{-- DESKTOP SIDEBAR --}}
         <aside class="app-sidebar d-none d-lg-flex">
             <div class="sidebar-brand">
-                <div class="bg-primary text-white rounded-3 d-flex align-items-center justify-content-center shadow-lg"
-                    style="width: 40px; height: 40px;">
-                    <i class="fas fa-cash-register"></i>
-                </div>
-                <span class="text">VeraPOS</span>
+                <img src="{{ asset('images/verapos_logo.jpg') }}" alt="VeraPOS" class="img-fluid rounded-3"
+                    style="max-height: 50px; max-width: 100%; mix-blend-multiply;">
             </div>
 
             <nav class="sidebar-nav">

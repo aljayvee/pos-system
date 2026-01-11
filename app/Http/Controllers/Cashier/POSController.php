@@ -578,6 +578,20 @@ class POSController extends Controller
             // The 'total_amount' in sales table is usually the Grand Total Receivable.
             // So we keep $finalTotal as the gross.
 
+            // [SECURITY FIX] Validate Payment Amount against Server-Calculated Total
+            $netPayable = $finalTotal - $pointsDiscount;
+            // Ensure netPayable is not negative (edge case where points > total)
+            if ($netPayable < 0)
+                $netPayable = 0;
+
+            if ($request->payment_method === 'cash') {
+                $tendered = $request->amount_paid;
+                // Allow small floating point tolerance (0.05) to prevent friction, or strict 0.01
+                if (($tendered - $netPayable) < -0.05) {
+                    throw new \Exception("Insufficient payment amount. Total Due: ₱" . number_format($netPayable, 2) . ", Tendered: ₱" . number_format($tendered, 2));
+                }
+            }
+
             // 6. CREATE SALE RECORD
             $sale = Sale::create([
                 'store_id' => $storeId,

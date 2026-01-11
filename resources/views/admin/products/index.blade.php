@@ -19,6 +19,10 @@
                         data-bs-target="#importModal">
                         <i class="fas fa-file-import me-2 text-secondary"></i>Import CSV
                     </button>
+                    <a href="{{ route('products.batch_create') }}"
+                        class="btn btn-white border shadow-sm rounded-pill px-4 fw-bold">
+                        <i class="fas fa-table me-2 text-primary"></i>Batch Create
+                    </a>
                     <a href="{{ route('products.create') }}" class="btn btn-primary shadow-lg rounded-pill px-4 fw-bold">
                         <i class="fas fa-plus-circle me-2"></i>Add New Product
                     </a>
@@ -148,7 +152,7 @@
                                         @if($product->image)
                                             <img src="{{ asset('storage/' . $product->image) }}"
                                                 class="rounded-3 object-fit-cover border" style="width: 40px; height: 40px;"
-                                                alt="{{ $product->name }}">
+                                                alt="{{ $product->name }}" loading="lazy">
                                         @else
                                             <div class="rounded-3 bg-primary bg-opacity-10 text-primary d-flex align-items-center justify-content-center fw-bold"
                                                 style="width: 40px; height: 40px; flex-shrink: 0;">
@@ -208,6 +212,11 @@
                 <div class="d-flex align-items-center gap-2 mb-2">
                     <h5 class="fw-bold text-dark m-0 tracking-tight flex-grow-1">Products</h5>
                     @can('inventory.edit')
+                        <a href="{{ route('products.batch_create') }}"
+                            class="btn btn-light rounded-circle border shadow-sm d-flex align-items-center justify-content-center"
+                            style="width: 40px; height: 40px;">
+                            <i class="fas fa-table text-primary"></i>
+                        </a>
                         <button class="btn btn-light rounded-circle border shadow-sm" data-bs-toggle="modal"
                             data-bs-target="#importModal" style="width: 40px; height: 40px;">
                             <i class="fas fa-file-import text-secondary"></i>
@@ -312,7 +321,7 @@
                             @if($product->image)
                                 <img src="{{ asset('storage/' . $product->image) }}"
                                     class="rounded-3 object-fit-cover border flex-shrink-0" style="width: 50px; height: 50px;"
-                                    alt="{{ $product->name }}">
+                                    alt="{{ $product->name }}" loading="lazy">
                             @else
                                 <div class="rounded-3 bg-primary bg-opacity-10 text-primary d-flex align-items-center justify-content-center fw-bold flex-shrink-0"
                                     style="width: 50px; height: 50px;">

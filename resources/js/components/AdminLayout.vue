@@ -39,22 +39,25 @@
                </button>
 
                <div class="d-flex align-items-center text-nowrap">
-                   <div v-if="!isMobile || !userPhoto" class="rounded-3 d-flex align-items-center justify-content-center text-white shadow-sm hover-scale transition-all" 
-                        style="width: 42px; height: 42px; background: linear-gradient(135deg, #4f46e5 0%, #818cf8 100%);">
-                      <i class="fas fa-layer-group fa-lg"></i>
-                   </div>
-                   <!-- Mobile Photo Brand -->
-                   <img v-else :src="userPhoto" class="rounded-circle shadow-sm border" style="width: 42px; height: 42px; object-fit: cover;">
+                   <!-- Desktop Logo -->
+                   <img v-if="!isMobile" src="/images/verapos_logo.jpg" alt="VeraPOS" 
+                        class="img-fluid transition-all" 
+                        :class="isOpen ? 'h-auto w-auto max-h-[50px]' : 'w-100 rounded-3'"
+                        style="max-height: 50px; object-fit: contain; mix-blend-multiply;">
 
-                   <!-- TITLE -->
-                   <div class="ms-3 d-flex flex-column justify-content-center fade-text" v-show="isOpen || isMobile">
-                       <span class="fw-bold fs-5 tracking-tight text-dark" v-if="!isMobile" style="font-family: 'Inter', sans-serif;">VERAPOS</span>
-                       
-                       <!-- Mobile Profile Header -->
-                       <template v-else>
-                           <span class="fw-bold text-dark leading-none small">{{ userName }}</span>
-                           <span class="text-muted small" style="font-size: 0.7rem;">{{ userRole.toUpperCase() }}</span>
-                       </template>
+                   <!-- Mobile Photo Brand -->
+                   <div v-else class="d-flex align-items-center">
+                        <div v-if="!userPhoto" class="rounded-3 d-flex align-items-center justify-content-center text-white shadow-sm" 
+                             style="width: 42px; height: 42px; background: linear-gradient(135deg, #4f46e5 0%, #818cf8 100%);">
+                           <i class="fas fa-layer-group fa-lg"></i>
+                        </div>
+                        <img v-else :src="userPhoto" class="rounded-circle shadow-sm border" style="width: 42px; height: 42px; object-fit: cover;" loading="lazy">
+                        
+                        <!-- Mobile Profile Header -->
+                        <div class="ms-3 d-flex flex-column justify-content-center">
+                            <span class="fw-bold text-dark leading-none small">{{ userName }}</span>
+                            <span class="text-muted small" style="font-size: 0.7rem;">{{ userRole.toUpperCase() }}</span>
+                        </div>
                    </div>
                </div>
            </div>
@@ -307,7 +310,7 @@
                          style="width: 36px; height: 36px; font-size: 0.9rem; background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%);">
                         {{ userName.charAt(0).toUpperCase() }}
                     </div>
-                    <img v-else :src="userPhoto" class="rounded-circle shadow-sm" style="width: 36px; height: 36px; object-fit: cover;">
+                    <img v-else :src="userPhoto" class="rounded-circle shadow-sm" style="width: 36px; height: 36px; object-fit: cover;" loading="lazy">
                     
                     <span class="d-none d-sm-block fw-bold text-dark small ms-1">{{ userName }}</span>
                     <i class="fas fa-chevron-down text-muted small ms-1 transition-transform" :class="{ 'rotate-180': accountDropdownOpen }"></i>
@@ -328,7 +331,7 @@
                                          style="width: 64px; height: 64px; font-size: 1.8rem; font-family: monospace;">
                                         {{ userName.charAt(0).toUpperCase() }}
                                     </div>
-                                    <img v-else :src="userPhoto" class="rounded-circle bg-white shadow-lg mx-auto mb-3 border border-4 border-white border-opacity-25" style="width: 64px; height: 64px; object-fit: cover;">
+                                    <img v-else :src="userPhoto" class="rounded-circle bg-white shadow-lg mx-auto mb-3 border border-4 border-white border-opacity-25" style="width: 64px; height: 64px; object-fit: cover;" loading="lazy">
 
                                     <h6 class="fw-bold mb-1">{{ userName }}</h6>
                                     <span class="badge bg-white bg-opacity-25 rounded-pill px-3 py-1 small fw-normal">{{ userRole.toUpperCase() }}</span>

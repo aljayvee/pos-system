@@ -55,10 +55,8 @@
             <!-- Content -->
             <div class="relative z-10">
                 <div class="flex items-center gap-3 mb-8">
-                    <div class="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center backdrop-blur-sm">
-                        <i class="fas fa-layer-group text-xl"></i>
-                    </div>
-                    <span class="text-2xl font-bold tracking-tight">VeraPOS</span>
+                    <img src="{{ asset('images/verapos_logo.jpg') }}" alt="VeraPOS Logo"
+                        class="h-14 w-auto mix-blend-multiply rounded-lg">
                 </div>
             </div>
 
@@ -143,6 +141,12 @@
                             <label for="remember"
                                 class="ml-2 block text-sm text-gray-900 cursor-pointer select-none">Remember me</label>
                         </div>
+                        <div class="text-sm">
+                            <a href="{{ route('password.request') }}"
+                                class="font-medium text-indigo-600 hover:text-indigo-500">
+                                Forgot password?
+                            </a>
+                        </div>
                     </div>
 
                     <button type="submit" id="loginBtn"
@@ -168,13 +172,12 @@
                 </div>
 
                 @if(config('safety_flag_features.webauthn'))
-                <button type="button" onclick="WebAuthn.login()"
-                    class="w-full flex items-center justify-center gap-3 py-3 px-4 border-2 border-dashed border-gray-300 rounded-xl text-sm font-semibold text-gray-700 
-                           hover:bg-white hover:border-indigo-500 hover:text-indigo-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 
-                           transition-all duration-200 bg-transparent">
-                    <i class="fas fa-fingerprint text-xl"></i>
-                    <span>Use Passkey</span>
-                </button>
+                    <button type="button" onclick="WebAuthn.login()" class="w-full flex items-center justify-center gap-3 py-3 px-4 border-2 border-dashed border-gray-300 rounded-xl text-sm font-semibold text-gray-700 
+                                       hover:bg-white hover:border-indigo-500 hover:text-indigo-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 
+                                       transition-all duration-200 bg-transparent">
+                        <i class="fas fa-fingerprint text-xl"></i>
+                        <span>Use Passkey</span>
+                    </button>
                 @endif
 
             </div>
@@ -204,10 +207,10 @@
                     icon: 'error',
                     title: 'Login Failed',
                     html: `<ul class="text-sm text-left m-0 pl-4 list-disc">
-                                                @foreach($errors->all() as $error)
-                                                    <li>{{ $error }}</li>
-                                                @endforeach
-                                               </ul>`
+                                                            @foreach($errors->all() as $error)
+                                                                <li>{{ $error }}</li>
+                                                            @endforeach
+                                                           </ul>`
                 });
             });
         @endif

@@ -51,10 +51,8 @@
 
             <div class="relative z-10">
                 <div class="flex items-center gap-3 mb-6">
-                    <div class="bg-white/20 p-2 rounded-lg backdrop-blur-sm">
-                        <i class="fas fa-cube text-2xl"></i>
-                    </div>
-                    <span class="text-2xl font-bold tracking-tight">VeraPOS</span>
+                    <img src="{{ asset('images/verapos_logo.jpg') }}" alt="VeraPOS Logo"
+                        class="h-16 w-auto mix-blend-multiply rounded-lg">
                 </div>
                 <h1 class="text-5xl font-bold leading-tight mb-4">
                     Secure Access <br>

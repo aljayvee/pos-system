@@ -56,7 +56,10 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0, 0, 0, 0.7);
+            background-color: rgba(0, 0, 0, 0.6);
+            /* Slightly lighter for glass effect */
+            backdrop-filter: blur(10px);
+            /* Glassmorphism */
             z-index: 9999;
             display: none;
             justify-content: center;
@@ -64,20 +67,93 @@
             flex-direction: column;
             color: white;
             font-family: 'Inter', sans-serif;
-            /* Assuming Inter is used, fallback to sans-serif */
         }
 
-        #global-loading-overlay .spinner-border {
-            width: 3rem;
-            height: 3rem;
-            margin-bottom: 15px;
+        .loading-text {
+            margin-top: 25px;
+            font-size: 1rem;
+            font-weight: 300;
+            letter-spacing: 2px;
+            animation: pulse 1.5s ease-in-out infinite;
+            text-transform: uppercase;
         }
 
-        #global-loading-overlay h5 {
-            font-weight: 500;
-            letter-spacing: 0.5px;
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 0.5;
+                transform: scale(0.98);
+            }
+
+            50% {
+                opacity: 1;
+                transform: scale(1);
+            }
+        @keyframes pulse {
+            0%, 100% { opacity: 0.5; transform: scale(0.98); }
+            50% { opacity: 1; transform: scale(1); }
+        }
+
+        /* Skeleton Loading Styles */
+        #skeleton-loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #f1f5f9; /* Match body bg */
+            z-index: 9998; /* Just below global overlay */
+            display: none;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .skeleton-header {
+            height: 60px;
+            width: 100%;
+            background: #fff;
+            margin-bottom: 20px;
+            border-radius: 8px;
+        }
+
+        .skeleton-content {
+            display: flex;
+            gap: 20px;
+            height: calc(100% - 80px);
+        }
+
+        .skeleton-sidebar {
+            width: 250px;
+            height: 100%;
+            background: #fff;
+            border-radius: 8px;
+            display: none; /* Hidden on mobile by default */
+        }
+        
+        @media (min-width: 992px) {
+            .skeleton-sidebar { display: block; }
+        }
+
+        .skeleton-main {
+            flex: 1;
+            background: #fff;
+            border-radius: 8px;
+            height: 100%;
+        }
+
+        .skeleton-anim {
+            background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
+            background-size: 200% 100%;
+            animation: skeleton-loading 1.5s infinite;
+        }
+
+        @keyframes skeleton-loading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
         }
     </style>
+    <script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
 </head>
 <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -160,12 +236,19 @@
 
     @stack('modals')
 
-    <!-- Global Loading Overlay -->
+    <!-- Global Loading Overlay (Lottie) -->
     <div id="global-loading-overlay">
-        <div class="spinner-border text-light" role="status">
-            <span class="visually-hidden">Loading...</span>
+        <lottie-player src="https://assets5.lottiefiles.com/packages/lf20_t9gkkhz4.json" background="transparent" speed="1" style="width: 200px; height: 200px;" loop autoplay></lottie-player>
+        <div class="loading-text" style="margin-top: -40px;">Loading, please wait...</div>
+    </div>
+
+    <!-- Skeleton Loading Overlay -->
+    <div id="skeleton-loading-overlay">
+        <div class="skeleton-header skeleton-anim"></div>
+        <div class="skeleton-content">
+            <div class="skeleton-sidebar skeleton-anim"></div>
+            <div class="skeleton-main skeleton-anim"></div>
         </div>
-        <h5 class="mt-3">Loading, please wait...</h5>
     </div>
 
     {{-- 1. ADD THIS: Bootstrap JS Bundle (Required for Modals) --}}
@@ -189,10 +272,15 @@
 
         // Loading Overlay Logic
         document.addEventListener('DOMContentLoaded', function () {
-            const overlay = document.getElementById('global-loading-overlay');
+            const globalOverlay = document.getElementById('global-loading-overlay');
+            const skeletonOverlay = document.getElementById('skeleton-loading-overlay');
 
-            function showLoading() {
-                overlay.style.display = 'flex';
+            function showLoading(type = 'global') {
+                if (type === 'skeleton') {
+                    skeletonOverlay.style.display = 'block';
+                } else {
+                    globalOverlay.style.display = 'flex';
+                }
             }
 
             // 1. Form Submissions
@@ -214,7 +302,17 @@
                         return;
                     }
 
-                    showLoading();
+                    // Check if it's a SAME PAGE GET request (Search/Filter context)
+                    const isGet = form.method.toLowerCase() === 'get';
+                    const action = form.action || window.location.href;
+                    const actionPath = new URL(action, window.location.origin).pathname;
+                    const currentPath = window.location.pathname;
+
+                    if (isGet && actionPath === currentPath) {
+                        showLoading('skeleton');
+                    } else {
+                        showLoading('global');
+                    }
                 });
             });
 
@@ -266,15 +364,42 @@
                             return;
                         }
 
-                        showLoading();
+                        // Determine Loading Type
+                        // Logic: If path matches but params change, or it's just a query update -> Skeleton
+                        // For now, let's use a simple path check.
+                        const currentPath = window.location.pathname;
+                        const targetPath = new URL(link.href).pathname;
+
+                        if (currentPath === targetPath) {
+                            showLoading('skeleton');
+                        } else {
+                            showLoading('global');
+                        }
                     }
                 }
             });
 
+            // Handle Form Get Requests (Filter/Search)
+            forms.forEach(form => {
+                if (form.method.toLowerCase() === 'get') {
+                    const actionUrl = new URL(form.action || window.location.href, window.location.origin);
+                    if (actionUrl.pathname === window.location.pathname) {
+                        // It's a filter/search on the same page
+                        form.addEventListener('submit', function() {
+                             // This listener runs BEFORE the generic one below, so we can override?
+                             // No, duplicate execution. Better to handle logic inside the main submit handler.
+                             // Actually, let's just let the main handler call showLoading() 
+                             // and we modify showLoading logic or detecting logic there.
+                        });
+                    }
+                }
+            });
+            
             // Fallback: Hide overlay if page acts restored (bfcache)
             window.addEventListener('pageshow', function (event) {
                 if (event.persisted) {
-                    overlay.style.display = 'none';
+                    globalOverlay.style.display = 'none';
+                    skeletonOverlay.style.display = 'none';
                 }
             });
         });

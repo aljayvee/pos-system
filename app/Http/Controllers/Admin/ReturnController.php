@@ -43,25 +43,25 @@ class ReturnController extends Controller
         try {
             // Lock the Sale record first to ensure it exists and isn't being modified
             $sale = Sale::with(['saleItems.product', 'customer'])
-                        ->where('id', $saleId)
-                        ->lockForUpdate()
-                        ->firstOrFail();
+                ->where('id', $saleId)
+                ->lockForUpdate()
+                ->firstOrFail();
 
             foreach ($request->items as $itemData) {
                 $productId = $itemData['product_id'];
                 $returnQty = $itemData['quantity'];
-                
+
                 // 1. Verify Item Quantity (Consistency)
                 $saleItem = SaleItem::where('sale_id', $sale->id)
-                            ->where('product_id', $productId)
-                            ->firstOrFail();
+                    ->where('product_id', $productId)
+                    ->firstOrFail();
 
                 // Check previously returned quantity
                 // We lock this query too to prevent double returns happening simultaneously
                 $alreadyReturned = SalesReturn::where('sale_id', $sale->id)
-                                    ->where('product_id', $productId)
-                                    ->lockForUpdate() 
-                                    ->sum('quantity');
+                    ->where('product_id', $productId)
+                    ->lockForUpdate()
+                    ->sum('quantity');
 
                 if (($returnQty + $alreadyReturned) > $saleItem->quantity) {
                     throw new \Exception("Cannot return more items than purchased for Product ID: $productId");
@@ -91,32 +91,32 @@ class ReturnController extends Controller
 
                 // 5. Adjust Financials (The Critical Fix)
                 if ($sale->payment_method === 'credit' && $sale->customer_id) {
-                    
+
                     // LOCK the credit record before modifying it
                     $credit = CustomerCredit::where('sale_id', $sale->id)
-                                ->lockForUpdate()
-                                ->first();
+                        ->lockForUpdate()
+                        ->first();
 
                     if ($credit) {
                         // Safe to modify now
                         $credit->remaining_balance -= $refundAmount;
-                        
+
                         if ($credit->remaining_balance <= 0) {
                             $credit->remaining_balance = 0;
                             $credit->is_paid = true;
                         } else {
                             // If balance reappears (e.g., negative refund?), mark unpaid
-                            $credit->is_paid = false; 
+                            $credit->is_paid = false;
                         }
-                        
+
                         $credit->save();
                     }
                 }
             }
 
             DB::commit(); // Commit all changes
-            return redirect()->route('admin.transactions.show', $sale->id)
-                             ->with('success', 'Return processed successfully.');
+            return redirect()->route('transactions.show', $sale->id)
+                ->with('success', 'Return processed successfully.');
 
         } catch (\Exception $e) {
             DB::rollBack();

@@ -16,6 +16,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // --- 1. Register the Single Device Check Globally ---
         $middleware->append(\App\Http\Middleware\ForceSingleDevice::class);
         $middleware->append(\App\Http\Middleware\LogUserActivity::class); // Log every click
+        $middleware->append(\App\Http\Middleware\EnsureSystemSetup::class); // Force Onboarding if empty
     
         // --- ADD THIS BLOCK ---
         $middleware->validateCsrfTokens(except: [

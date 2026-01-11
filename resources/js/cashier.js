@@ -235,45 +235,7 @@ window.removeDiscount = function () {
     updateCartUI();
 };
 
-function updateCartUI() {
-    localStorage.setItem('pos_cart', JSON.stringify(cart));
-
-    let html = '';
-    if (cart.length === 0) {
-        html = `
-        <div class="text-center py-5 text-muted empty-cart-msg">
-            <i class="fas fa-shopping-basket fa-3x mb-3 opacity-25"></i>
-            <p>Your cart is empty</p>
-        </div>`;
-    } else {
-        html = cart.map((item, index) => {
-            const lineTotal = item.price * item.qty;
-            return `
-        <div class="d-flex align-items-center justify-content-between p-2 mb-2 bg-white rounded-3 shadow-sm product-card-wrapper">
-            <div class="d-flex align-items-center flex-grow-1" style="overflow:hidden;">
-                <div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0 me-3 bg-light" style="width: 50px; height: 50px;">
-                    ${item.image ? `<img src="/storage/${item.image}" class="w-100 h-100 rounded-3 object-fit-cover">` : '<i class="fas fa-box text-muted opacity-50"></i>'}
-                </div>
-                <div class="d-flex flex-column" style="min-width:0;">
-                    <span class="fw-bold text-dark text-truncate" style="font-size:0.9rem;">${item.name}</span>
-                    <small class="text-muted">₱${parseFloat(item.price).toFixed(2)} × ${item.qty}</small>
-                </div>
-            </div>
-            <div class="text-end me-3">
-                <div class="text-primary small fw-bold">₱${lineTotal.toFixed(2)}</div>
-            </div>
-            <div class="d-flex align-items-center bg-light rounded-pill border p-1">
-                <button class="btn btn-sm btn-link text-dark fw-bold p-0 d-flex align-items-center justify-content-center" style="width: 28px; height: 28px; text-decoration:none;" onclick="modifyQty(${index}, -1)">−</button>
-                <span class="fw-bold text-dark text-center" style="width: 24px; font-size: 0.9rem;">${item.qty}</span>
-                <button class="btn btn-sm btn-link text-dark fw-bold p-0 d-flex align-items-center justify-content-center" style="width: 28px; height: 28px; text-decoration:none;" onclick="modifyQty(${index}, 1)">+</button>
-            </div>
-            <button class="btn btn-link text-danger p-0 ms-2" onclick="removeItem(${index})"><i class="fas fa-trash-alt"></i></button>
-        </div>`;
-        }).join('');
-    }
-
-    document.querySelectorAll('#cart-items, #cart-items-desktop').forEach(el => el.innerHTML = html);
-
+window.getCartTotals = function () {
     let rawTotal = cart.reduce((acc, item) => acc + (item.price * item.qty), 0);
     let vatableSales = 0;
     let vatAmount = 0;
@@ -285,11 +247,9 @@ function updateCartUI() {
     const taxTypeRaw = CONFIG.taxType || 'inclusive';
     const isInclusive = (taxTypeRaw.toLowerCase() === 'inclusive');
 
-
     if (CONFIG.birEnabled === 1) {
         if (activeDiscount.type === 'senior' || activeDiscount.type === 'pwd') {
             // SENIOR/PWD LOGIC:
-            // 1. Remove VAT to get VAT Exempt Sales
             if (isInclusive) {
                 vatExemptSales = rawTotal / 1.12;
             } else {
@@ -325,8 +285,59 @@ function updateCartUI() {
         finalTotal = rawTotal;
     }
 
-    activeDiscount.amount = totalDiscount;
+    return {
+        rawTotal,
+        vatableSales,
+        vatAmount,
+        vatExemptSales,
+        totalDiscount,
+        finalTotal
+    };
+};
 
+function updateCartUI() {
+    localStorage.setItem('pos_cart', JSON.stringify(cart));
+
+    let html = '';
+    if (cart.length === 0) {
+        html = `
+        <div class="text-center py-5 text-muted empty-cart-msg">
+            <i class="fas fa-shopping-basket fa-3x mb-3 opacity-25"></i>
+            <p>Your cart is empty</p>
+        </div>`;
+    } else {
+        html = cart.map((item, index) => {
+            const lineTotal = item.price * item.qty;
+            return `
+        <div class="d-flex align-items-center justify-content-between p-2 mb-2 bg-white rounded-3 shadow-sm product-card-wrapper">
+            <div class="d-flex align-items-center flex-grow-1" style="overflow:hidden;">
+                <div class="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0 me-3 bg-light" style="width: 50px; height: 50px;">
+                    ${item.image ? `<img src="/storage/${item.image}" class="w-100 h-100 rounded-3 object-fit-cover" loading="lazy">` : '<i class="fas fa-box text-muted opacity-50"></i>'}
+                </div>
+                <div class="d-flex flex-column" style="min-width:0;">
+                    <span class="fw-bold text-dark text-truncate" style="font-size:0.9rem;">${item.name}</span>
+                    <small class="text-muted">₱${parseFloat(item.price).toFixed(2)} × ${item.qty}</small>
+                </div>
+            </div>
+            <div class="text-end me-3">
+                <div class="text-primary small fw-bold">₱${lineTotal.toFixed(2)}</div>
+            </div>
+            <div class="d-flex align-items-center bg-light rounded-pill border p-1">
+                <button class="btn btn-sm btn-link text-dark fw-bold p-0 d-flex align-items-center justify-content-center" style="width: 28px; height: 28px; text-decoration:none;" onclick="modifyQty(${index}, -1)">−</button>
+                <span class="fw-bold text-dark text-center" style="width: 24px; font-size: 0.9rem;">${item.qty}</span>
+                <button class="btn btn-sm btn-link text-dark fw-bold p-0 d-flex align-items-center justify-content-center" style="width: 28px; height: 28px; text-decoration:none;" onclick="modifyQty(${index}, 1)">+</button>
+            </div>
+            <button class="btn btn-link text-danger p-0 ms-2" onclick="removeItem(${index})"><i class="fas fa-trash-alt"></i></button>
+        </div>`;
+        }).join('');
+    }
+
+    document.querySelectorAll('#cart-items, #cart-items-desktop').forEach(el => el.innerHTML = html);
+
+    // USE HELPER FUNCTION
+    const totals = getCartTotals();
+
+    activeDiscount.amount = totals.totalDiscount;
 
     // --- UPDATE UI ---
 
@@ -343,9 +354,9 @@ function updateCartUI() {
         const exemptEl = document.getElementById('vat-exempt-display');
         const taxEls = document.querySelectorAll('.tax-display');
 
-        if (vatableEl) vatableEl.innerText = vatableSales.toFixed(2);
-        if (exemptEl) exemptEl.innerText = vatExemptSales.toFixed(2);
-        taxEls.forEach(el => el.innerText = vatAmount.toFixed(2));
+        if (vatableEl) vatableEl.innerText = totals.vatableSales.toFixed(2);
+        if (exemptEl) exemptEl.innerText = totals.vatExemptSales.toFixed(2);
+        taxEls.forEach(el => el.innerText = totals.vatAmount.toFixed(2));
     } else {
         taxRows.forEach(el => {
             el.classList.remove('d-flex');
@@ -354,11 +365,11 @@ function updateCartUI() {
     }
 
     // Update Totals
-    document.querySelectorAll('.subtotal-display').forEach(el => el.innerText = rawTotal.toFixed(2));
+    document.querySelectorAll('.subtotal-display').forEach(el => el.innerText = totals.rawTotal.toFixed(2));
     // TARGET BOTH ID SETS
     document.querySelectorAll(
         '.total-amount-display, #mobile-total-display, #modal-total, #total-amount-display-mobile'
-    ).forEach(el => el.innerText = finalTotal.toFixed(2));
+    ).forEach(el => el.innerText = totals.finalTotal.toFixed(2));
 
     if (document.getElementById('mobile-cart-count')) document.getElementById('mobile-cart-count').innerText = cart.length;
 
@@ -375,7 +386,7 @@ function updateCartUI() {
             const amount = el.querySelector('#discount-amount-display') || el.querySelector('#discount-amount-display-mobile');
 
             if (label) label.innerText = activeDiscount.type.toUpperCase() + ' 20% (VAT Exempt)';
-            if (amount) amount.innerText = totalDiscount.toFixed(2);
+            if (amount) amount.innerText = totals.totalDiscount.toFixed(2);
         });
         if (btnAdd) btnAdd.classList.add('d-none');
         if (btnRemove) btnRemove.classList.remove('d-none');
@@ -595,7 +606,8 @@ window.toggleFlow = function () {
 };
 
 window.calculateChange = function () {
-    const total = parseFloat(document.getElementById('modal-total').innerText.replace(/,/g, ''));
+    const totals = getCartTotals();
+    const total = totals.finalTotal;
     const paid = parseFloat(document.getElementById('amount-paid').value) || 0;
     const change = paid - total;
     const disp = document.getElementById('change-display');
@@ -607,7 +619,8 @@ window.processPayment = function () {
     if (isProcessing) return;
 
     const method = document.querySelector('input[name="paymethod"]:checked').value;
-    const total = parseFloat(document.getElementById('modal-total').innerText.replace(/,/g, ''));
+    const totals = getCartTotals();
+    const total = totals.finalTotal;
 
     if (method === 'cash') {
         const paid = parseFloat(document.getElementById('amount-paid').value) || 0;

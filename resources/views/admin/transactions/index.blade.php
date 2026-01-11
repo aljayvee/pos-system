@@ -17,7 +17,8 @@
                 <h1 class="h3 fw-bold mb-1 text-dark">{{ request('archived') ? 'Archived Transactions' : 'Transactions' }}
                 </h1>
                 <p class="text-muted small mb-0">
-                    {{ request('archived') ? 'History of voided/archived sales' : 'History of sales and orders' }}</p>
+                    {{ request('archived') ? 'History of voided/archived sales' : 'History of sales and orders' }}
+                </p>
             </div>
 
             <div class="d-flex align-items-center gap-2">
@@ -80,6 +81,7 @@
                                     <th class="py-3">Customer</th>
                                     <th class="py-3">Date</th>
                                     <th class="py-3">Method</th>
+                                    <th class="py-3">Status</th>
                                     <th class="text-end py-3">Amount</th>
                                     <th class="text-end pe-4 py-3"></th>
                                 </tr>
@@ -125,17 +127,26 @@
                                             @endphp
                                             <i class="fas {{ $icon }} me-1 small"></i> {{ ucfirst($sale->payment_method) }}
                                             </span>
-
+                                        </td>
+                                        <td>
                                             @if($sale->salesReturns->where('condition', 'good')->isNotEmpty())
                                                 <span
-                                                    class="badge bg-white text-success border border-success px-2 py-1 rounded-pill ms-1">
+                                                    class="badge bg-white text-success border border-success px-2 py-1 rounded-pill">
                                                     <i class="fas fa-undo me-1 small"></i> Returned (Good)
                                                 </span>
-                                            @endif
-                                            @if($sale->salesReturns->where('condition', 'damaged')->isNotEmpty())
+                                            @elseif($sale->salesReturns->where('condition', 'damaged')->isNotEmpty())
                                                 <span
-                                                    class="badge bg-white text-danger border border-danger px-2 py-1 rounded-pill ms-1">
+                                                    class="badge bg-white text-danger border border-danger px-2 py-1 rounded-pill">
                                                     <i class="fas fa-exclamation-circle me-1 small"></i> Returned (Damaged)
+                                                </span>
+                                            @elseif(request('archived'))
+                                                <span
+                                                    class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1 rounded-pill">
+                                                    <i class="fas fa-ban me-1 small"></i> Voided
+                                                </span>
+                                            @else
+                                                <span class="badge bg-light text-secondary border px-2 py-1 rounded-pill">
+                                                    <i class="fas fa-check-circle me-1 small"></i> Completed
                                                 </span>
                                             @endif
                                         </td>
