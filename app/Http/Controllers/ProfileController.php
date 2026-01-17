@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 
 class ProfileController extends Controller
 {
@@ -35,12 +36,14 @@ class ProfileController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
+            'username' => 'required|string|max:255|unique:users,username,' . Auth::id(),
             'birthdate' => 'nullable|date',
             'gender' => 'nullable|string|in:Male,Female,Other',
         ]);
 
         $user = Auth::user();
         $user->name = $request->name;
+        $user->username = $request->username;
         $user->birthdate = $request->birthdate;
         $user->gender = $request->gender;
         $user->save();
@@ -68,7 +71,7 @@ class ProfileController extends Controller
         return back()->with('success', 'Profile photo updated.');
     }
 
-    // 4. Update Security (Password & MPIN)
+    // LEGACY: Update Security (Password & MPIN) - Kept for fallback/legacy calls
     public function updateSecurity(Request $request)
     {
         $user = Auth::user();
@@ -99,6 +102,11 @@ class ProfileController extends Controller
 
         return back()->with('success', 'Security settings updated successfully.');
     }
+
+    // ==========================================
+    // OTP METHODS
+    // ==========================================
+
     // 3. Initiate Email Verification
     public function initiateEmailVerification(Request $request)
     {
@@ -133,6 +141,7 @@ class ProfileController extends Controller
 
         return response()->json(['success' => false, 'message' => 'Invalid or expired verification code.']);
     }
+
     // ==========================================
     // SECURE EMAIL CHANGE FLOW
     // ==========================================
@@ -184,7 +193,6 @@ class ProfileController extends Controller
         ]);
 
         if ($validator->fails()) {
-            // Check if specific error is about uniqueness
             if ($validator->errors()->has('new_email')) {
                 $errors = $validator->errors()->get('new_email');
                 foreach ($errors as $error) {
@@ -238,13 +246,10 @@ class ProfileController extends Controller
             // Cleanup
             session()->forget(['email_change_verified_current', 'temp_new_email']);
 
-            // Optional: Notify OLD email that it has been changed
+            // Optional: Notify OLD email
             try {
-                // We need to send to the OLD email. 
                 $oldUserStub = clone $user;
                 $oldUserStub->email = $oldEmail;
-                // We can use a generic notification or just skip for now to keep it simple as requested flow didn't strictly demand it, 
-                // but user said "Notify the owner that it change his recovery email".
                 $this->notifier->sendViaEmail($oldUserStub, 'Your account email was just changed to ' . $newEmail, 'Security Alert: Email Changed');
             } catch (\Exception $e) {
                 // Non-blocking
@@ -254,5 +259,128 @@ class ProfileController extends Controller
         }
 
         return response()->json(['success' => false, 'message' => 'Invalid OTP.']);
+    }
+
+    // ==========================================
+    // SECURE PASSWORD CHANGE (OTP-Based)
+    // ==========================================
+
+    public function requestPasswordOtp()
+    {
+        $user = Auth::user();
+        $code = $this->otpService->generate($user->email, 'password_change');
+
+        try {
+            $this->notifier->sendViaEmail($user, $code, 'Verification Code for Password Change');
+            return response()->json(['success' => true, 'message' => 'OTP sent successfully.']);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => 'Failed to send OTP.']);
+        }
+    }
+
+    public function verifyPasswordOtp(Request $request)
+    {
+        $request->validate(['otp' => 'required|string|size:6']);
+        $user = Auth::user();
+
+        if ($this->otpService->validate($user->email, $request->otp, 'password_change')) {
+            // Set session flag to allow update
+            session(['password_change_verified' => true]);
+            return response()->json(['success' => true, 'message' => 'OTP Verified. Please set your new password.']);
+        }
+
+        return response()->json(['success' => false, 'message' => 'Invalid or expired OTP.']);
+    }
+
+    public function updatePasswordViaOtp(Request $request)
+    {
+        if (!session('password_change_verified')) {
+            return response()->json(['success' => false, 'message' => 'Session expired. Please verify OTP again.']);
+        }
+
+        $request->validate([
+            'password' => 'required|min:8|confirmed',
+        ]);
+
+        $user = Auth::user();
+        $user->password = Hash::make($request->password);
+        $user->save();
+
+        // Clear session
+        session()->forget('password_change_verified');
+
+        // Notify User
+        try {
+            // Get location/device info
+            $ip = $request->ip();
+            $ua = $request->userAgent();
+            $details = "IP: {$ip}\nDevice: {$ua}";
+
+            Mail::raw("Your password was successfully changed.\n\nDetails:\n{$details}\n\nIf this was not you, please contact support immediately.", function ($message) use ($user) {
+                $message->to($user->email)->subject('Security Alert: Password Changed');
+            });
+        } catch (\Exception $e) {
+            // Non-blocking
+        }
+
+        return response()->json(['success' => true, 'message' => 'Password changed successfully.']);
+    }
+
+
+    // ==========================================
+    // SECURE MPIN CHANGE (OTP-Based)
+    // ==========================================
+
+    public function requestMpinOtp()
+    {
+        $user = Auth::user();
+        $code = $this->otpService->generate($user->email, 'mpin_change');
+
+        try {
+            $this->notifier->sendViaEmail($user, $code, 'Verification Code for MPIN Change');
+            return response()->json(['success' => true, 'message' => 'OTP sent successfully.']);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => 'Failed to send OTP.']);
+        }
+    }
+
+    public function verifyMpinOtp(Request $request)
+    {
+        $request->validate(['otp' => 'required|string|size:6']);
+        $user = Auth::user();
+
+        if ($this->otpService->validate($user->email, $request->otp, 'mpin_change')) {
+            session(['mpin_change_verified' => true]);
+            return response()->json(['success' => true, 'message' => 'OTP Verified. Please set your new MPIN.']);
+        }
+
+        return response()->json(['success' => false, 'message' => 'Invalid or expired OTP.']);
+    }
+
+    public function updateMpinViaOtp(Request $request)
+    {
+        if (!session('mpin_change_verified')) {
+            return response()->json(['success' => false, 'message' => 'Session expired. Please verify OTP again.']);
+        }
+
+        $request->validate([
+            'mpin' => 'required|digits_between:7,16|confirmed',
+        ]);
+
+        $user = Auth::user();
+        $this->mpinService->setMpin($user, $request->mpin);
+        // Clear session
+        session()->forget('mpin_change_verified');
+
+        // Notify User
+        try {
+            Mail::raw("Your MPIN was successfully changed.\n\nIf this was not you, please contact support immediately.", function ($message) use ($user) {
+                $message->to($user->email)->subject('Security Alert: MPIN Changed');
+            });
+        } catch (\Exception $e) {
+            // Non-blocking
+        }
+
+        return response()->json(['success' => true, 'message' => 'MPIN changed successfully.']);
     }
 }

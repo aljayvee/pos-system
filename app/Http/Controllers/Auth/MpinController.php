@@ -133,6 +133,16 @@ class MpinController extends Controller
         $request->session()->put('mpin_verified', true);
         $request->session()->put('mpin_verified_at', now());
 
+        // Check if this is the initial setup flow
+        if ($request->session()->pull('from_setup_wizard')) {
+            \Illuminate\Support\Facades\Mail::to(Auth::user())->send(new \App\Mail\WelcomeMail(Auth::user()));
+        }
+
+        // Check if this is the New User Onboarding flow
+        if ($request->session()->pull('just_onboarded')) {
+            return redirect()->route('onboarding.welcome');
+        }
+
         return $this->redirectBasedOnRole(Auth::user())->with('success', 'MPIN set successfully!');
     }
 

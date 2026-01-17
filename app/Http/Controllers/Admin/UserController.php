@@ -42,7 +42,8 @@ class UserController extends Controller
         $request->validate([
             'first_name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
+            'username' => 'required|string|max:255|unique:users',
+            'email' => 'nullable|string|email|max:255|unique:users',
             'role' => 'required|string',
             'assigned_branch' => 'nullable|string',
             'password' => 'required|string|min:8|confirmed',
@@ -81,6 +82,7 @@ class UserController extends Controller
             'name' => $request->first_name . ' ' . $request->last_name,
             'first_name' => $request->first_name,
             'last_name' => $request->last_name,
+            'username' => $request->username,
             'email' => $request->email,
             'role' => $request->role,
             'assigned_branch' => $request->assigned_branch,
@@ -156,7 +158,7 @@ class UserController extends Controller
 
         $request->validate([
             'name' => 'required|string|max:255',
-            'email' => ['required', 'email', Rule::unique('users')->ignore($user->id)],
+            'email' => ['nullable', 'email', Rule::unique('users')->ignore($user->id)],
             'role' => 'required|in:admin,cashier,manager,supervisor,stock_clerk,auditor', // Updated roles
             'password' => 'nullable|min:6',
             'permissions' => 'nullable|array',

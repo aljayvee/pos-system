@@ -6,22 +6,24 @@ use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PresenceChannel;
 use Illuminate\Broadcasting\PrivateChannel;
-use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
+use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
-class LoginRequestCreated implements ShouldBroadcast
+class LoginRequestCreated implements ShouldBroadcastNow
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
     public $details;
+    public $userId;
 
     /**
      * Create a new event instance.
      */
-    public function __construct($details)
+    public function __construct($details, $userId)
     {
         $this->details = $details;
+        $this->userId = $userId;
     }
 
     /**
@@ -31,8 +33,9 @@ class LoginRequestCreated implements ShouldBroadcast
      */
     public function broadcastOn(): array
     {
+        \Illuminate\Support\Facades\Log::info('LoginRequestCreated broadcasting on: App.Models.User.' . $this->userId);
         return [
-            new PrivateChannel('admin-notifications'),
+            new PrivateChannel('App.Models.User.' . $this->userId),
         ];
     }
 

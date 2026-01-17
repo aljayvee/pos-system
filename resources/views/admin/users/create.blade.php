@@ -332,7 +332,7 @@
                     {{-- Row 2: Contact & Access --}}
                     <div class="row g-2 mb-3">
                         <div class="col-md-6">
-                            <input type="email" name="email" class="form-control" required placeholder="Email address">
+                            <input type="text" name="username" class="form-control" required placeholder="Username">
                         </div>
                         <div class="col-md-6">
                             <select name="role" class="form-select">
@@ -344,7 +344,7 @@
                                 <option value="supervisor">Supervisor</option>
                                 <option value="cashier">Cashier</option>
                                 <option value="stock_clerk">Stock Clerk</option>
-                                <option value="auditor">Auditor</option>
+                                <option value="auditor">Auditor (Read Only)</option>
                             </select>
                         </div>
                     </div>

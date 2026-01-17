@@ -6,7 +6,7 @@
         <p class="mt-2 text-sm text-gray-600">Set up a 7-16 digit PIN for quick secure access.</p>
     </div>
 
-    <form class="space-y-6" action="{{ route('auth.mpin.store') }}" method="POST">
+    <form id="mpin-setup-form" class="space-y-6" action="{{ route('auth.mpin.store') }}" method="POST">
         @csrf
 
         @if ($errors->any())
@@ -82,7 +82,7 @@
         </div>
 
         <div>
-            <button type="submit"
+            <button type="submit" id="btn-set-mpin"
                 class="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-md text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all hover:shadow-lg">
                 Set MPIN
             </button>
@@ -98,4 +98,13 @@
             </button>
         </form>
     </div>
+
+    <script>
+        document.getElementById('mpin-setup-form').addEventListener('submit', function () {
+            const btn = document.getElementById('btn-set-mpin');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-circle-notch fa-spin mr-2"></i> Verifying...';
+            btn.classList.add('opacity-75', 'cursor-not-allowed');
+        });
+    </script>
 @endsection

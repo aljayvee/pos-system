@@ -13,7 +13,10 @@ use App\Http\Controllers\Admin\SupplierController;
 use App\Http\Controllers\Admin\TransactionController;
 use App\Http\Controllers\Admin\ReturnController;
 use App\Http\Controllers\Admin\ReportController;
-use App\Http\Controllers\Admin\SettingsController;
+use App\Http\Controllers\Admin\StorePreferencesController;
+// ... (imports)
+
+
 use App\Http\Controllers\Admin\BackupController;
 use App\Http\Controllers\Admin\ActivityLogController;
 use App\Http\Controllers\ProfileController;
@@ -27,20 +30,30 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
 // Forgot Password (OTP)
+// Password Reset Wizard
 Route::get('/forgot-password', [\App\Http\Controllers\Auth\PasswordResetController::class, 'showLinkRequestForm'])->name('password.request');
-Route::post('/forgot-password', [\App\Http\Controllers\Auth\PasswordResetController::class, 'sendResetLinkEmail'])->name('password.email');
-Route::get('/reset-password', [\App\Http\Controllers\Auth\PasswordResetController::class, 'showResetForm'])->name('password.reset.form');
-Route::post('/reset-password', [\App\Http\Controllers\Auth\PasswordResetController::class, 'reset'])->name('password.update');
+Route::post('/password/search', [\App\Http\Controllers\Auth\PasswordResetController::class, 'search'])->name('password.search');
+Route::post('/password/send-otp', [\App\Http\Controllers\Auth\PasswordResetController::class, 'sendOtp'])->name('password.sendOtp');
+Route::post('/password/verify-otp', [\App\Http\Controllers\Auth\PasswordResetController::class, 'verifyOtp'])->name('password.verifyOtp');
+Route::post('/password/reset', [\App\Http\Controllers\Auth\PasswordResetController::class, 'resetWizard'])->name('password.wizard.reset');
 
 // ADMIN Routes (Protected)
 // ADMIN Routes (Protected)
 // Allow all "Back Office" roles to enter the admin area
 // Setup Routes (Public middleware but guarded)
 Route::group(['middleware' => ['web']], function () {
-    Route::get('/setup', [\App\Http\Controllers\Admin\SetupController::class, 'index'])->name('setup.index');
-    Route::post('/setup/step1', [\App\Http\Controllers\Admin\SetupController::class, 'storeStep1'])->name('setup.step1');
-    Route::post('/setup/send-otp', [\App\Http\Controllers\Admin\SetupController::class, 'sendOtp'])->name('setup.send_otp');
-    Route::post('/setup/verify', [\App\Http\Controllers\Admin\SetupController::class, 'verifyAndCreate'])->name('setup.verify');
+    Route::get('/setup', [\App\Http\Controllers\Admin\SetupController::class, 'index'])->name('admin.setup.index');
+    Route::post('/setup/step1', [\App\Http\Controllers\Admin\SetupController::class, 'storeStep1'])->name('admin.setup.step1');
+    Route::post('/setup/send-otp', [\App\Http\Controllers\Admin\SetupController::class, 'sendOtp'])->name('admin.setup.sendOtp');
+    Route::post('/setup/verify', [\App\Http\Controllers\Admin\SetupController::class, 'verifyAndCreate'])->name('admin.setup.verify');
+
+    // New User Onboarding (Authenticated but unverified)
+    Route::middleware(['auth'])->group(function () {
+        Route::get('/onboarding', [\App\Http\Controllers\Admin\OnboardingController::class, 'index'])->name('onboarding.index');
+        Route::post('/onboarding/send-otp', [\App\Http\Controllers\Admin\OnboardingController::class, 'sendOtp'])->name('onboarding.sendOtp');
+        Route::post('/onboarding/verify', [\App\Http\Controllers\Admin\OnboardingController::class, 'verify'])->name('onboarding.verify');
+        Route::get('/welcome', [\App\Http\Controllers\Admin\OnboardingController::class, 'welcome'])->name('onboarding.welcome');
+    });
 });
 
 // ADMIN Routes (Protected)
@@ -168,15 +181,15 @@ Route::middleware(['auth', 'role:admin,manager,supervisor,stock_clerk,auditor', 
 
     // 7. SETTINGS & SYSTEM (settings.manage)
     Route::middleware(['role:settings.manage'])->group(function () {
-        Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
-        Route::post('/settings', [SettingsController::class, 'update'])->name('settings.update');
-        Route::post('/settings/reveal', [SettingsController::class, 'reveal'])->name('settings.reveal');
-        Route::post('/settings/verify-disable-bir', [SettingsController::class, 'verifyDisableBir'])->name('settings.verify_disable_bir');
+        Route::get('/store-preferences', [StorePreferencesController::class, 'index'])->name('settings.index');
+        Route::post('/store-preferences', [StorePreferencesController::class, 'update'])->name('settings.update');
+        Route::post('/store-preferences/reveal', [StorePreferencesController::class, 'reveal'])->name('settings.reveal');
+        Route::post('/store-preferences/verify-disable-bir', [StorePreferencesController::class, 'verifyDisableBir'])->name('settings.verify_disable_bir');
 
-        Route::get('/settings/backup', [BackupController::class, 'download'])->name('settings.backup');
-        Route::post('/settings/restore', [BackupController::class, 'restore'])->name('settings.restore');
-        Route::get('/settings/update-check', [SettingsController::class, 'checkUpdate'])->name('settings.check_update');
-        Route::post('/settings/update-process', [SettingsController::class, 'runUpdate'])->name('settings.run_update');
+        Route::get('/store-preferences/backup', [BackupController::class, 'download'])->name('settings.backup');
+        Route::post('/store-preferences/restore', [BackupController::class, 'restore'])->name('settings.restore');
+        Route::get('/store-preferences/update-check', [StorePreferencesController::class, 'checkUpdate'])->name('settings.check_update');
+        Route::post('/store-preferences/update-process', [StorePreferencesController::class, 'runUpdate'])->name('settings.run_update');
 
         Route::resource('stores', \App\Http\Controllers\Admin\StoreController::class);
         Route::get('/stores/switch/{id}', [\App\Http\Controllers\Admin\StoreController::class, 'switch'])->name('stores.switch');
@@ -248,6 +261,16 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/profile/email/request-new', [ProfileController::class, 'requestNewEmailOtp'])->name('profile.email.request_new');
     Route::post('/profile/email/confirm-update', [ProfileController::class, 'confirmNewEmail'])->name('profile.email.confirm_update');
 
+    // Secure Password Change (OTP-based)
+    Route::post('/profile/password/otp', [ProfileController::class, 'requestPasswordOtp'])->name('profile.password.otp');
+    Route::post('/profile/password/verify', [ProfileController::class, 'verifyPasswordOtp'])->name('profile.password.verify');
+    Route::post('/profile/password/update', [ProfileController::class, 'updatePasswordViaOtp'])->name('profile.password.update_secure');
+
+    // Secure MPIN Reset (OTP-based)
+    Route::post('/profile/mpin/otp', [ProfileController::class, 'requestMpinOtp'])->name('profile.mpin.otp');
+    Route::post('/profile/mpin/verify', [ProfileController::class, 'verifyMpinOtp'])->name('profile.mpin.verify');
+    Route::post('/profile/mpin/update', [ProfileController::class, 'updateMpinViaOtp'])->name('profile.mpin.update_secure');
+
 
     // Device 2
     Route::get('/auth/wait', [AuthController::class, 'showConsentWait'])->name('auth.consent.wait');
@@ -289,7 +312,7 @@ Route::get('/auth/force-verify/{id}', [AuthController::class, 'verifyForceLogin'
 // ... (End of existing file)
 
 // WebAuthn Routes
-Route::middleware(['auth'])->group(function () {
+Route::middleware(['auth', \App\Http\Middleware\WebAuthnDynamicRpId::class])->group(function () {
     Route::post('/webauthn/register/options', [\App\Http\Controllers\WebAuthnController::class, 'options'])
         ->name('webauthn.register.options');
     Route::post('/webauthn/register', [\App\Http\Controllers\WebAuthnController::class, 'register'])
@@ -297,7 +320,9 @@ Route::middleware(['auth'])->group(function () {
 });
 
 // WebAuthn Login Routes (Unauthenticated)
-Route::post('/webauthn/login/options', [\App\Http\Controllers\WebAuthnController::class, 'loginOptions'])
-    ->name('webauthn.login.options');
-Route::post('/webauthn/login', [\App\Http\Controllers\WebAuthnController::class, 'login'])
-    ->name('webauthn.login');
+Route::middleware([\App\Http\Middleware\WebAuthnDynamicRpId::class])->group(function () {
+    Route::post('/webauthn/login/options', [\App\Http\Controllers\WebAuthnController::class, 'loginOptions'])
+        ->name('webauthn.login.options');
+    Route::post('/webauthn/login', [\App\Http\Controllers\WebAuthnController::class, 'login'])
+        ->name('webauthn.login');
+});

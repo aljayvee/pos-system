@@ -19,7 +19,7 @@ class AuthController extends Controller
     public function login(Request $request)
     {
         $credentials = $request->validate([
-            'email' => 'required|email',
+            'username' => 'required|string',
             'password' => 'required'
         ]);
 
@@ -27,7 +27,7 @@ class AuthController extends Controller
         $key = 'login_attempts:' . $request->ip();
         if (RateLimiter::tooManyAttempts($key, 5)) {
             $seconds = RateLimiter::availableIn($key);
-            return back()->withErrors(['email' => 'Too many login attempts. Please try again in ' . ceil($seconds / 60) . ' minutes.']);
+            return back()->withErrors(['username' => 'Too many login attempts. Please try again in ' . ceil($seconds / 60) . ' minutes.']);
         }
 
         $remember = $request->boolean('remember');
@@ -38,7 +38,7 @@ class AuthController extends Controller
             // Check if user is active (Approval Workflow)
             if (!$user->is_active) {
                 Auth::logout();
-                return back()->withErrors(['email' => 'Your account is currently inactive or pending approval.']);
+                return back()->withErrors(['username' => 'Your account is currently inactive or pending approval.']);
             }
 
             // --- SMART CHECK START ---
@@ -65,7 +65,7 @@ class AuthController extends Controller
                 $key = 'consent_request:' . $user->id;
                 if (RateLimiter::tooManyAttempts($key, 3)) {
                     Auth::logout();
-                    return back()->withErrors(['email' => 'Too many login attempts. Please check your email.']);
+                    return back()->withErrors(['username' => 'Too many login attempts. Please check your email.']);
                 }
                 RateLimiter::hit($key, 60);
 
@@ -85,7 +85,7 @@ class AuthController extends Controller
                 Cache::put('login_requests_' . $user->id, $pendingRequests, 300);
 
                 // Broadcast Event
-                \App\Events\LoginRequestCreated::dispatch($requestData);
+                \App\Events\LoginRequestCreated::dispatch($requestData, $user->id);
 
                 // Send to Waiting Room
                 return redirect()->route('auth.consent.wait', ['request_id' => $requestId]);
@@ -105,7 +105,7 @@ class AuthController extends Controller
         // Increment Rate Limiter on Failure
         RateLimiter::hit($key, 60);
 
-        return back()->withErrors(['email' => 'Invalid credentials.']);
+        return back()->withErrors(['username' => 'Invalid credentials.']);
     }
 
     // Helper to update DB and Cache Device Info
@@ -122,6 +122,14 @@ class AuthController extends Controller
 
     protected function redirectBasedOnRole($user)
     {
+        // Check for Email Verification (New User Onboarding)
+        // Skip for Admin if it's the very first setup (handled by SetupController check, but good to be safe)
+        // Actually, SetupController::index checks User::count().
+        // Here we just check if verified. Use !hasVerifiedEmail() or check column directly.
+        if (is_null($user->email_verified_at)) {
+            return redirect()->route('onboarding.index');
+        }
+
         // Cashiers go directly to POS
         if ($user->role === 'cashier') {
             return redirect()->route('cashier.pos');

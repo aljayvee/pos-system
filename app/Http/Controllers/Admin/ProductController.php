@@ -18,6 +18,14 @@ use Illuminate\Pagination\Paginator;
 class ProductController extends Controller
 {
 
+    // Injected Service
+    protected $importService;
+
+    public function __construct(\App\Services\Inventory\ProductImportService $importService)
+    {
+        $this->importService = $importService;
+    }
+
     public function import(Request $request)
     {
         if (!Auth::user()->hasPermission(\App\Enums\Permission::INVENTORY_EDIT->value)) {
@@ -25,50 +33,14 @@ class ProductController extends Controller
         }
         $request->validate(['csv_file' => 'required|file|mimes:csv,txt']);
 
-        $file = $request->file('csv_file');
-        $handle = fopen($file->getPathname(), 'r');
-        fgetcsv($handle); // Skip header
-
         DB::beginTransaction();
         try {
-            $count = 0;
-            while (($row = fgetcsv($handle)) !== false) {
-                // Expected CSV Format: Name, Category, Price, Stock, SKU
-                $name = $row[0] ?? null;
-                $categoryName = $row[1] ?? 'General';
-                $price = $row[2] ?? 0;
-                $stock = $row[3] ?? 0;
-                $sku = $row[4] ?? null;
-
-                if (!$name)
-                    continue;
-
-                // Find or Create Category
-                $category = Category::firstOrCreate(['name' => trim($categoryName)]);
-
-                // Create Product Record (Scoped to Store)
-                $product = Product::create([
-                    'store_id' => $this->getActiveStoreId(), // <--- INJECT STORE ID
-                    'name' => $name,
-                    'category_id' => $category->id,
-                    'price' => floatval($price),
-                    'stock' => 0,
-                    'sku' => $sku,
-                ]);
-
-                // Update Inventory (Keep as is for compatibility)
-                $storeId = $this->getActiveStoreId();
-                Inventory::updateOrCreate(
-                    ['product_id' => $product->id, 'store_id' => $storeId],
-                    ['stock' => intval($stock), 'reorder_point' => 10]
-                );
-
-                $count++;
-            }
+            $count = $this->importService->importCsv(
+                $request->file('csv_file'),
+                $this->getActiveStoreId()
+            );
 
             DB::commit();
-            fclose($handle);
-
             return back()->with('success', "$count products imported successfully!");
 
         } catch (\Exception $e) {
@@ -84,7 +56,7 @@ class ProductController extends Controller
         $storeId = $this->getActiveStoreId();
 
         // 2. Start Query
-        $query = Product::with('category');
+        $query = Product::with(['category', 'inventories']); // Eager load inventories for optimization
 
         // 3. Existing Filters
         if ($request->has('archived')) {
@@ -222,54 +194,12 @@ class ProductController extends Controller
             'products.*.reorder_point' => 'nullable|integer|min:0',
         ]);
 
-        $storeId = $this->getActiveStoreId();
-        $count = 0;
-
         DB::beginTransaction();
         try {
-            foreach ($request->products as $item) {
-                // Skip empty rows if name is missing (double check)
-                if (empty($item['name']))
-                    continue;
-
-                // Check SKU Uniqueness if SKU is provided
-                if (!empty($item['sku'])) {
-                    $exists = Product::where('store_id', $storeId)->where('sku', $item['sku'])->exists();
-                    if ($exists) {
-                        throw new \Exception("SKU '{$item['sku']}' already exists for product '{$item['name']}'.");
-                    }
-                }
-
-                $product = Product::create([
-                    'store_id' => $storeId,
-                    'name' => \Illuminate\Support\Str::title($item['name']),
-                    'category_id' => $item['category_id'],
-                    'price' => $item['price'],
-                    'cost' => $item['cost'] ?? null,
-                    'unit' => $item['unit'],
-                    'sku' => $item['sku'] ?? null,
-                    'tax_type' => $item['tax_type'] ?? 'vatable',
-                    'expiration_date' => $item['expiration_date'] ?? null,
-                    'stock' => 0, // Default 0
-                ]);
-
-                // Create Inventory
-                Inventory::create([
-                    'product_id' => $product->id,
-                    'store_id' => $storeId,
-                    'stock' => isset($item['stock']) ? intval($item['stock']) : 0,
-                    'reorder_point' => isset($item['reorder_point']) ? intval($item['reorder_point']) : 10,
-                ]);
-
-                $count++;
-            }
-
-            ActivityLog::create([
-                'user_id' => Auth::id(),
-                'store_id' => $storeId,
-                'action' => 'Batch Created Products',
-                'description' => "Batch created {$count} products."
-            ]);
+            $count = $this->importService->batchCreate(
+                $request->products,
+                $this->getActiveStoreId()
+            );
 
             DB::commit();
             return redirect()->route('products.index')->with('success', "{$count} products added successfully.");
@@ -439,7 +369,6 @@ class ProductController extends Controller
 
         $request->validate([
             'name' => 'required',
-            'price' => 'required|numeric',
             'price' => 'required|numeric',
             'category_id' => 'required|exists:categories,id',
             'tax_type' => 'required|in:vatable,vat_exempt,zero_rated', // <--- Validation

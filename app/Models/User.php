@@ -31,6 +31,7 @@ class User extends Authenticatable implements WebAuthnAuthenticatable
         'middle_name',
         'birthdate',
         'gender', // Added gender
+        'username', // Added username
         'email',
         'password',
         'role',
@@ -39,6 +40,7 @@ class User extends Authenticatable implements WebAuthnAuthenticatable
         'store_id',
         'active_session_id',
         'profile_photo_path',
+        'email_verified_at',
     ];
 
     protected $hidden = [

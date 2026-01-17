@@ -30,7 +30,7 @@ class SetupController extends Controller
         if (User::count() > 0) {
             return redirect()->route('admin.dashboard');
         }
-        return view('admin.setup.wizard');
+        return view('admin.setup.index');
     }
 
     public function storeStep1(Request $request)
@@ -39,14 +39,15 @@ class SetupController extends Controller
             'first_name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
             'middle_name' => 'nullable|string|max:255',
-            'age' => 'required|integer|min:18',
+            'username' => 'required|string|max:255|unique:users,username',
+            'gender' => 'required|string|in:Male,Female,Other',
             'birthdate' => 'required|date',
-            'email' => 'required|email|unique:users,email',
-            'password' => 'required|min:6|confirmed',
+            'password' => 'required|min:8|confirmed',
         ]);
 
-        // Store in Session
-        Session::put('setup_data', $data);
+        // Store in Session (Merge with existing to preserve other steps)
+        $current = Session::get('setup_data', []);
+        Session::put('setup_data', array_merge($current, $data));
         Session::put('setup_step', 2);
 
         return response()->json(['success' => true]);
@@ -69,14 +70,18 @@ class SetupController extends Controller
 
     public function verifyAndCreate(Request $request)
     {
-        $request->validate(['code' => 'required|digits:6']);
+        $request->validate([
+            'email' => 'required|email',
+            'code' => 'required|digits:6'
+        ]);
 
         $data = Session::get('setup_data');
         if (!$data) {
             return response()->json(['success' => false, 'message' => 'Session expired. Please restart.']);
         }
 
-        if (!$this->otpService->validate($data['email'], $request->code, 'setup_verify')) {
+        // Verify OTP (using the email from request, which should match the one OTP was sent to)
+        if (!$this->otpService->validate($request->email, $request->code, 'setup_verify')) {
             return response()->json(['success' => false, 'message' => 'Invalid OTP']);
         }
 
@@ -86,9 +91,10 @@ class SetupController extends Controller
             'first_name' => $data['first_name'],
             'last_name' => $data['last_name'],
             'middle_name' => $data['middle_name'],
-            'age' => $data['age'],
+            'username' => $data['username'],
+            'gender' => $data['gender'],
             'birthdate' => $data['birthdate'],
-            'email' => $data['email'],
+            'email' => $request->email,
             'password' => Hash::make($data['password']),
             'role' => 'admin',
             'is_active' => true,
@@ -96,6 +102,7 @@ class SetupController extends Controller
         ]);
 
         Auth::login($user);
+        Session::put('from_setup_wizard', true);
         Session::forget('setup_data');
         Session::forget('setup_step');
 

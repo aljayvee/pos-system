@@ -3,8 +3,9 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>POS - Cashier</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <link rel="icon" href="{{ asset('images/favicon.png') }}" type="image/png">
+    <title>{{ $pageTitle ?? 'VERAPOS Cashier' }}</title>
 
     <link rel="manifest" href="{{ asset('manifest.json') }}">
     <meta name="theme-color" content="#4f46e5">
@@ -249,6 +250,119 @@
                 /* Mobile has its own header in index.blade.php */
             }
         }
+
+        @keyframes skeleton-loading {
+            0% {
+                background-position: 200% 0;
+            }
+
+            100% {
+                background-position: -200% 0;
+            }
+        }
+
+        #skeleton-loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #f1f5f9;
+            z-index: 9999;
+            display: none;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .skeleton-header {
+            height: 60px;
+            width: 100%;
+            background: #fff;
+            margin-bottom: 20px;
+            border-radius: 8px;
+        }
+
+        .skeleton-content {
+            display: flex;
+            gap: 20px;
+            height: calc(100% - 80px);
+            padding-top: 20px;
+        }
+
+        .skeleton-sidebar {
+            width: 80px;
+            /* Default collapsed */
+            height: 100%;
+            background: #fff;
+            border-radius: 8px;
+            display: none;
+            flex-shrink: 0;
+        }
+
+        @media (min-width: 992px) {
+            .skeleton-sidebar {
+                display: block;
+            }
+        }
+
+        .skeleton-main-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .skeleton-title {
+            height: 40px;
+            width: 30%;
+            background: #fff;
+            border-radius: 8px;
+        }
+
+        .skeleton-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+            flex: 1;
+        }
+
+        .skeleton-card {
+            background: #fff;
+            border-radius: 8px;
+            height: 180px;
+            width: 100%;
+        }
+
+        .skeleton-anim {
+            background: #fff;
+            /* Fallback */
+            position: relative;
+            overflow: hidden;
+        }
+
+        .skeleton-anim::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            left: 0;
+            transform: translateX(-100%);
+            background-image: linear-gradient(90deg,
+                    rgba(255, 255, 255, 0) 0,
+                    rgba(0, 0, 0, 0.05) 20%,
+                    rgba(0, 0, 0, 0.1) 60%,
+                    rgba(255, 255, 255, 0));
+            animation: shimmer 2s infinite;
+        }
+
+        @keyframes shimmer {
+            100% {
+                transform: translateX(100%);
+            }
+        }
     </style>
 
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
@@ -258,11 +372,20 @@
         // Poll for login requests
         document.addEventListener('DOMContentLoaded', () => {
             if (window.Echo) {
-                // Listen on the same channel as Admin
-                window.Echo.private('admin-notifications')
+                console.log('Echo initialized, attempting to subscribe to: App.Models.User.{{ Auth::id() }}');
+
+                window.Echo.private('App.Models.User.{{ Auth::id() }}')
+                    .subscribed(() => {
+                        console.log('✅ Successfully subscribed to private channel');
+                    })
+                    .error((error) => {
+                        console.error('❌ Error subscribing to private channel:', error);
+                    })
                     .listen('.LoginRequestCreated', (e) => {
-                        console.log('Login Request Received:', e.details);
-                        showConsentModal(e.details);
+                        console.log('Login Request Received:', e);
+                        if (e && e.details) {
+                            showConsentModal(e.details);
+                        }
                     });
             }
         });
@@ -361,8 +484,8 @@
         {{-- DESKTOP SIDEBAR --}}
         <aside class="app-sidebar d-none d-lg-flex">
             <div class="sidebar-brand">
-                <img src="{{ asset('images/verapos_logo.jpg') }}" alt="VeraPOS" class="img-fluid rounded-3"
-                    style="max-height: 50px; max-width: 100%; mix-blend-multiply;">
+                <img src="{{ asset('images/verapos_logo_v2.png') }}" alt="VeraPOS" class="img-fluid rounded-3"
+                    style="max-height: 50px; max-width: 100%;">
             </div>
 
             <nav class="sidebar-nav">
@@ -549,6 +672,25 @@
     </div>
 
     @stack('modals')
+
+    <!-- Skeleton Loading Overlay -->
+    <div id="skeleton-loading-overlay">
+        <div class="skeleton-header skeleton-anim"></div>
+        <div class="skeleton-content">
+            <div class="skeleton-sidebar skeleton-anim"></div>
+            <div class="skeleton-main-container">
+                <div class="skeleton-title skeleton-anim"></div>
+                <div class="skeleton-grid">
+                    <div class="skeleton-card skeleton-anim"></div>
+                    <div class="skeleton-card skeleton-anim"></div>
+                    <div class="skeleton-card skeleton-anim"></div>
+                    <div class="skeleton-card skeleton-anim"></div>
+                    <div class="skeleton-card skeleton-anim"></div>
+                    <div class="skeleton-card skeleton-anim"></div>
+                </div>
+            </div>
+        </div>
+    </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         if ('serviceWorker' in navigator) {
@@ -556,6 +698,53 @@
                 navigator.serviceWorker.register('/sw.js').catch(err => console.log('SW Failed'));
             });
         }
+
+        // Skeleton Loader Logic
+        document.addEventListener('DOMContentLoaded', function () {
+            const skeletonOverlay = document.getElementById('skeleton-loading-overlay');
+
+            function showLoading() {
+                if (skeletonOverlay) skeletonOverlay.style.display = 'block';
+            }
+
+            // 1. Form Submissions
+            document.querySelectorAll('form').forEach(form => {
+                form.addEventListener('submit', function (e) {
+                    if (!form.checkValidity() || e.defaultPrevented || form.classList.contains('no-loading')) return;
+                    showLoading();
+                });
+            });
+
+            // 2. Navigation
+            document.addEventListener('click', function (e) {
+                const link = e.target.closest('a');
+                if (link) {
+                    const href = link.getAttribute('href');
+                    const target = link.getAttribute('target');
+
+                    if (
+                        !href || href.startsWith('#') || href.startsWith('javascript:') || target === '_blank' ||
+                        link.classList.contains('no-loading') || link.dataset.toggle === 'modal' || link.dataset.bsToggle === 'modal'
+                    ) return;
+
+                    if (href.startsWith(window.location.origin) || href.startsWith('/')) {
+                        const currentUrl = window.location.href.split('#')[0].replace(/\/$/, "");
+                        const targetUrl = link.href.split('#')[0].replace(/\/$/, "");
+                        if (targetUrl === currentUrl) {
+                            e.preventDefault(); return;
+                        }
+                        showLoading();
+                    }
+                }
+            });
+
+            // Fallback
+            window.addEventListener('pageshow', function (event) {
+                if (event.persisted) {
+                    if (skeletonOverlay) skeletonOverlay.style.display = 'none';
+                }
+            });
+        });
     </script>
     </script>
     @stack('scripts')

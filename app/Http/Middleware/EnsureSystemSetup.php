@@ -14,14 +14,34 @@ class EnsureSystemSetup
      */
     public function handle(Request $request, Closure $next): Response
     {
-        // If system is empty (no users), enforce setup
-        // But allow setup routes to pass through to avoid infinite loops
-        if (User::count() === 0) {
-            if (!$request->is('setup*') && !$request->is('css/*') && !$request->is('js/*')) {
-                return redirect()->route('setup.index');
+        \Illuminate\Support\Facades\Log::info('EnsureSystemSetup: Start ' . $request->path());
+        $start = microtime(true);
+        // Cache the user count check to avoid DB query on every request (Optimization)
+        $hasUsers = \Illuminate\Support\Facades\Cache::remember('system_has_users', 60, function () {
+            return User::exists(); // exists() is faster than count() if we just care about > 0
+        });
+
+        if (!$hasUsers) {
+            if ($request->is('setup*')) {
+                return $next($request);
             }
+
+            if (
+                $request->is('css/*') ||
+                $request->is('js/*') ||
+                $request->is('build/*') ||
+                $request->is('fonts/*') ||
+                $request->is('images/*') ||
+                $request->is('favicon.ico') ||
+                str_contains($request->path(), '.')
+            ) {
+                return $next($request);
+            }
+
+            return redirect()->route('admin.setup.index');
         }
 
+        \Illuminate\Support\Facades\Log::info('EnsureSystemSetup: End ' . $request->path() . ' Duration: ' . (microtime(true) - $start));
         return $next($request);
     }
 }

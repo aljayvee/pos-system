@@ -4,6 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <link rel="icon" href="{{ asset('images/favicon.png') }}" type="image/png">
     <title>{{ $pageTitle ?? 'VERAPOS' }}</title>
 
     {{-- CSS Libraries --}}
@@ -50,33 +51,8 @@
             width: 100%;
         }
 
-        #global-loading-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.6);
-            /* Slightly lighter for glass effect */
-            backdrop-filter: blur(10px);
-            /* Glassmorphism */
-            z-index: 9999;
-            display: none;
-            justify-content: center;
-            align-items: center;
-            flex-direction: column;
-            color: white;
-            font-family: 'Inter', sans-serif;
-        }
 
-        .loading-text {
-            margin-top: 25px;
-            font-size: 1rem;
-            font-weight: 300;
-            letter-spacing: 2px;
-            animation: pulse 1.5s ease-in-out infinite;
-            text-transform: uppercase;
-        }
+
 
         @keyframes pulse {
 
@@ -90,70 +66,177 @@
                 opacity: 1;
                 transform: scale(1);
             }
-        @keyframes pulse {
-            0%, 100% { opacity: 0.5; transform: scale(0.98); }
-            50% { opacity: 1; transform: scale(1); }
-        }
 
-        /* Skeleton Loading Styles */
-        #skeleton-loading-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: #f1f5f9; /* Match body bg */
-            z-index: 9998; /* Just below global overlay */
-            display: none;
-            padding: 20px;
-            box-sizing: border-box;
-        }
+            @keyframes pulse {
 
-        .skeleton-header {
-            height: 60px;
-            width: 100%;
-            background: #fff;
-            margin-bottom: 20px;
-            border-radius: 8px;
-        }
+                0%,
+                100% {
+                    opacity: 0.5;
+                    transform: scale(0.98);
+                }
 
-        .skeleton-content {
-            display: flex;
-            gap: 20px;
-            height: calc(100% - 80px);
-        }
+                50% {
+                    opacity: 1;
+                    transform: scale(1);
+                }
+            }
 
-        .skeleton-sidebar {
-            width: 250px;
-            height: 100%;
-            background: #fff;
-            border-radius: 8px;
-            display: none; /* Hidden on mobile by default */
-        }
-        
-        @media (min-width: 992px) {
-            .skeleton-sidebar { display: block; }
-        }
+            /* Skeleton Loading Styles */
+            #skeleton-loading-overlay {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background-color: #f1f5f9;
+                /* Match body bg */
+                z-index: 9999;
+                /* High Z-Index to cover everything */
+                display: block;
+                /* Show by default for reload */
+                padding: 20px;
+                box-sizing: border-box;
+                overflow: hidden;
+            }
 
-        .skeleton-main {
-            flex: 1;
-            background: #fff;
-            border-radius: 8px;
-            height: 100%;
-        }
+            .skeleton-header {
+                height: 60px;
+                width: 100%;
+                background: #fff;
+                margin-bottom: 20px;
+                border-radius: 8px;
+                flex-shrink: 0;
+            }
 
-        .skeleton-anim {
-            background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
-            background-size: 200% 100%;
-            animation: skeleton-loading 1.5s infinite;
-        }
+            .skeleton-content {
+                display: flex;
+                gap: 20px;
+                height: calc(100vh - 100px);
+                /* Adjust for header + padding */
+                overflow: hidden;
+            }
 
-        @keyframes skeleton-loading {
-            0% { background-position: 200% 0; }
-            100% { background-position: -200% 0; }
-        }
+            .skeleton-sidebar {
+                width: 250px;
+                height: 100%;
+                background: #fff;
+                border-radius: 8px;
+                display: none;
+                flex-shrink: 0;
+            }
+
+            @media (min-width: 992px) {
+                .skeleton-sidebar {
+                    display: block;
+                }
+            }
+
+            .skeleton-main-container {
+                flex: 1;
+                display: flex;
+                flex-direction: column;
+                gap: 20px;
+                height: 100%;
+                overflow: hidden;
+            }
+
+            .skeleton-title {
+                height: 40px;
+                width: 200px;
+                background: #fff;
+                border-radius: 8px;
+                margin-bottom: 10px;
+                flex-shrink: 0;
+            }
+
+            .skeleton-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+                gap: 20px;
+                padding-bottom: 20px;
+            }
+
+            .skeleton-card {
+                background: #fff;
+                border-radius: 12px;
+                height: 280px;
+                /* Taller for image + text */
+                width: 100%;
+                display: flex;
+                flex-direction: column;
+                overflow: hidden;
+                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            }
+
+            .skeleton-card-img {
+                height: 160px;
+                width: 100%;
+                background: #e2e8f0;
+                /* Slightly darker than card bg */
+            }
+
+            .skeleton-card-body {
+                padding: 16px;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                gap: 10px;
+                flex: 1;
+            }
+
+            .skeleton-text-line {
+                height: 16px;
+                border-radius: 4px;
+                background: #e2e8f0;
+            }
+
+            .skeleton-text-line.lg {
+                width: 80%;
+                height: 20px;
+                margin-bottom: 4px;
+            }
+
+            .skeleton-text-line.sm {
+                width: 60%;
+            }
+
+            /* Animation */
+            .skeleton-anim .skeleton-card-img,
+            .skeleton-anim .skeleton-text-line,
+            .skeleton-anim.skeleton-header,
+            .skeleton-anim.skeleton-sidebar,
+            .skeleton-anim.skeleton-title {
+                position: relative;
+                overflow: hidden;
+            }
+
+            .skeleton-anim .skeleton-card-img::after,
+            .skeleton-anim .skeleton-text-line::after,
+            .skeleton-anim.skeleton-header::after,
+            .skeleton-anim.skeleton-sidebar::after,
+            .skeleton-anim.skeleton-title::after {
+                content: "";
+                position: absolute;
+                top: 0;
+                right: 0;
+                bottom: 0;
+                left: 0;
+                transform: translateX(-100%);
+                background-image: linear-gradient(90deg,
+                        rgba(255, 255, 255, 0) 0,
+                        rgba(255, 255, 255, 0.4) 20%,
+                        rgba(255, 255, 255, 0.7) 60%,
+                        rgba(255, 255, 255, 0));
+                animation: shimmer 1.5s infinite;
+            }
+
+            @keyframes shimmer {
+                100% {
+                    transform: translateX(100%);
+                }
+            }
     </style>
-    <script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
+
 </head>
 <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -163,10 +246,22 @@
     // Listen for real-time login requests
     document.addEventListener('DOMContentLoaded', () => {
         if (window.Echo) {
-            window.Echo.private('admin-notifications')
+            console.log('Echo initialized, attempting to subscribe to: App.Models.User.{{ Auth::id() }}');
+
+            window.Echo.private('App.Models.User.{{ Auth::id() }}')
+                .subscribed(() => {
+                    console.log('✅ Successfully subscribed to private channel');
+                })
+                .error((error) => {
+                    console.error('❌ Error subscribing to private channel:', error);
+                })
                 .listen('.LoginRequestCreated', (e) => {
-                    console.log('Login Request Received:', e.details);
-                    showConsentModal(e.details);
+                    console.log('🔔 Login Request Event Received:', e);
+                    if (e && e.details) {
+                        showConsentModal(e.details);
+                    } else {
+                        console.error('Event received but details missing:', e);
+                    }
                 });
         } else {
             console.error('Laravel Echo not loaded.');
@@ -224,10 +319,11 @@
             :user-permissions="{{ json_encode(Auth::user()->effective_permissions) }}"
             user-photo="{{ Auth::user()->profile_photo_path ? asset('storage/' . Auth::user()->profile_photo_path) : '' }}"
             page-title="{{ $pageTitle ?? 'Dashboard' }}" csrf-token="{{ csrf_token() }}"
-            :out-of-stock="{{ $outOfStockCount ?? 0 }}" :low-stock="{{ $lowStockCount ?? 0 }}"
+            :out-of-stock="{{ \App\Models\Inventory::where('store_id', Auth::user()->store_id ?? 1)->where('stock', '<=', 0)->whereHas('product')->count() }}"
+            :low-stock="{{ \App\Models\Inventory::where('store_id', Auth::user()->store_id ?? 1)->where('stock', '>', 0)->whereColumn('stock', '<=', 'reorder_point')->whereHas('product')->count() }}"
             :enable-register-logs="{{ \App\Models\Setting::where('key', 'enable_register_logs')->value('value') ?? 0 }}"
             :enable-bir-compliance="{{ config('safety_flag_features.bir_tax_compliance') ? 'true' : 'false' }}"
-            :system-mode="'{{ \App\Models\Setting::where('key', 'system_mode')->value('value') ?? 'single' }}'">
+            :user-id="{{ Auth::id() }}" system-mode="{{ config('app.mode', 'single') }}">
             @yield('content')
 
         </admin-layout>
@@ -236,28 +332,82 @@
 
     @stack('modals')
 
-    <!-- Global Loading Overlay (Lottie) -->
-    <div id="global-loading-overlay">
-        <lottie-player src="https://assets5.lottiefiles.com/packages/lf20_t9gkkhz4.json" background="transparent" speed="1" style="width: 200px; height: 200px;" loop autoplay></lottie-player>
-        <div class="loading-text" style="margin-top: -40px;">Loading, please wait...</div>
-    </div>
+    <!-- Global Loading Overlay Removed -->
 
     <!-- Skeleton Loading Overlay -->
     <div id="skeleton-loading-overlay">
         <div class="skeleton-header skeleton-anim"></div>
         <div class="skeleton-content">
             <div class="skeleton-sidebar skeleton-anim"></div>
-            <div class="skeleton-main skeleton-anim"></div>
+            <div class="skeleton-main-container">
+                <div class="skeleton-title skeleton-anim"></div>
+                <div class="skeleton-grid">
+                    <!-- Generate 8 cards for a full grid -->
+                    <div class="skeleton-card skeleton-anim">
+                        <div class="skeleton-card-img"></div>
+                        <div class="skeleton-card-body">
+                            <div class="skeleton-text-line lg"></div>
+                            <div class="skeleton-text-line sm"></div>
+                        </div>
+                    </div>
+                    <div class="skeleton-card skeleton-anim">
+                        <div class="skeleton-card-img"></div>
+                        <div class="skeleton-card-body">
+                            <div class="skeleton-text-line lg"></div>
+                            <div class="skeleton-text-line sm"></div>
+                        </div>
+                    </div>
+                    <div class="skeleton-card skeleton-anim">
+                        <div class="skeleton-card-img"></div>
+                        <div class="skeleton-card-body">
+                            <div class="skeleton-text-line lg"></div>
+                            <div class="skeleton-text-line sm"></div>
+                        </div>
+                    </div>
+                    <div class="skeleton-card skeleton-anim">
+                        <div class="skeleton-card-img"></div>
+                        <div class="skeleton-card-body">
+                            <div class="skeleton-text-line lg"></div>
+                            <div class="skeleton-text-line sm"></div>
+                        </div>
+                    </div>
+                    <div class="skeleton-card skeleton-anim">
+                        <div class="skeleton-card-img"></div>
+                        <div class="skeleton-card-body">
+                            <div class="skeleton-text-line lg"></div>
+                            <div class="skeleton-text-line sm"></div>
+                        </div>
+                    </div>
+                    <div class="skeleton-card skeleton-anim">
+                        <div class="skeleton-card-img"></div>
+                        <div class="skeleton-card-body">
+                            <div class="skeleton-text-line lg"></div>
+                            <div class="skeleton-text-line sm"></div>
+                        </div>
+                    </div>
+                    <div class="skeleton-card skeleton-anim">
+                        <div class="skeleton-card-img"></div>
+                        <div class="skeleton-card-body">
+                            <div class="skeleton-text-line lg"></div>
+                            <div class="skeleton-text-line sm"></div>
+                        </div>
+                    </div>
+                    <div class="skeleton-card skeleton-anim">
+                        <div class="skeleton-card-img"></div>
+                        <div class="skeleton-card-body">
+                            <div class="skeleton-text-line lg"></div>
+                            <div class="skeleton-text-line sm"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
     {{-- 1. ADD THIS: Bootstrap JS Bundle (Required for Modals) --}}
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
-    {{-- OPTIMIZATION: Instant Page Loads (Prefetch on hover) --}}
-    <script src="//instant.page/5.2.0" type="module"
-        integrity="sha384-jnZyxPjiipYXnSU0ygqeac2q7CVYMbh84q0uHVRRxEtvFPiQYbXWUorga2aqZJ0z"
-        crossorigin="anonymous"></script>
+
 
     @stack('scripts')
 
@@ -270,136 +420,68 @@
     'info' => session('info')
 ]) !!};
 
-        // Loading Overlay Logic
+        // Skeleton Loader Logic
         document.addEventListener('DOMContentLoaded', function () {
-            const globalOverlay = document.getElementById('global-loading-overlay');
             const skeletonOverlay = document.getElementById('skeleton-loading-overlay');
 
-            function showLoading(type = 'global') {
-                if (type === 'skeleton') {
-                    skeletonOverlay.style.display = 'block';
-                } else {
-                    globalOverlay.style.display = 'flex';
+            function showSkeletonLoading() {
+                if (skeletonOverlay) {
+                    skeletonOverlay.style.setProperty('display', 'block', 'important');
+                    skeletonOverlay.style.zIndex = '2147483647';
                 }
             }
+
+            // Expose hide function globally for Vue or others
+            window.hideSkeletonLoading = function () {
+                if (skeletonOverlay) {
+                    skeletonOverlay.style.display = 'none';
+                }
+            };
+
+            // Hide on initial load
+            window.addEventListener('load', function () {
+                // Small delay to ensure smooth transition
+                setTimeout(window.hideSkeletonLoading, 300);
+            });
 
             // 1. Form Submissions
             const forms = document.querySelectorAll('form');
             forms.forEach(form => {
                 form.addEventListener('submit', function (e) {
-                    // Check if the form is invalid (standard HTML validation)
-                    if (!form.checkValidity()) {
-                        return;
-                    }
-
-                    // Check if default was prevented (e.g. by onsubmit="return confirm(...)")
-                    if (e.defaultPrevented) {
-                        return;
-                    }
-
-                    // Allow preventing the loading screen if the form has a specific class, e.g. 'no-loading'
-                    if (form.classList.contains('no-loading')) {
-                        return;
-                    }
-
-                    // Check if it's a SAME PAGE GET request (Search/Filter context)
-                    const isGet = form.method.toLowerCase() === 'get';
-                    const action = form.action || window.location.href;
-                    const actionPath = new URL(action, window.location.origin).pathname;
-                    const currentPath = window.location.pathname;
-
-                    if (isGet && actionPath === currentPath) {
-                        showLoading('skeleton');
-                    } else {
-                        showLoading('global');
-                    }
+                    if (!form.checkValidity() || e.defaultPrevented) return;
+                    showSkeletonLoading();
                 });
             });
 
-            // 2. Global Navigation Links (exclude target="_blank", #links, and specific classes)
+            // 2. Navigation
             document.addEventListener('click', function (e) {
                 const link = e.target.closest('a');
-
                 if (link) {
                     const href = link.getAttribute('href');
                     const target = link.getAttribute('target');
 
-                    // Skip if:
-                    // - It's a hash link (#)
-                    // - It opens in a new tab
-                    // - It has 'no-loading' class
-                    // - It's a javascript: protocol
-                    // - It is strictly a download link (optional check, dependent on attr)
                     if (
-                        !href ||
-                        href.startsWith('#') ||
-                        href.startsWith('javascript:') ||
-                        target === '_blank' ||
-                        link.classList.contains('no-loading') ||
-                        link.dataset.toggle === 'modal' || // Bootstrap modals
-                        link.dataset.bsToggle === 'modal'  // Bootstrap 5 modals
-                    ) {
-                        return;
-                    }
+                        !href || href.startsWith('#') || href.startsWith('javascript:') || target === '_blank' ||
+                        link.classList.contains('no-loading') || link.dataset.toggle === 'modal' || link.dataset.bsToggle === 'modal'
+                    ) return;
 
-                    // Special handling for your existing .single-click-link (combine logic)
-                    if (link.classList.contains('single-click-link')) {
-                        // The existing logic already adds a smaller spinner, but we can also show the generic overlay 
-                        // if we want a full screen block. 
-                        // For now, let's respect the user's request for "Loading, please wait..."
-                        showLoading();
-                        return;
-                    }
-
-
-                    // Check if it's an internal link
                     if (href.startsWith(window.location.origin) || href.startsWith('/')) {
-                        // FIX: Prevent reloading and showing overlay if clicking present link
-                        // Normalize URLs by removing trailing slashes and hashes for comparison
                         const currentUrl = window.location.href.split('#')[0].replace(/\/$/, "");
                         const targetUrl = link.href.split('#')[0].replace(/\/$/, "");
-
                         if (targetUrl === currentUrl) {
-                            e.preventDefault();
-                            return;
+                            e.preventDefault(); return;
                         }
-
-                        // Determine Loading Type
-                        // Logic: If path matches but params change, or it's just a query update -> Skeleton
-                        // For now, let's use a simple path check.
-                        const currentPath = window.location.pathname;
-                        const targetPath = new URL(link.href).pathname;
-
-                        if (currentPath === targetPath) {
-                            showLoading('skeleton');
-                        } else {
-                            showLoading('global');
-                        }
+                        showSkeletonLoading();
                     }
                 }
             });
 
-            // Handle Form Get Requests (Filter/Search)
-            forms.forEach(form => {
-                if (form.method.toLowerCase() === 'get') {
-                    const actionUrl = new URL(form.action || window.location.href, window.location.origin);
-                    if (actionUrl.pathname === window.location.pathname) {
-                        // It's a filter/search on the same page
-                        form.addEventListener('submit', function() {
-                             // This listener runs BEFORE the generic one below, so we can override?
-                             // No, duplicate execution. Better to handle logic inside the main submit handler.
-                             // Actually, let's just let the main handler call showLoading() 
-                             // and we modify showLoading logic or detecting logic there.
-                        });
-                    }
-                }
-            });
-            
             // Fallback: Hide overlay if page acts restored (bfcache)
             window.addEventListener('pageshow', function (event) {
                 if (event.persisted) {
-                    globalOverlay.style.display = 'none';
-                    skeletonOverlay.style.display = 'none';
+                    if (event.persisted) {
+                        if (skeletonOverlay) skeletonOverlay.style.display = 'none';
+                    }
                 }
             });
         });

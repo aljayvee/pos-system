@@ -6,14 +6,14 @@ use Illuminate\Support\Facades\Cache;
 
 class CacheOtpService implements OtpServiceInterface
 {
-    protected const EXPIRY_MINUTES = 10;
+    protected const EXPIRY_MINUTES = 5;
 
     public function generate(string $identifier, string $context): string
     {
         $code = str_pad((string) rand(0, 999999), 6, '0', STR_PAD_LEFT);
         $key = $this->getKey($identifier, $context);
 
-        // Store in cache for 10 minutes
+        // Store in cache for 5 minutes
         Cache::put($key, $code, now()->addMinutes(self::EXPIRY_MINUTES));
 
         return $code;

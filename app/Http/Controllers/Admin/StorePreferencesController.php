@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Hash; // Import Hash
 use Illuminate\Contracts\Encryption\DecryptException; // Import Exception
 use App\Models\ActivityLog; // <--- Import this
 
-class SettingsController extends Controller
+class StorePreferencesController extends Controller
 {
     public function index()
     {
@@ -38,7 +38,7 @@ class SettingsController extends Controller
             }
         }
 
-        return view('admin.settings.index', compact('settings'));
+        return view('admin.store_preferences.index', compact('settings'));
     }
 
     // NEW: Secure Reveal Method
@@ -192,6 +192,14 @@ class SettingsController extends Controller
     }
 
 
+    // Injected Service
+    protected $updateService;
+
+    public function __construct(\App\Services\System\SystemUpdateService $updateService)
+    {
+        $this->updateService = $updateService;
+    }
+
     public function checkUpdate()
     {
         $current = config('version');
@@ -200,107 +208,29 @@ class SettingsController extends Controller
         // Check if user is a Beta Tester
         $isBeta = Setting::where('store_id', $storeId)->where('key', 'enable_beta')->value('value') == '1';
 
-        // Beta testers look at 'beta-version.json', others look at 'version.json'
-        $url = $isBeta
-            ? 'https://raw.githubusercontent.com/aljayvee/pos-system/main/beta-version.json'
-            : 'https://raw.githubusercontent.com/aljayvee/pos-system/main/version.json';
+        $result = $this->updateService->checkForUpdates($isBeta, $current);
 
-        try {
-            $response = Http::get($url);
-            if ($response->successful()) {
-                $latest = $response->json();
-                $hasUpdate = (int) $latest['build'] > (int) $current['build'];
-
-                return response()->json([
-                    'has_update' => $hasUpdate,
-                    'current' => $current['full'],
-                    'latest' => $latest['full'] . ($isBeta ? ' (BETA)' : ''),
-                    'type' => $latest['update_type'],
-                    'changelog' => $latest['changelog']
-                ]);
-            }
-        } catch (\Exception $e) {
-            return response()->json(['error' => 'Offline'], 500);
+        if ($result['success']) {
+            return response()->json([
+                'has_update' => $result['has_update'],
+                'current' => $result['current'],
+                'latest' => $result['latest'],
+                'type' => $result['type'],
+                'changelog' => $result['changelog']
+            ]);
         }
+
+        return response()->json(['error' => $result['error']], 500);
     }
 
     public function runUpdate(Request $request)
     {
-        set_time_limit(300); // 5 minutes max
         $storeId = $this->getActiveStoreId();
-
-        // 1. Determine Branch
         $isBeta = Setting::where('store_id', $storeId)->where('key', 'enable_beta')->value('value') == '1';
-        $branch = $isBeta ? 'develop' : 'main';
 
-        // 2. Determine Path dynamically (Fixes hardcoded /www/pos)
-        $path = base_path();
+        $result = $this->updateService->performUpdate($isBeta);
 
-        // 3. Prepare Log Collection
-        $log = [];
-        $log[] = "Environment: " . php_uname();
-        $log[] = "Root Path: $path";
-        $log[] = "Target Branch: $branch";
-
-        try {
-            // Helper to run commands and trap output
-            $run = function ($cmd) use (&$log, $path) {
-                // Determine OS to silence stderr if needed, but we want to see it.
-                // Redirect stderr to stdout to capture errors
-                $command = "cd \"$path\" && $cmd 2>&1";
-                $output = shell_exec($command);
-                $log[] = "> $cmd";
-                $log[] = trim($output);
-                return $output;
-            };
-
-            // --- GIT OPERATIONS ---
-
-            // Mark directory as safe (Fixes dubious ownership on Linux/OpenWrt)
-            $run("git config --global --add safe.directory \"$path\"");
-
-            // Reset/Stash local changes (User's workflow)
-            $run("git stash");
-
-            // PULL changes (User's preferred workflow)
-            $run("git pull origin $branch");
-
-            // --- POST-UPDATE TASKS ---
-
-            // Permissions (Only run on Linux to avoid access denied on Windows)
-            if (PHP_OS_FAMILY !== 'Windows') {
-                $log[] = "Applying Linux Permissions...";
-                // Use standard permissions for web server (usually www-data)
-                $run("chown -R network:www-data storage bootstrap/cache");
-                $run("chmod -R 775 storage bootstrap/cache");
-            } else {
-                $log[] = "Skipping permissions (Windows detected).";
-            }
-
-            // Optimization
-            $run("php artisan optimize:clear");
-            $run("php artisan migrate --force");
-
-            // Reload Opcache if available
-            if (function_exists('opcache_reset')) {
-                opcache_reset();
-                $log[] = "Opcache reset.";
-            }
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Update sequence completed.',
-                'output' => implode("\n", $log)
-            ]);
-
-        } catch (\Exception $e) {
-            $log[] = "CRITICAL ERROR: " . $e->getMessage();
-            return response()->json([
-                'success' => false,
-                'message' => 'Update failed: ' . $e->getMessage(),
-                'output' => implode("\n", $log)
-            ]);
-        }
+        return response()->json($result);
     }
 
 }

@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Product;
 use App\Models\Sale;
 use App\Models\SaleItem;
-use App\Models\SalesReturn; // Import SalesReturn
+use App\Models\SalesReturn;
 use App\Models\CreditPayment;
 use App\Models\Customer;
 use App\Models\CustomerCredit;
@@ -14,23 +14,27 @@ use App\Models\Inventory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Crypt; // Import Crypt
-use Illuminate\Contracts\Encryption\DecryptException; // <--- Add this one!
+use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\Log; // [NEW]
+use Illuminate\Support\Facades\Hash; // [NEW]
+use Illuminate\Contracts\Encryption\DecryptException;
+use App\Services\POS\CheckoutService; // [NEW]
+use App\Services\POS\ReturnService;   // [NEW]
 
 class POSController extends Controller
 {
-    protected $invoiceNumberService;
-    protected $zReadingProcessor;
-    protected $discountCalculator; // [PHASE 11]
+    protected $checkoutService;
+    protected $returnService;
+    protected $zReadingProcessor; // Kept if used elsewhere
 
     public function __construct(
-        \App\Services\BIR\InvoiceNumberService $invoiceNumberService,
-        \App\Services\BIR\ZReadingProcessor $zReadingProcessor,
-        \App\Services\BIR\DiscountCalculatorService $discountCalculator // [PHASE 11]
+        CheckoutService $checkoutService,
+        ReturnService $returnService,
+        \App\Services\BIR\ZReadingProcessor $zReadingProcessor
     ) {
-        $this->invoiceNumberService = $invoiceNumberService;
+        $this->checkoutService = $checkoutService;
+        $this->returnService = $returnService;
         $this->zReadingProcessor = $zReadingProcessor;
-        $this->discountCalculator = $discountCalculator;
     }
 
     public function index()
@@ -41,7 +45,7 @@ class POSController extends Controller
             ->where('inventories.store_id', $storeId)
             ->where('inventories.stock', '>', 0)
             ->whereNull('products.deleted_at')
-            ->with(['category', 'pricingTiers']) // [OPTIMIZATION] Eager load to prevent N+1 queries
+            ->with(['category', 'pricingTiers'])
             ->select(
                 'products.id',
                 'products.name',
@@ -70,7 +74,6 @@ class POSController extends Controller
         $loyaltyEnabled = \App\Models\Setting::where('key', 'enable_loyalty')->value('value') ?? '0';
 
         // --- FIXED: Fetch BIR/Tax Setting ---
-        // Align with 'store' method logic (Feature Flag takes precedence or is the master switch)
         $birEnabled = config('safety_flag_features.bir_tax_compliance') ? 1 : 0;
         $taxType = \App\Models\Setting::where('key', 'tax_type')->value('value') ?? 'inclusive';
 
@@ -207,7 +210,7 @@ class POSController extends Controller
             $request->validate(['query' => 'required']);
             $q = $request->query('query');
 
-            \Illuminate\Support\Facades\Log::info('Return Search Query: ' . $q);
+            Log::info('Return Search Query: ' . $q);
 
             $sale = Sale::with(['saleItems.product', 'customer'])
                 ->where('id', $q)
@@ -215,7 +218,7 @@ class POSController extends Controller
                 ->first();
 
             if (!$sale) {
-                \Illuminate\Support\Facades\Log::info('Return Search: Sale not found for ' . $q);
+                Log::info('Return Search: Sale not found for ' . $q);
                 return response()->json(['success' => false, 'message' => 'Sale not found.']);
             }
 
@@ -252,15 +255,14 @@ class POSController extends Controller
                 ]
             ]);
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('Return Search Error: ' . $e->getMessage());
+            Log::error('Return Search Error: ' . $e->getMessage());
             return response()->json(['success' => false, 'message' => 'Server Error'], 500);
         }
     }
 
-    // REPLACE the 'processReturn' method with this ACID-compliant version:
     public function processReturn(Request $request)
     {
-        \Illuminate\Support\Facades\Log::info('Return Process Request:', $request->all());
+        Log::info('Return Process Request:', $request->all());
 
         $request->validate([
             'sale_id' => 'required|exists:sales,id',
@@ -270,103 +272,27 @@ class POSController extends Controller
             'items.*.condition' => 'required|in:good,damaged',
         ]);
 
-        $saleId = $request->sale_id;
-        $storeId = $this->getActiveStoreId();
-
-        // Start ACID Transaction
-        DB::beginTransaction();
         try {
-            // 1. LOCK THE PARENT SALE RECORD
-            // This acts as a "Gatekeeper". Only one return process can happen 
-            // for this specific Receipt ID at a time.
-            $sale = Sale::where('id', $saleId)->lockForUpdate()->firstOrFail();
+            // [REFACTORED] Use Service
+            $this->returnService->processReturn(
+                $request->all(),
+                $this->getActiveStoreId(),
+                Auth::id()
+            );
 
-            foreach ($request->items as $itemData) {
-                $pid = $itemData['product_id'];
-                $qty = $itemData['quantity'];
-
-                // 2. FETCH SALE ITEM (Consistency Check)
-                $saleItem = SaleItem::where('sale_id', $saleId)
-                    ->where('product_id', $pid)
-                    ->firstOrFail();
-
-                // 3. CALCULATE ALREADY RETURNED (Inside the Lock)
-                // Because we hold the lock on $sale, no one else can add 
-                // to 'SalesReturn' for this sale right now.
-                $alreadyReturned = SalesReturn::where('sale_id', $saleId)
-                    ->where('product_id', $pid)
-                    ->sum('quantity');
-
-                if (($qty + $alreadyReturned) > $saleItem->quantity) {
-                    throw new \Exception("Cannot return {$qty} items. Only " . ($saleItem->quantity - $alreadyReturned) . " left eligible for return.");
-                }
-
-                $refundAmount = $saleItem->price * $qty;
-
-                // 4. CREATE RETURN RECORD
-                SalesReturn::create([
-                    'sale_id' => $saleId,
-                    'product_id' => $pid,
-                    'user_id' => Auth::id(),
-                    'quantity' => $qty,
-                    'refund_amount' => $refundAmount,
-                    'condition' => $itemData['condition'],
-                    'reason' => $itemData['reason'] ?? 'Customer Return (POS)'
-                ]);
-
-                // 5. RESTORE STOCK (If Good Condition)
-                if ($itemData['condition'] === 'good') {
-                    $inventory = Inventory::where('product_id', $pid)
-                        ->where('store_id', $storeId)
-                        ->lockForUpdate() // Lock inventory too
-                        ->first();
-
-                    if ($inventory) {
-                        $inventory->increment('stock', $qty);
-                    }
-                }
-
-                if ($sale->payment_method === 'credit' && $sale->customer_id) {
-                    $credit = CustomerCredit::where('sale_id', $saleId)
-                        ->lockForUpdate() // Lock the debt record
-                        ->first();
-
-                    if ($credit) {
-                        $credit->remaining_balance -= $refundAmount;
-                        if ($credit->remaining_balance <= 0.01) {
-                            $credit->remaining_balance = 0;
-                            $credit->is_paid = true;
-                        }
-                        $credit->save();
-                    }
-                }
-            }
-
-            // LOGGING
-            \App\Models\ActivityLog::create([
-                'user_id' => Auth::id(),
-                'store_id' => $storeId,
-                'action' => 'Sale Return',
-                'description' => "Return processed for Sale #{$saleId} | Refund: " . number_format($refundAmount ?? 0, 2)
-            ]);
-
-            DB::commit();
             return response()->json(['success' => true, 'message' => 'Return processed successfully.']);
 
         } catch (\Exception $e) {
-            DB::rollBack();
             return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }
     }
-
-    // In app/Http/Controllers/Cashier/POSController.php
 
     public function getStockUpdates()
     {
         $storeId = $this->getActiveStoreId();
 
         // Fetch only ID and Stock for active products
-        $updates = \Illuminate\Support\Facades\DB::table('products')
+        $updates = DB::table('products')
             ->join('inventories', 'products.id', '=', 'inventories.product_id')
             ->where('inventories.store_id', $storeId)
             ->whereNull('products.deleted_at')
@@ -376,7 +302,6 @@ class POSController extends Controller
         return response()->json($updates);
     }
 
-    // REPLACE the 'store' method with this ROBUST version:
     public function store(Request $request)
     {
         $request->validate([
@@ -398,289 +323,17 @@ class POSController extends Controller
             'credit_details.due_date.required_if' => 'Due Date is required for credit transactions.'
         ]);
 
-        // Start ACID Transaction
-        DB::beginTransaction();
-
         try {
-            $storeId = $this->getActiveStoreId();
+            // [REFACTORED] Use Service
+            $sale = $this->checkoutService->processCheckout(
+                $request->all(),
+                $this->getActiveStoreId(),
+                Auth::id()
+            );
 
-            // 1. IDENTIFY & LOCK CUSTOMER
-            $customer = null;
-            $customerId = $request->customer_id;
-
-            if ($customerId === 'new') {
-                $customer = Customer::create([
-                    'store_id' => $storeId,
-                    'name' => $request->input('credit_details.name'),
-                    'address' => $request->input('credit_details.address'),
-                    'contact' => $request->input('credit_details.contact'),
-                    'points' => 0
-                ]);
-            } elseif ($customerId && $customerId !== 'walk-in') {
-                $customer = Customer::where('id', $customerId)->lockForUpdate()->first();
-                if (!$customer)
-                    throw new \Exception("Customer not found.");
-            }
-
-            // 2. FETCH SETTINGS
-            $taxType = \App\Models\Setting::where('key', 'tax_type')->value('value') ?? 'inclusive';
-            $taxRate = 0.12;
-            $loyaltyEnabled = \App\Models\Setting::where('key', 'enable_loyalty')->value('value') ?? '0';
-            $loyaltyRatio = \App\Models\Setting::where('key', 'loyalty_ratio')->value('value') ?? 100;
-            $pointsValue = \App\Models\Setting::where('key', 'points_conversion')->value('value') ?? 1;
-
-            // 3. SERVER-SIDE CALCULATION & INVENTORY LOCKING (SECURITY FIX)
-            $calculatedTotal = 0;
-            $validatedItems = [];
-
-            foreach ($request->cart as $item) {
-                // Lock Inventory & Eager Load Product for Price
-                // Lock Inventory & Eager Load Product for Price
-                $query = Inventory::with('product')
-                    ->where('product_id', $item['id'])
-                    ->where('store_id', $storeId);
-
-                // SQLite doesn't handle lockForUpdate well in tests
-                if (DB::getDriverName() !== 'sqlite') {
-                    $query->lockForUpdate();
-                }
-
-                $inventory = $query->first();
-
-                if (!$inventory) {
-                    $prod = Product::find($item['id']);
-                    throw new \Exception("Stock record not found for '" . ($prod->name ?? 'Unknown') . "' in this branch. (Store: $storeId, Prod: {$item['id']})");
-                }
-
-                if ($inventory->stock < $item['qty']) {
-                    throw new \Exception("Insufficient stock for '{$inventory->product->name}'. Available: {$inventory->stock}");
-                }
-
-                // ADVANCED PERMISSION CHECK: price.override
-                $serverPrice = $inventory->product->price;
-                $finalPrice = $serverPrice;
-
-                // Check if Price was overridden in frontend
-                if (isset($item['is_overridden']) && $item['is_overridden']) {
-                    // Verify Permission
-                    if (Auth::user()->hasPermission(\App\Enums\Permission::PRICE_OVERRIDE)) {
-                        $finalPrice = $item['price']; // Trust the submitted price if authorized
-                    } else {
-                        // Unauthorized override attempt - Silently revert or Throw? 
-                        // Safer to Revert to Server Price to prevent hacks, but maybe log it?
-                        $finalPrice = $serverPrice;
-                    }
-                }
-
-                $lineTotal = $finalPrice * $item['qty'];
-                $calculatedTotal += $lineTotal;
-
-                // Store for Step 6 to avoid re-querying
-                $validatedItems[] = [
-                    'inventory' => $inventory,
-                    'product_id' => $item['id'],
-                    'qty' => $item['qty'],
-                    'price' => $finalPrice,
-                    'cost' => $inventory->product->cost ?? 0
-                ];
-            }
-
-            // 4. HANDLE POINTS REDEMPTION
-            $pointsUsed = 0;
-            $pointsDiscount = 0;
-
-            if ($loyaltyEnabled == '1' && $customer && $request->points_used > 0) {
-                if ($customer->points < $request->points_used) {
-                    throw new \Exception("Insufficient points! You have {$customer->points}, but tried to use {$request->points_used}.");
-                }
-
-                $pointsUsed = $request->points_used;
-                $pointsDiscount = $pointsUsed * $pointsValue;
-
-                $customer->decrement('points', $pointsUsed);
-            }
-
-            // 5. CALCULATE FINANCIALS (Tax) - PER PRODUCT
-            $totalVatable = 0;
-            $totalVatExempt = 0;
-            $totalZeroRated = 0;
-            $totalVatAmount = 0;
-            $totalDiscountAmount = 0;
-            $finalTotal = 0;
-
-            foreach ($validatedItems as $item) {
-                // Fetch Tax Type from Product (Eager loaded in step 3 via 'inventory.product')
-                $product = $item['inventory']->product;
-                $taxTypeProd = $product->tax_type ?? 'vatable'; // Default
-                $lineAmount = $item['price'] * $item['qty'];
-
-                // [GENERIC MODE FIX] If BIR Compliance is OFF
-                if (!config('safety_flag_features.bir_tax_compliance')) {
-                    // Generic Mode: Treat as simple sale.
-                    // Accumulate Vatable (or Exempt) just for storage, but Math is simple.
-                    $totalVatExempt += $lineAmount;
-                    $finalTotal += $lineAmount; // Simple Add
-                } else {
-                    // BIR COMPLIANCE MODE
-
-                    // [PHASE 11] SC/PWD Discount Logic
-                    $discountType = $request->input('discount.type', 'na');
-                    $isDiscounted = in_array($discountType, ['sc', 'pwd']);
-
-                    if ($isDiscounted) {
-                        // Use Service to Calculate
-                        $isInclusive = ($taxType === 'inclusive');
-                        $calc = $this->discountCalculator->calculate($lineAmount, $taxTypeProd, $discountType, $isInclusive);
-
-                        // Accumulate Financials
-                        $totalVatExempt += $calc['base_price']; // The Net Base becomes the Exempt Sales Figure
-                        $totalDiscountAmount += $calc['discount_amount']; // Track Total Discount
-                        $finalTotal += $calc['final_total']; // What the customer actually pays
-
-                        // We do NOT add to $totalVatable or $totalVatAmount (Correct)
-                    } else {
-                        // Standard Logic (No Discount)
-
-                        if ($taxTypeProd === 'vat_exempt') {
-                            $totalVatExempt += $lineAmount;
-                            $finalTotal += $lineAmount;
-                        } elseif ($taxTypeProd === 'zero_rated') {
-                            $totalZeroRated += $lineAmount;
-                            $finalTotal += $lineAmount;
-                        } else {
-                            // VATABLE
-                            if ($taxType === 'inclusive') {
-                                $base = $lineAmount / (1 + $taxRate);
-                                $vat = $lineAmount - $base;
-                                $totalVatable += $base;
-                                $totalVatAmount += $vat;
-                                $finalTotal += $lineAmount;
-                            } elseif ($taxType === 'exclusive') {
-                                $totalVatable += $lineAmount;
-                                $vat = $lineAmount * $taxRate;
-                                $totalVatAmount += $vat;
-                                $finalTotal += ($lineAmount + $vat); // Exclusive adds tax on top
-                            } else {
-                                // Non-VAT / Default
-                                $base = $lineAmount / (1 + $taxRate);
-                                $vat = $lineAmount - $base;
-                                $totalVatable += $base;
-                                $totalVatAmount += $vat;
-                                $finalTotal += $lineAmount;
-                            }
-                        }
-                    }
-                }
-            }
-
-            // Adjust Total for Points (Treating points as Payment, not Discount reducing Tax Base)
-            // But if we want to support "Points Discount" lowering the amount due:
-            // The 'total_amount' in sales table is usually the Grand Total Receivable.
-            // So we keep $finalTotal as the gross.
-
-            // [SECURITY FIX] Validate Payment Amount against Server-Calculated Total
-            $netPayable = $finalTotal - $pointsDiscount;
-            // Ensure netPayable is not negative (edge case where points > total)
-            if ($netPayable < 0)
-                $netPayable = 0;
-
-            if ($request->payment_method === 'cash') {
-                $tendered = $request->amount_paid;
-                // Allow small floating point tolerance (0.05) to prevent friction, or strict 0.01
-                if (($tendered - $netPayable) < -0.05) {
-                    throw new \Exception("Insufficient payment amount. Total Due: ₱" . number_format($netPayable, 2) . ", Tendered: ₱" . number_format($tendered, 2));
-                }
-            }
-
-            // 6. CREATE SALE RECORD
-            $sale = Sale::create([
-                'store_id' => $storeId,
-                'user_id' => Auth::id(),
-                'customer_id' => $customer ? $customer->id : null,
-                'total_amount' => $finalTotal,
-                'vatable_sales' => $totalVatable,
-                'vat_exempt_sales' => $totalVatExempt,
-                'vat_zero_rated_sales' => $totalZeroRated,
-                'vat_amount' => $totalVatAmount,
-                // 'output_vat' => $totalVatAmount, // Removed: Duplicate/Non-existent column
-
-                // [PHASE 11] SC/PWD Details
-                'discount_type' => $request->input('discount.type'),
-                'discount_card_no' => $request->input('discount.card_no'),
-                'discount_name' => $request->input('discount.name'),
-                'discount_amount' => $request->input('discount.amount', 0), // Ideally calculated server-side, but trust frontend or accumulator for now if lazy
-
-                'amount_paid' => $request->payment_method === 'credit' ? 0 : ($request->amount_paid ?? 0),
-                'payment_method' => $request->payment_method,
-                'reference_number' => $request->payment_method === 'digital' ? $request->reference_number : null,
-                'points_used' => $pointsUsed,
-                'points_discount' => $pointsDiscount,
-            ]);
-
-            // --- BIR COMPLIANCE: SI Number Generation ---
-            if (config('safety_flag_features.bir_tax_compliance')) {
-                $sale->invoice_number = $this->invoiceNumberService->getNext($storeId);
-            } else {
-                // Legacy Fallback (or distinct sequence if needed, for now using timestamp/random for demo if not strict)
-                // Assuming legacy uses existing logic or just random string
-                $sale->invoice_number = 'OR-' . strtoupper(uniqid());
-            }
-            $sale->save(); // Save the invoice number
-
-            // 7. PROCESS VALIDATED CART ITEMS
-            foreach ($validatedItems as $item) {
-                // Decrement Stock
-                $item['inventory']->decrement('stock', $item['qty']);
-
-                // Create Item Record
-                SaleItem::create([
-                    'sale_id' => $sale->id,
-                    'product_id' => $item['product_id'],
-                    'quantity' => $item['qty'],
-                    'price' => $item['price'], // Use Server Price
-                    'cost' => $item['cost']
-                ]);
-            }
-
-            // 8. AWARD NEW POINTS (Based on Final Total)
-            if ($loyaltyEnabled == '1' && $customer) {
-                $pointsEarned = floor($finalTotal / $loyaltyRatio);
-                if ($pointsEarned > 0) {
-                    $customer->increment('points', $pointsEarned);
-                }
-            }
-
-            // 9. RECORD CREDIT (Utang)
-            if ($request->payment_method === 'credit' && $customer) {
-                CustomerCredit::create([
-                    'customer_id' => $customer->id,
-                    'sale_id' => $sale->id,
-                    'total_amount' => $finalTotal,
-                    'remaining_balance' => $finalTotal,
-                    'amount_paid' => 0,
-                    'is_paid' => false,
-                    'due_date' => $request->input('credit_details.due_date'),
-                ]);
-            }
-
-            // 10. ACTIVITY LOG (Transaction Recorded)
-            \App\Models\ActivityLog::create([
-                'user_id' => Auth::id(),
-                'store_id' => $storeId,
-                'action' => 'Sale Created',
-                'description' => "Sale ID: #{$sale->id} | Total: " . number_format($finalTotal, 2) . " | Items: " . count($validatedItems) . " | Method: " . ucfirst($request->payment_method),
-            ]);
-
-            // --- EVENT DISPATCH: Log to Electronic Journal ---
-            if (config('safety_flag_features.bir_tax_compliance')) {
-                \App\Events\SaleCreated::dispatch($sale);
-            }
-
-            DB::commit();
             return response()->json(['success' => true, 'sale_id' => $sale->id]);
 
         } catch (\Exception $e) {
-            DB::rollBack();
             return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }
     }
@@ -781,7 +434,7 @@ class POSController extends Controller
         $store = \App\Models\Store::find($storeId);
         $rawTin = \App\Models\Setting::where('key', 'store_tin')->value('value');
         try {
-            $tin = $rawTin ? \Illuminate\Support\Facades\Crypt::decryptString($rawTin) : '000-000-000';
+            $tin = $rawTin ? Crypt::decryptString($rawTin) : '000-000-000';
         } catch (\Exception $e) {
             $tin = $rawTin;
         }
@@ -822,10 +475,6 @@ class POSController extends Controller
         ];
 
         // 5. Tax Breakdown
-        // If BIR enabled, use precise tax calculations from sales items if possible, 
-        // but for summary, standard back-calculation is often acceptable for X-Reading.
-        // For Z-Reading, it should match the Electronic Journal summary.
-        // Here we stick to simple calculation for display.
         if (\App\Models\Setting::where('key', 'tax_type')->value('value') == 'non_vat') {
             $data['vatable_sales'] = 0;
             $data['vat_amount'] = 0;
@@ -837,27 +486,12 @@ class POSController extends Controller
         }
 
         // 6. ACCUMULATED GRAND TOTAL
-        // BIR Requirement: "Old Accumulated Grand Total" + "Today's Net Sales" = "New Accumulated Grand Total"
-        // We must fetch the LAST PURGABLE/PERSISTENT grand total from Stores table.
-        // If it's a new system, it starts at 0.
-
         $persistentGrandTotal = $store->accumulated_grand_total ?? 0;
-
-        // For X-Reading (Preview), we show:
-        // Old = Current Persistent GT
-        // New = Current Persistent GT + Today's Sales (Preview)
-
-        // NOTE: A real Z-reading (End of Day) would ACTUALLY update the database. 
-        // This controller just *shows* the reading. The actual 'Close Register' or 'Z-Cut' action 
-        // should likely call ZReadingProcessor->process().
-        // For now, we display the hypothetical progression.
-
         $data['old_accumulated_sales'] = $persistentGrandTotal;
         $data['new_accumulated_sales'] = $persistentGrandTotal + $netSales;
 
         return view('cashier.reading', compact('data'));
     }
-
 
     // Add this method at the very bottom of your POSController class
     public function verifyAdmin(Request $request)
@@ -869,7 +503,7 @@ class POSController extends Controller
 
         foreach ($admins as $admin) {
             // Check if the password matches ANY admin account
-            if (\Illuminate\Support\Facades\Hash::check($request->password, $admin->password)) {
+            if (Hash::check($request->password, $admin->password)) {
                 return response()->json(['success' => true]);
             }
         }

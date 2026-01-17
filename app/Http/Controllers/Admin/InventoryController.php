@@ -19,11 +19,16 @@ class InventoryController extends Controller
         $storeId = $this->getActiveStoreId();
 
         // Query Products that have stock IN THIS BRANCH
-        $query = Product::with('category')
-                    ->whereHas('inventories', function($q) use ($storeId) {
-                        $q->where('store_id', $storeId)
-                          ->where('stock', '>', 0);
-                    });
+        $query = Product::with([
+            'category',
+            'inventories' => function ($q) use ($storeId) {
+                $q->where('store_id', $storeId);
+            }
+        ])
+            ->whereHas('inventories', function ($q) use ($storeId) {
+                $q->where('store_id', $storeId)
+                    ->where('stock', '>', 0);
+            });
 
         if ($request->filled('search')) {
             $query->where('name', 'like', '%' . $request->search . '%');
@@ -35,17 +40,22 @@ class InventoryController extends Controller
         $allProducts = $query->get();
 
         // Stats - Accessor ($p->stock) handles the store logic automatically now
-        $totalItems = $allProducts->sum('stock');
-        $totalCostValue = $allProducts->sum(function($p) { return $p->stock * ($p->cost ?? 0); });
-        $totalSalesValue = $allProducts->sum(function($p) { return $p->stock * $p->price; });
+        // Stats - Accessor ($p->stock) handles the store logic automatically now
+        $totalItems = $allProducts->sum(fn($p) => $p->inventories->first()->stock ?? 0);
+        $totalCostValue = $allProducts->sum(fn($p) => ($p->inventories->first()->stock ?? 0) * ($p->cost ?? 0));
+        $totalSalesValue = $allProducts->sum(fn($p) => ($p->inventories->first()->stock ?? 0) * $p->price);
         $potentialProfit = $totalSalesValue - $totalCostValue;
 
         $products = $query->latest()->paginate(15)->withQueryString();
         $categories = \App\Models\Category::orderBy('name')->get();
 
         return view('admin.inventory.index', compact(
-            'products', 'categories', 
-            'totalItems', 'totalCostValue', 'totalSalesValue', 'potentialProfit'
+            'products',
+            'categories',
+            'totalItems',
+            'totalCostValue',
+            'totalSalesValue',
+            'potentialProfit'
         ));
     }
 
@@ -64,10 +74,10 @@ class InventoryController extends Controller
     {
         $request->validate([
             'product_id' => 'required|exists:products,id',
-            'type'       => 'required|in:add,subtract',
-            'quantity'   => 'required|integer|min:1',
-            'reason'     => 'required|string',
-            'remarks'    => 'nullable|string'
+            'type' => 'required|in:add,subtract',
+            'quantity' => 'required|integer|min:1',
+            'reason' => 'required|string',
+            'remarks' => 'nullable|string'
         ]);
 
         // Start ACID Transaction
@@ -80,9 +90,9 @@ class InventoryController extends Controller
             // 1. LOCK the specific Branch Inventory Record
             // We use firstOrNew because the record might not exist yet for this branch
             $inventory = Inventory::where('product_id', $request->product_id)
-                            ->where('store_id', $storeId)
-                            ->lockForUpdate() // <--- PREVENTS RACE CONDITIONS
-                            ->first();
+                ->where('store_id', $storeId)
+                ->lockForUpdate() // <--- PREVENTS RACE CONDITIONS
+                ->first();
 
             // If no inventory record exists yet, we create a temporary instance to check logic
             if (!$inventory) {
@@ -111,18 +121,18 @@ class InventoryController extends Controller
 
             // 4. Log the Adjustment
             StockAdjustment::create([
-                'user_id'    => Auth::id(),
+                'user_id' => Auth::id(),
                 'product_id' => $request->product_id,
-                'store_id'   => $storeId,
-                'quantity'   => $finalQty,
-                'type'       => $request->reason,
-                'remarks'    => $request->remarks
+                'store_id' => $storeId,
+                'quantity' => $finalQty,
+                'type' => $request->reason,
+                'remarks' => $request->remarks
             ]);
 
             // 5. Activity Log
             $productName = Product::where('id', $request->product_id)->value('name');
             $actionWord = $request->type === 'add' ? 'Added' : 'Removed';
-            
+
             ActivityLog::create([
                 'user_id' => Auth::id(),
                 'store_id' => $storeId,
@@ -149,21 +159,24 @@ class InventoryController extends Controller
     {
         $products = Product::with('category')->get();
         $filename = "inventory_report_" . date('Y-m-d') . ".csv";
-        $headers = [ "Content-type" => "text/csv", "Content-Disposition" => "attachment; filename=$filename", "Pragma" => "no-cache" ];
+        $headers = ["Content-type" => "text/csv", "Content-Disposition" => "attachment; filename=$filename", "Pragma" => "no-cache"];
 
-        $callback = function() use ($products) {
+        $callback = function () use ($products) {
             $file = fopen('php://output', 'w');
             fputcsv($file, ['ID', 'Product Name', 'Category', 'Cost', 'Price', 'Stock', 'Total Cost', 'Total Value']);
             foreach ($products as $product) {
+                // Fetch stock for active store
+                $stock = $product->getStockForStore($this->getActiveStoreId());
+
                 fputcsv($file, [
                     $product->id,
                     $product->name,
                     $product->category->name ?? 'N/A',
                     $product->cost ?? 0,
                     $product->price,
-                    $product->stock,
-                    ($product->cost ?? 0) * $product->stock,
-                    $product->price * $product->stock
+                    $stock,
+                    ($product->cost ?? 0) * $stock,
+                    $product->price * $stock
                 ]);
             }
             fclose($file);

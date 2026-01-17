@@ -263,22 +263,29 @@
                 margin-bottom: 20px;
             }
         }
-        
+
         /* Desktop Zoom View (80%) */
         @media (min-width: 992px) {
             body {
                 zoom: 80%;
             }
         }
-        
+
         /* Tab Animation */
         .content-tab {
             animation: fadeIn 0.3s ease-out;
         }
-        
+
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(5px); }
-            to { opacity: 1; transform: translateY(0); }
+            from {
+                opacity: 0;
+                transform: translateY(5px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
     </style>
 </head>
@@ -322,26 +329,26 @@
                             <i class="fas fa-shield-alt"></i> Security
                         </a>
                         <!-- Logout -->
-                        
+
                     </nav>
                 </div>
             </div>
 
             {{-- CONTENT AREA --}}
             <div class="col-12 col-lg-9">
-            
+
                 {{-- MOBILE NAVIGATION (Segmented Control) --}}
                 <div class="d-lg-none mb-3">
-                    <div class="p-1 rounded-3 d-flex" style="background: rgba(0,0,0,0.05); border: 1px solid var(--border-color);">
-                        <button class="btn btn-sm flex-fill fw-bold rounded-2 btn-mobile-tab active bg-primary text-white shadow-sm" 
-                            id="mobile-tab-general"
-                            onclick="switchTab('general', this, true)"
+                    <div class="p-1 rounded-3 d-flex"
+                        style="background: rgba(0,0,0,0.05); border: 1px solid var(--border-color);">
+                        <button
+                            class="btn btn-sm flex-fill fw-bold rounded-2 btn-mobile-tab active bg-primary text-white shadow-sm"
+                            id="mobile-tab-general" onclick="switchTab('general', this, true)"
                             style="transition: all 0.2s; border: none; height: 32px;">
                             General
                         </button>
-                        <button class="btn btn-sm flex-fill fw-bold rounded-2 btn-mobile-tab text-muted" 
-                            id="mobile-tab-security"
-                            onclick="switchTab('security', this, true)"
+                        <button class="btn btn-sm flex-fill fw-bold rounded-2 btn-mobile-tab text-muted"
+                            id="mobile-tab-security" onclick="switchTab('security', this, true)"
                             style="transition: all 0.2s; border: none; height: 32px;">
                             Security
                         </button>
@@ -350,17 +357,18 @@
 
                 {{-- TAB: GENERAL --}}
                 <div id="tab-general" class="content-tab">
-                    
+
                     {{-- 1. PERSONAL INFORMATION --}}
                     <div class="settings-card">
                         <div class="card-header-custom">
                             <h5 class="card-title-custom">Personal Information</h5>
-                            <form id="photo-form" action="{{ route('profile.update.photo') }}" method="POST" enctype="multipart/form-data"
-                                class="d-inline">
+                            <form id="photo-form" action="{{ route('profile.update.photo') }}" method="POST"
+                                enctype="multipart/form-data" class="d-inline">
                                 @csrf
                                 <input type="file" name="photo" id="photo-upload" class="d-none" accept="image/*"
                                     onchange="previewPhoto(this)">
-                                <label for="photo-upload" class="btn btn-sm btn-outline-custom" style="cursor: pointer;">
+                                <label for="photo-upload" class="btn btn-sm btn-outline-custom"
+                                    style="cursor: pointer;">
                                     <i class="fas fa-camera me-2"></i>Change Photo
                                 </label>
                             </form>
@@ -375,11 +383,18 @@
                                             required>
                                     </div>
                                     <div class="col-md-6">
+                                        <label class="form-label">Username</label>
+                                        <input type="text" name="username" class="form-control"
+                                            value="{{ $user->username }}" required>
+                                    </div>
+                                    <div class="col-md-6">
                                         <label class="form-label">Gender</label>
                                         <select name="gender" class="form-select">
                                             <option value="">Select Gender</option>
-                                            <option value="Male" {{ $user->gender == 'Male' ? 'selected' : '' }}>Male</option>
-                                            <option value="Female" {{ $user->gender == 'Female' ? 'selected' : '' }}>Female
+                                            <option value="Male" {{ $user->gender == 'Male' ? 'selected' : '' }}>Male
+                                            </option>
+                                            <option value="Female" {{ $user->gender == 'Female' ? 'selected' : '' }}>
+                                                Female
                                             </option>
                                             <option value="Other" {{ $user->gender == 'Other' ? 'selected' : '' }}>Other
                                             </option>
@@ -392,7 +407,8 @@
                                     </div>
                                     <div class="col-md-6">
                                         <label class="form-label">Age</label>
-                                        <input type="text" class="form-control" value="{{ $user->age ?? 'N/A' }}" readonly>
+                                        <input type="text" class="form-control" value="{{ $user->age ?? 'N/A' }}"
+                                            readonly>
                                     </div>
 
                                     <div class="col-12 mt-4 text-end">
@@ -413,8 +429,8 @@
                                 <div class="col-md-8">
                                     <label class="form-label">Email Address</label>
                                     <div class="d-flex align-items-center">
-                                        <input type="email" class="form-control flex-grow-1 me-2" value="{{ $user->email }}"
-                                            readonly>
+                                        <input type="email" class="form-control flex-grow-1 me-2"
+                                            value="{{ $user->email }}" readonly>
                                         @if(!$user->hasVerifiedEmail())
                                             <span class="badge bg-warning text-dark">Unverified</span>
                                         @else
@@ -444,86 +460,53 @@
                         <div class="card-body-custom">
 
                             {{-- Password Change --}}
-                            <div class="mb-5">
-                                <h6 class="fw-bold mb-3"><i class="fas fa-lock me-2 text-primary"></i>Change Password</h6>
-                                <form action="{{ route('profile.update.security') }}" method="POST">
-                                    @csrf
-                                    <div class="row g-3">
-                                        <div class="col-md-4">
-                                            <input type="password" name="current_password" class="form-control"
-                                                placeholder="Current Password" required>
-                                        </div>
-                                        <div class="col-md-4">
-                                            <input type="password" name="password" class="form-control"
-                                                placeholder="New Password" required>
-                                        </div>
-                                        <div class="col-md-4">
-                                            <input type="password" name="password_confirmation" class="form-control"
-                                                placeholder="Confirm New Password" required>
-                                        </div>
-                                        <div class="col-12 text-end mt-2">
-                                            <button type="submit" class="btn btn-sm btn-primary-custom">Update
-                                                Password</button>
-                                        </div>
-                                    </div>
-                                </form>
+                            <div class="d-flex align-items-center justify-content-between mb-4">
+                                <div>
+                                    <h6 class="fw-bold mb-1"><i class="fas fa-lock me-2 text-primary"></i>Password</h6>
+                                    <p class="text-muted small mb-0">Secure your account with a strong password.</p>
+                                </div>
+                                <button class="btn btn-outline-custom" onclick="openPasswordModal()">Change
+                                    Password</button>
                             </div>
 
                             <hr class="border-secondary border-opacity-10 my-4">
 
                             {{-- MPIN Change --}}
-                            <div class="mb-4">
-                                <h6 class="fw-bold mb-3">
-                                    <i class="fas fa-key me-2 text-success"></i>MPIN Setup
-                                    <span
-                                        class="badge {{ $hasMpin ? 'bg-success' : 'bg-secondary' }} ms-2">{{ $hasMpin ? 'Active' : 'Not Set' }}</span>
-                                </h6>
-                                <form action="{{ route('profile.update.security') }}" method="POST">
-                                    @csrf
-                                    <p class="text-muted small">Enter your current standard password to authorize MPIN
-                                        changes.</p>
-                                    <div class="row g-3">
-                                        <div class="col-md-6">
-                                            <input type="password" name="current_password" class="form-control"
-                                                placeholder="Account Password (Required)" required>
-                                        </div>
-                                        @if($hasMpin)
-                                            <div class="col-md-6">
-                                                <input type="password" name="current_mpin" class="form-control"
-                                                    placeholder="Current MPIN" inputmode="numeric">
-                                            </div>
-                                        @endif
-                                        <div class="col-md-6">
-                                            <input type="password" name="mpin" class="form-control"
-                                                placeholder="New MPIN (6 digits)" inputmode="numeric">
-                                        </div>
-                                        <div class="col-md-6">
-                                            <input type="password" name="mpin_confirmation" class="form-control"
-                                                placeholder="Confirm MPIN" inputmode="numeric">
-                                        </div>
-
-                                        <div class="col-12 d-flex justify-content-between align-items-center mt-3">
-                                            <a href="{{ route('auth.mpin.forgot') }}"
-                                                class="small text-decoration-none">Forgot MPIN?</a>
-                                            <button type="submit" class="btn btn-sm btn-primary-custom">Save MPIN</button>
-                                        </div>
-                                    </div>
-                                </form>
+                            <div class="d-flex align-items-center justify-content-between mb-4">
+                                <div>
+                                    <h6 class="fw-bold mb-1">
+                                        <i class="fas fa-key me-2 text-success"></i>MPIN Access
+                                        <span
+                                            class="badge {{ $hasMpin ? 'bg-success' : 'bg-secondary' }} ms-2">{{ $hasMpin ? 'Active' : 'Not Set' }}</span>
+                                    </h6>
+                                    <p class="text-muted small mb-0">Used for quick authorization in POS.</p>
+                                </div>
+                                <div>
+                                    @if($hasMpin)
+                                        <button class="btn btn-outline-custom me-1" onclick="openMpinModal()">Change MPIN</button>
+                                        <button class="btn btn-sm ms-1" onclick="openMpinModal()" style="border: 1px solid var(--primary-color); color: var(--primary-color); background: transparent;">Forgot?</button>
+                                    @else
+                                        <button class="btn btn-primary-custom btn-sm" onclick="openMpinModal()">Set MPIN</button>
+                                    @endif
+                                </div>
                             </div>
 
                             @if(config('safety_flag_features.webauthn'))
-                                <hr class="border-secondary border-opacity-10 my-4">
-                                <div>
-                                    <h6 class="fw-bold mb-3"><i class="fas fa-fingerprint me-2 text-purple-500"></i>Biometrics
-                                    </h6>
-                                    <div
-                                        class="d-flex justify-content-between align-items-center bg-body p-3 rounded-3 border border-color">
-                                        <div>
-                                            <p class="mb-0 fw-medium">FaceID / TouchID</p>
-                                            <p class="text-muted small mb-0">Use your device biometrics for faster login.</p>
+                                <div id="passkey-register-container" class="d-none">
+                                    <hr class="border-secondary border-opacity-10 my-4">
+                                    <div>
+                                        <h6 class="fw-bold mb-3"><i
+                                                class="fas fa-fingerprint me-2 text-purple-500"></i>Biometrics</h6>
+                                        <div
+                                            class="d-flex justify-content-between align-items-center bg-body p-3 rounded-3 border border-color">
+                                            <div>
+                                                <p class="mb-0 fw-medium">FaceID / TouchID</p>
+                                                <p class="text-muted small mb-0">Use your device biometrics for faster
+                                                    login.</p>
+                                            </div>
+                                            <button type="button" onclick="WebAuthn.register()"
+                                                class="btn btn-sm btn-outline-custom">Register Device</button>
                                         </div>
-                                        <button type="button" onclick="WebAuthn.register()"
-                                            class="btn btn-sm btn-outline-custom">Register Device</button>
                                     </div>
                                 </div>
                             @endif
@@ -547,80 +530,88 @@
                         data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body pt-3">
-                    <div id="email-wizard-container">
-                        <p class="small text-muted mb-3">
-                            <i class="fas fa-shield-alt me-1 text-primary"></i>
-                            For security, changing your email requires verifying your identity.
-                        </p>
+                    <form id="email-wizard-form" onsubmit="return false;">
+                        <div id="email-wizard-container">
+                            <p class="small text-muted mb-3">
+                                <i class="fas fa-shield-alt me-1 text-primary"></i>
+                                For security, changing your email requires verifying your identity.
+                            </p>
 
-                        {{-- Step 1: Verify Password --}}
-                        <div id="email-step-1" class="email-step">
-                            <label class="form-label small fw-bold">Step 1: Verify Password</label>
-                            <div class="input-group mb-2">
-                                <input type="password" id="current-password-verify" class="form-control"
-                                    placeholder="Enter Account Password" required>
-                                <button type="button" class="btn btn-primary-custom" onclick="initiateEmailChange()">
-                                    <span class="d-none spinner-border spinner-border-sm me-1" role="status"
-                                        aria-hidden="true"></span>
-                                    Verify
-                                </button>
-                            </div>
-                        </div>
-
-                        {{-- Step 2: Verify Current OTP --}}
-                        <div id="email-step-2" class="email-step d-none">
-                            <div class="alert alert-info py-2 px-3 small border-0 mb-3 rounded-3">
-                                <i class="fas fa-envelope me-1"></i> OTP sent to <span
-                                    class="fw-bold">{{ $user->email }}</span>
-                            </div>
-                            <label class="form-label small fw-bold">Step 2: Enter OTP from Current Email</label>
-                            <div class="input-group mb-2">
-                                <input type="text" id="otp-current" class="form-control" placeholder="6-digit Code"
-                                    maxlength="6">
-                                <button type="button" class="btn btn-primary-custom"
-                                    onclick="verifyCurrentEmailOtp()">Verify OTP</button>
-                            </div>
-                        </div>
-
-                        {{-- Step 3: Enter New Email --}}
-                        <div id="email-step-3" class="email-step d-none">
-                            <label class="form-label small fw-bold">Step 3: Enter New Email Address</label>
-                            <div class="input-group mb-2">
-                                <input type="email" id="new-email-input" class="form-control"
-                                    placeholder="new.email@example.com">
-                                <button type="button" class="btn btn-primary-custom" onclick="requestNewEmailOtp()">Send
-                                    OTP</button>
-                            </div>
-                        </div>
-
-                        {{-- Step 4: Verify New Email --}}
-                        <div id="email-step-4" class="email-step d-none">
-                            <div class="alert alert-info py-2 px-3 small border-0 mb-3 rounded-3">
-                                <i class="fas fa-envelope-open me-1"></i> OTP sent to new email address.
-                            </div>
-                            <label class="form-label small fw-bold">Step 4: Enter OTP from New Email</label>
-                            <div class="input-group mb-2">
-                                <input type="text" id="otp-new" class="form-control" placeholder="6-digit Code"
-                                    maxlength="6">
-                                <button type="button" class="btn btn-primary-custom" onclick="confirmNewEmail()">Confirm
-                                    Change</button>
-                            </div>
-                        </div>
-
-                        {{-- Success Message --}}
-                        <div id="email-step-success" class="email-step d-none text-center py-4">
-                            <div class="mb-3">
-                                <div class="bg-success bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center"
-                                    style="width: 60px; height: 60px;">
-                                    <i class="fas fa-check text-success fa-2x"></i>
+                            {{-- Step 1: Verify Password --}}
+                            <div id="email-step-1" class="email-step">
+                                <label class="form-label small fw-bold">Step 1: Verify Password</label>
+                                <div class="input-group mb-2">
+                                    <!-- Hidden username for accessibility/password managers -->
+                                    <input type="text" autocomplete="username" value="{{ $user->username }}"
+                                        class="d-none" aria-hidden="true">
+                                    <input type="password" id="current-password-verify" class="form-control"
+                                        placeholder="Enter Account Password" required autocomplete="current-password">
+                                    <button type="button" class="btn btn-primary-custom"
+                                        onclick="initiateEmailChange()">
+                                        <span class="d-none spinner-border spinner-border-sm me-1" role="status"
+                                            aria-hidden="true"></span>
+                                        Verify
+                                    </button>
                                 </div>
                             </div>
-                            <h4 class="h5 fw-bold mb-2">Email Updated!</h4>
-                            <p class="small text-muted mb-4">Your email address has been successfully changed.</p>
-                            <button class="btn btn-primary-custom w-100 rounded-pill"
-                                onclick="location.reload()">Refresh Page</button>
+
+                            {{-- Step 2: Verify Current OTP --}}
+                            <div id="email-step-2" class="email-step d-none">
+                                <div class="alert alert-info py-2 px-3 small border-0 mb-3 rounded-3">
+                                    <i class="fas fa-envelope me-1"></i> OTP sent to <span
+                                        class="fw-bold">{{ $user->email }}</span>
+                                </div>
+                                <label class="form-label small fw-bold">Step 2: Enter OTP from Current Email</label>
+                                <div class="input-group mb-2">
+                                    <input type="text" id="otp-current" class="form-control" placeholder="6-digit Code"
+                                        maxlength="6">
+                                    <button type="button" class="btn btn-primary-custom"
+                                        onclick="verifyCurrentEmailOtp()">Verify OTP</button>
+                                </div>
+                            </div>
+
+                            {{-- Step 3: Enter New Email --}}
+                            <div id="email-step-3" class="email-step d-none">
+                                <label class="form-label small fw-bold">Step 3: Enter New Email Address</label>
+                                <div class="input-group mb-2">
+                                    <input type="email" id="new-email-input" class="form-control"
+                                        placeholder="new.email@example.com">
+                                    <button type="button" class="btn btn-primary-custom"
+                                        onclick="requestNewEmailOtp()">Send
+                                        OTP</button>
+                                </div>
+                            </div>
+
+                            {{-- Step 4: Verify New Email --}}
+                            <div id="email-step-4" class="email-step d-none">
+                                <div class="alert alert-info py-2 px-3 small border-0 mb-3 rounded-3">
+                                    <i class="fas fa-envelope-open me-1"></i> OTP sent to new email address.
+                                </div>
+                                <label class="form-label small fw-bold">Step 4: Enter OTP from New Email</label>
+                                <div class="input-group mb-2">
+                                    <input type="text" id="otp-new" class="form-control" placeholder="6-digit Code"
+                                        maxlength="6">
+                                    <button type="button" class="btn btn-primary-custom"
+                                        onclick="confirmNewEmail()">Confirm
+                                        Change</button>
+                                </div>
+                            </div>
+
+                            {{-- Success Message --}}
+                            <div id="email-step-success" class="email-step d-none text-center py-4">
+                                <div class="mb-3">
+                                    <div class="bg-success bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center"
+                                        style="width: 60px; height: 60px;">
+                                        <i class="fas fa-check text-success fa-2x"></i>
+                                    </div>
+                                </div>
+                                <h4 class="h5 fw-bold mb-2">Email Updated!</h4>
+                                <p class="small text-muted mb-4">Your email address has been successfully changed.</p>
+                                <button class="btn btn-primary-custom w-100 rounded-pill"
+                                    onclick="location.reload()">Refresh Page</button>
+                            </div>
                         </div>
-                    </div>
+                    </form>
                 </div>
             </div>
         </div>
@@ -630,23 +621,377 @@
     {{-- PHOTO PREVIEW MODAL --}}
     <div class="modal fade" id="photoPreviewModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
         <div class="modal-dialog modal-dialog-centered modal-sm">
-            <div class="modal-content border-0 shadow-lg" style="border-radius: 16px; overflow: hidden; background: var(--bg-card); color: var(--text-main);">
+            <div class="modal-content border-0 shadow-lg"
+                style="border-radius: 16px; overflow: hidden; background: var(--bg-card); color: var(--text-main);">
                 <div class="modal-header border-0 pb-0">
                     <h5 class="modal-title fw-bold text-center w-100">Preview Photo</h5>
                 </div>
                 <div class="modal-body text-center pt-3">
                     <div class="position-relative d-inline-block">
-                        <img id="photo-preview-img" src="" class="rounded-circle shadow-sm" style="width: 150px; height: 150px; object-fit: cover; border: 4px solid var(--bg-body);">
+                        <img id="photo-preview-img" src="" class="rounded-circle shadow-sm"
+                            style="width: 150px; height: 150px; object-fit: cover; border: 4px solid var(--bg-body);">
                     </div>
                     <p class="small text-muted mt-3 mb-0">Does this look good?</p>
                 </div>
                 <div class="modal-footer border-0 justify-content-center pt-0 pb-4">
-                    <button type="button" class="btn btn-outline-custom btn-sm px-4" data-bs-dismiss="modal" onclick="resetPhotoInput()">Cancel</button>
-                    <button type="button" class="btn btn-primary-custom btn-sm px-4" onclick="submitPhoto()">Upload</button>
+                    <button type="button" class="btn btn-outline-custom btn-sm px-4" data-bs-dismiss="modal"
+                        onclick="resetPhotoInput()">Cancel</button>
+                    <button type="button" class="btn btn-primary-custom btn-sm px-4"
+                        onclick="submitPhoto()">Upload</button>
                 </div>
             </div>
         </div>
     </div>
+
+    {{-- PASSWORD CHANGE MODAL (OTP Wizard) --}}
+    <div class="modal fade" id="passwordChangeModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg"
+                style="border-radius: 16px; background: var(--bg-card); color: var(--text-main);">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold">Change Password</h5>
+                    <button type="button" class="btn-close {{ Auth::user()->role == 'admin' ? '' : 'btn-close-white' }}"
+                        data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body pt-3">
+                    {{-- Step 1: Send/Verify OTP --}}
+                    <div id="pwd-step-1" class="pwd-step">
+                        <p class="small text-muted mb-4"><i class="fas fa-shield-alt me-1 text-primary"></i> For
+                            security, verify your identity via email OTP.</p>
+                        <div class="d-grid mb-3">
+                            <button id="btn-send-otp-pwd" class="btn btn-outline-custom" onclick="sendPasswordOtp()">
+                                Send Verification Code
+                            </button>
+                            <div id="pwd-countdown" class="text-center small text-muted mt-2 d-none">Resend in <span
+                                    id="pwd-timer">02:00</span></div>
+                        </div>
+                        <div id="pwd-verify-section" class="d-none animate__animated animate__fadeIn">
+                            <label class="form-label small fw-bold">Enter OTP Code</label>
+                            <div class="input-group mb-3">
+                                <input type="text" id="otp-pwd-input" class="form-control" placeholder="6-digit Code"
+                                    maxlength="6">
+                                <button class="btn btn-primary-custom" onclick="verifyPasswordOtp()">Verify</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- Step 2: Set New Password --}}
+                    <div id="pwd-step-2" class="pwd-step d-none animate__animated animate__fadeIn">
+                        <div class="alert alert-success py-2 px-3 small border-0 mb-3 rounded-3">
+                            <i class="fas fa-check-circle me-1"></i> Identity Verified
+                        </div>
+                        <label class="form-label small fw-bold">New Password</label>
+                        <input type="password" id="new-pwd" class="form-control mb-3" placeholder="Min. 8 characters">
+
+                        <label class="form-label small fw-bold">Confirm Password</label>
+                        <input type="password" id="confirm-pwd" class="form-control mb-4"
+                            placeholder="Re-enter password">
+
+                        <button class="btn btn-primary-custom w-100" onclick="updatePassword()">Change Password</button>
+                    </div>
+
+                    {{-- Success --}}
+                    <div id="pwd-step-3" class="pwd-step d-none text-center py-4">
+                        <div class="mb-3">
+                            <div class="bg-success bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center"
+                                style="width: 60px; height: 60px;">
+                                <i class="fas fa-check text-success fa-2x"></i>
+                            </div>
+                        </div>
+                        <h4 class="h5 fw-bold mb-2">Password Changed!</h4>
+                        <p class="small text-muted mb-4">Your password has been updated securely.</p>
+                        <button class="btn btn-primary-custom w-100" data-bs-dismiss="modal">Done</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{-- MPIN CHANGE MODAL (OTP Wizard) --}}
+    <div class="modal fade" id="mpinChangeModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg"
+                style="border-radius: 16px; background: var(--bg-card); color: var(--text-main);">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold">Manage MPIN</h5>
+                    <button type="button" class="btn-close {{ Auth::user()->role == 'admin' ? '' : 'btn-close-white' }}"
+                        data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body pt-3">
+                    {{-- Step 1: Send/Verify OTP --}}
+                    <div id="mpin-step-1" class="mpin-step">
+                        <p class="small text-muted mb-4"><i class="fas fa-key me-1 text-success"></i> Verify identity to
+                            set/change MPIN.</p>
+                        <div class="d-grid mb-3">
+                            <button id="btn-send-otp-mpin" class="btn btn-outline-custom" onclick="sendMpinOtp()">
+                                Send Verification Code
+                            </button>
+                            <div id="mpin-countdown" class="text-center small text-muted mt-2 d-none">Resend in <span
+                                    id="mpin-timer">02:00</span></div>
+                        </div>
+                        <div id="mpin-verify-section" class="d-none animate__animated animate__fadeIn">
+                            <label class="form-label small fw-bold">Enter OTP Code</label>
+                            <div class="input-group mb-3">
+                                <input type="text" id="otp-mpin-input" class="form-control" placeholder="6-digit Code"
+                                    maxlength="6">
+                                <button class="btn btn-primary-custom" onclick="verifyMpinOtp()">Verify</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- Step 2: Set New MPIN --}}
+                    <div id="mpin-step-2" class="mpin-step d-none animate__animated animate__fadeIn">
+                        <div class="alert alert-success py-2 px-3 small border-0 mb-3 rounded-3">
+                            <i class="fas fa-check-circle me-1"></i> Identity Verified
+                        </div>
+                        <label class="form-label small fw-bold">New MPIN (7-16 Digits)</label>
+                        <input type="password" id="new-mpin" class="form-control mb-3" placeholder="Numeric only"
+                            inputmode="numeric">
+
+                        <label class="form-label small fw-bold">Confirm MPIN</label>
+                        <input type="password" id="confirm-mpin" class="form-control mb-4" placeholder="Re-enter MPIN"
+                            inputmode="numeric">
+
+                        <button class="btn btn-primary-custom w-100" onclick="updateMpin()">Save MPIN</button>
+                    </div>
+
+                    {{-- Success --}}
+                    <div id="mpin-step-3" class="mpin-step d-none text-center py-4">
+                        <div class="mb-3">
+                            <div class="bg-success bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center"
+                                style="width: 60px; height: 60px;">
+                                <i class="fas fa-check text-success fa-2x"></i>
+                            </div>
+                        </div>
+                        <h4 class="h5 fw-bold mb-2">MPIN Updated!</h4>
+                        <p class="small text-muted mb-4">Your MPIN is now active.</p>
+                        <button class="btn btn-primary-custom w-100" onclick="location.reload()">Done</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- GENERIC OTP WIZARD LOGIC ---
+        function startTimer(displayId, btnId, originalBtnText) {
+            let timer = 120, minutes, seconds;
+            const display = document.querySelector(displayId);
+            const btn = document.querySelector(btnId);
+
+            btn.disabled = true;
+            document.querySelector(displayId).parentElement.classList.remove('d-none');
+
+            const interval = setInterval(function () {
+                minutes = parseInt(timer / 60, 10);
+                seconds = parseInt(timer % 60, 10);
+
+                minutes = minutes < 10 ? "0" + minutes : minutes;
+                seconds = seconds < 10 ? "0" + seconds : seconds;
+
+                display.textContent = minutes + ":" + seconds;
+
+                if (--timer < 0) {
+                    clearInterval(interval);
+                    btn.disabled = false;
+                    btn.innerHTML = originalBtnText || "Resend Code";
+                    btn.classList.remove('btn-success', 'text-white');
+                    btn.classList.add('btn-outline-custom');
+                    document.querySelector(displayId).parentElement.classList.add('d-none');
+                }
+            }, 1000);
+        }
+
+        // --- PASSWORD CHANGE ---
+        function openPasswordModal() {
+            document.querySelectorAll('.pwd-step').forEach(e => e.classList.add('d-none'));
+            document.getElementById('pwd-step-1').classList.remove('d-none');
+            document.getElementById('pwd-verify-section').classList.add('d-none');
+
+            // Reset Button State
+            const btn = document.getElementById('btn-send-otp-pwd');
+            btn.innerHTML = 'Send Verification Code';
+            btn.disabled = false;
+            btn.classList.remove('btn-success', 'text-white');
+            btn.classList.add('btn-outline-custom');
+
+            new bootstrap.Modal(document.getElementById('passwordChangeModal')).show();
+        }
+
+        function sendPasswordOtp() {
+            const btn = document.getElementById('btn-send-otp-pwd');
+            const originalText = 'Send Verification Code';
+
+            // Sending State
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Sending...';
+            btn.disabled = true;
+
+            fetch('{{ route("profile.password.otp") }}', {
+                method: 'POST',
+                headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' }
+            }).then(r => r.json()).then(d => {
+                if (d.success) {
+                    // Sent State
+                    btn.innerHTML = '<i class="fas fa-check me-2"></i>Code Sent!';
+                    btn.classList.remove('btn-outline-custom');
+                    btn.classList.add('btn-success', 'text-white');
+
+                    startTimer('#pwd-timer', '#btn-send-otp-pwd', originalText);
+                    document.getElementById('pwd-verify-section').classList.remove('d-none');
+                } else {
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                    alert(d.message);
+                }
+            }).catch(e => {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+                alert('Connection error');
+            });
+        }
+
+        function verifyPasswordOtp() {
+            const otp = document.getElementById('otp-pwd-input').value;
+            if (!otp) return;
+
+            const btn = event.target;
+            const originalText = btn.innerText;
+            btn.disabled = true; btn.innerText = 'Verifying...';
+
+            fetch('{{ route("profile.password.verify") }}', {
+                method: 'POST',
+                headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Content-Type': 'application/json' },
+                body: JSON.stringify({ otp: otp })
+            }).then(r => r.json()).then(d => {
+                if (d.success) {
+                    document.querySelectorAll('.pwd-step').forEach(e => e.classList.add('d-none'));
+                    document.getElementById('pwd-step-2').classList.remove('d-none');
+                } else {
+                    alert(d.message);
+                }
+            }).finally(() => { btn.disabled = false; btn.innerText = originalText; });
+        }
+
+        function updatePassword() {
+            const password = document.getElementById('new-pwd').value;
+            const confirm = document.getElementById('confirm-pwd').value;
+
+            if (!password || password.length < 8) { alert('Password must be at least 8 characters.'); return; }
+            if (password !== confirm) { alert('Passwords do not match.'); return; }
+
+            const btn = event.target;
+            const originalText = btn.innerText;
+            btn.disabled = true; btn.innerText = 'Updating...';
+
+            fetch('{{ route("profile.password.update_secure") }}', {
+                method: 'POST',
+                headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Content-Type': 'application/json' },
+                body: JSON.stringify({ password: password, password_confirmation: confirm })
+            }).then(r => r.json()).then(d => {
+                if (d.success) {
+                    document.querySelectorAll('.pwd-step').forEach(e => e.classList.add('d-none'));
+                    document.getElementById('pwd-step-3').classList.remove('d-none');
+                } else {
+                    alert(d.message);
+                }
+            }).finally(() => { btn.disabled = false; btn.innerText = originalText; });
+        }
+
+        // --- MPIN CHANGE ---
+        function openMpinModal() {
+            document.querySelectorAll('.mpin-step').forEach(e => e.classList.add('d-none'));
+            document.getElementById('mpin-step-1').classList.remove('d-none');
+            document.getElementById('mpin-verify-section').classList.add('d-none');
+
+            // Reset Button State
+            const btn = document.getElementById('btn-send-otp-mpin');
+            btn.innerHTML = 'Send Verification Code';
+            btn.disabled = false;
+            btn.classList.remove('btn-success', 'text-white');
+            btn.classList.add('btn-outline-custom');
+
+            new bootstrap.Modal(document.getElementById('mpinChangeModal')).show();
+        }
+
+        function sendMpinOtp() {
+            const btn = document.getElementById('btn-send-otp-mpin');
+            const originalText = 'Send Verification Code';
+
+            // Sending State
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Sending...';
+            btn.disabled = true;
+
+            fetch('{{ route("profile.mpin.otp") }}', {
+                method: 'POST',
+                headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' }
+            }).then(r => r.json()).then(d => {
+                if (d.success) {
+                    // Sent State
+                    btn.innerHTML = '<i class="fas fa-check me-2"></i>Code Sent!';
+                    btn.classList.remove('btn-outline-custom');
+                    btn.classList.add('btn-success', 'text-white');
+
+                    startTimer('#mpin-timer', '#btn-send-otp-mpin', originalText);
+                    document.getElementById('mpin-verify-section').classList.remove('d-none');
+                } else {
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                    alert(d.message);
+                }
+            }).catch(e => {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+                alert('Connection error');
+            });
+        }
+
+        function verifyMpinOtp() {
+            const otp = document.getElementById('otp-mpin-input').value;
+            if (!otp) return;
+
+            const btn = event.target;
+            const originalText = btn.innerText;
+            btn.disabled = true; btn.innerText = 'Verifying...';
+
+            fetch('{{ route("profile.mpin.verify") }}', {
+                method: 'POST',
+                headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Content-Type': 'application/json' },
+                body: JSON.stringify({ otp: otp })
+            }).then(r => r.json()).then(d => {
+                if (d.success) {
+                    document.querySelectorAll('.mpin-step').forEach(e => e.classList.add('d-none'));
+                    document.getElementById('mpin-step-2').classList.remove('d-none');
+                } else {
+                    alert(d.message);
+                }
+            }).finally(() => { btn.disabled = false; btn.innerText = originalText; });
+        }
+
+        function updateMpin() {
+            const mpin = document.getElementById('new-mpin').value;
+            const confirm = document.getElementById('confirm-mpin').value;
+
+            if (!mpin || mpin.length < 7) { alert('MPIN must be at least 7 digits.'); return; }
+            if (mpin !== confirm) { alert('MPINs do not match.'); return; }
+
+            const btn = event.target;
+            const originalText = btn.innerText;
+            btn.disabled = true; btn.innerText = 'Updating...';
+
+            fetch('{{ route("profile.mpin.update_secure") }}', {
+                method: 'POST',
+                headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Content-Type': 'application/json' },
+                body: JSON.stringify({ mpin: mpin, mpin_confirmation: confirm })
+            }).then(r => r.json()).then(d => {
+                if (d.success) {
+                    document.querySelectorAll('.mpin-step').forEach(e => e.classList.add('d-none'));
+                    document.getElementById('mpin-step-3').classList.remove('d-none');
+                } else {
+                    alert(d.message);
+                }
+            }).finally(() => { btn.disabled = false; btn.innerText = originalText; });
+        }
+    </script>
 
     @if(session('success'))
         <div class="position-fixed bottom-0 start-50 translate-middle-x mb-4 p-3 rounded-pill bg-dark text-white shadow-lg fade-in"
@@ -663,52 +1008,52 @@
             </ul>
         </div>
     @endif
-    
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         // Photo Preview Logic
         function previewPhoto(input) {
             if (input.files && input.files[0]) {
                 const reader = new FileReader();
-                reader.onload = function(e) {
+                reader.onload = function (e) {
                     document.getElementById('photo-preview-img').src = e.target.result;
                     new bootstrap.Modal(document.getElementById('photoPreviewModal')).show();
                 }
                 reader.readAsDataURL(input.files[0]);
             }
         }
-        
+
         function submitPhoto() {
             document.getElementById('photo-form').submit();
         }
-        
+
         function resetPhotoInput() {
             document.getElementById('photo-upload').value = '';
         }
-        
+
         // Tab Switcher
         function switchTab(tabId, el, isMobile = false) {
             // Hide all tabs
             document.querySelectorAll('.content-tab').forEach(tab => tab.classList.add('d-none'));
             // Show target tab
             const target = document.getElementById('tab-' + tabId);
-            if(target) target.classList.remove('d-none');
-            
+            if (target) target.classList.remove('d-none');
+
             // Sync Desktop Sidebar
             document.querySelectorAll('.nav-settings .nav-link').forEach(link => {
                 link.classList.remove('active');
-                if(!isMobile && link === el) link.classList.add('active');
+                if (!isMobile && link === el) link.classList.add('active');
                 // Auto-highlight corresponding desktop link if triggered from mobile
-                if(isMobile && link.getAttribute('onclick').includes(tabId)) link.classList.add('active');
+                if (isMobile && link.getAttribute('onclick').includes(tabId)) link.classList.add('active');
             });
 
             // Sync Mobile Tabs
             document.querySelectorAll('.btn-mobile-tab').forEach(btn => {
                 btn.classList.remove('active', 'bg-primary', 'text-white', 'shadow-sm');
                 btn.classList.add('text-muted');
-                
+
                 // If this is the button clicked OR if it corresponds to the desktop click
-                if((isMobile && btn === el) || (!isMobile && btn.id === 'mobile-tab-' + tabId)) {
+                if ((isMobile && btn === el) || (!isMobile && btn.id === 'mobile-tab-' + tabId)) {
                     btn.classList.remove('text-muted');
                     btn.classList.add('active', 'bg-primary', 'text-white', 'shadow-sm');
                 }
@@ -814,6 +1159,16 @@
             }).catch(err => alert('Connection error'))
                 .finally(() => { btn.disabled = false; btn.innerText = 'Confirm Change'; });
         }
+
+        // WebAuthn Capability Check
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Only run if the element exists
+            const container = document.getElementById('passkey-register-container');
+            if (container && await WebAuthn.isAvailable()) {
+                container.classList.remove('hidden');
+                container.classList.remove('d-none');
+            }
+        });
     </script>
 </body>
 

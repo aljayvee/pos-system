@@ -2,13 +2,27 @@
  * WebAuthn Helper (SOLID: Encapsulated Logic)
  */
 const WebAuthn = {
+    // Check for Platform Authenticator Support (Fingerprint, FaceID, Windows Hello)
+    async isAvailable() {
+        if (!window.isSecureContext) return false;
+        if (!navigator.credentials) return false;
+        if (!window.PublicKeyCredential) return false;
+        
+        try {
+            return await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+        } catch (e) {
+            console.warn("WebAuthn capability check failed", e);
+            return false;
+        }
+    },
+
     // Register (Attestation)
     async register() {
         console.log("WebAuthn: Register initiated");
 
         // 0. Check Environment
         if (!window.isSecureContext) {
-            Swal.fire({
+            window.Swal.fire({
                 icon: 'error',
                 title: 'Security Error',
                 text: 'Fingerprint authentication requires a secure HTTPS connection or localhost. It will not work on HTTP (except localhost).',
@@ -18,7 +32,7 @@ const WebAuthn = {
         }
 
         if (!navigator.credentials) {
-            Swal.fire('Error', 'Your browser does not support WebAuthn or it is disabled.', 'error');
+            window.Swal.fire('Error', 'Your browser does not support WebAuthn or it is disabled.', 'error');
             return;
         }
 
@@ -42,6 +56,9 @@ const WebAuthn = {
             // 2. Encode for Browser
             options.challenge = this.bufferDecode(options.challenge);
             options.user.id = this.bufferDecode(options.user.id);
+
+            console.log("WebAuthn: RP Config:", options.rp);
+
             if (options.excludeCredentials) {
                 options.excludeCredentials.forEach(cred => {
                     cred.id = this.bufferDecode(cred.id);
@@ -73,7 +90,7 @@ const WebAuthn = {
             console.log("WebAuthn: Sending validation to server...");
             await axios.post('/webauthn/register', attestation);
 
-            Swal.fire('Success', 'Fingerprint registered successfully!', 'success');
+            window.Swal.fire('Success', 'Fingerprint registered successfully!', 'success');
 
         } catch (error) {
             console.error("WebAuthn Error:", error);
@@ -90,7 +107,7 @@ const WebAuthn = {
                 msg = 'Registration was canceled or timed out. Please try again.';
             }
 
-            Swal.fire({
+            window.Swal.fire({
                 icon: 'error',
                 title: 'Registration Failed',
                 text: msg,
@@ -142,7 +159,7 @@ const WebAuthn = {
 
         } catch (error) {
             console.error(error);
-            Swal.fire('Error', 'Authentication failed. Please try again.', 'error');
+            window.Swal.fire('Error', 'Authentication failed. Please try again.', 'error');
         }
     },
 

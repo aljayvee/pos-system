@@ -17,6 +17,9 @@ const ThemeManager = {
     },
 
     getTheme() {
+        const forceMeta = document.querySelector('meta[name="force-theme"]');
+        if (forceMeta) return forceMeta.content;
+
         const key = this.getThemeKey();
         return localStorage.getItem(key) || 'system';
     },

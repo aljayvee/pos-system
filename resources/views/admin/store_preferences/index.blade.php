@@ -96,7 +96,7 @@
                             {{-- 1. STORE TAB --}}
                             <div class="tab-pane fade show active" id="store" role="tabpanel" aria-labelledby="store-tab">
                                 <div class="mb-4">
-                                    <h5 class="card-title mb-3">Store Identity</h5>
+                                    <h5 class="card-title mb-3">Receipt Template (Generic & Invoice)</h5>
                                     <div class="mb-3">
                                         <label class="form-label">Store Name</label>
                                         <input type="text" name="store_name" class="form-control"
@@ -372,16 +372,16 @@
                 </div>
             </form>
 
-            {{-- Mobile Floating Save Button --}}
-            <div class="d-lg-none fixed-bottom p-3 bg-white border-top shadow-lg">
-                <button class="btn btn-primary w-100 btn-lg" onclick="submitSettings()">
+            {{-- Mobile Save Button (Static Bottom) --}}
+            <div class="d-lg-none mt-4 mb-4 pb-4 px-3">
+                <button class="btn btn-primary w-100 btn-lg rounded-pill shadow-sm" onclick="submitSettings()">
                     <i class="fas fa-save me-2"></i> Save Changes
                 </button>
             </div>
 
         </div>
 
-        @include('admin.settings.partials.modals')
+        @include('admin.store_preferences.partials.modals')
 
         <script>
             function submitSettings() {

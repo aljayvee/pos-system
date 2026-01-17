@@ -4,6 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <link rel="icon" href="{{ asset('images/favicon.png') }}" type="image/png">
     <title>Login - POS System</title>
 
     {{-- PWA Manifest --}}
@@ -55,8 +56,8 @@
             <!-- Content -->
             <div class="relative z-10">
                 <div class="flex items-center gap-3 mb-8">
-                    <img src="{{ asset('images/verapos_logo.jpg') }}" alt="VeraPOS Logo"
-                        class="h-14 w-auto mix-blend-multiply rounded-lg">
+                    <img src="{{ asset('images/verapos_logo_v2.png') }}" alt="VeraPOS Logo"
+                        class="h-14 w-auto rounded-lg">
                 </div>
             </div>
 
@@ -101,19 +102,19 @@
                     @csrf
 
                     <div class="space-y-5">
-                        <!-- Email Input -->
+                        <!-- Username Input -->
                         <div>
-                            <label for="emailInput" class="block text-sm font-medium text-gray-700 mb-1">Email
-                                address</label>
+                            <label for="usernameInput"
+                                class="block text-sm font-medium text-gray-700 mb-1">Username</label>
                             <div class="relative">
                                 <div
                                     class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
-                                    <i class="fas fa-envelope"></i>
+                                    <i class="fas fa-user"></i>
                                 </div>
-                                <input id="emailInput" name="email" type="email" autocomplete="email" required autofocus
-                                    class="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 
+                                <input id="usernameInput" name="username" type="text" autocomplete="username" required
+                                    autofocus class="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 
                                            focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-all shadow-sm
-                                           hover:border-gray-400" placeholder="name@company.com">
+                                           hover:border-gray-400" placeholder="Enter your username">
                             </div>
                         </div>
 
@@ -135,12 +136,16 @@
                     </div>
 
                     <div class="flex items-center justify-between">
-                        <div class="flex items-center">
-                            <input id="remember" name="remember" type="checkbox"
-                                class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded cursor-pointer">
-                            <label for="remember"
-                                class="ml-2 block text-sm text-gray-900 cursor-pointer select-none">Remember me</label>
-                        </div>
+                        @if(config('safety_flag_features.remember_me'))
+                            <div class="flex items-center">
+                                <input id="remember" name="remember" type="checkbox"
+                                    class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded cursor-pointer">
+
+                                <label for="remember"
+                                    class="ml-2 block text-sm text-gray-900 cursor-pointer select-none">Remember me</label>
+
+                            </div>
+                        @endif
                         <div class="text-sm">
                             <a href="{{ route('password.request') }}"
                                 class="font-medium text-indigo-600 hover:text-indigo-500">
@@ -162,22 +167,24 @@
                     </button>
                 </form>
 
-                <div class="relative my-8">
-                    <div class="absolute inset-0 flex items-center">
-                        <div class="w-full border-t border-gray-200"></div>
-                    </div>
-                    <div class="relative flex justify-center text-sm">
-                        <span class="px-3 bg-gray-50 text-gray-500 font-medium">Or continue with</span>
-                    </div>
-                </div>
-
                 @if(config('safety_flag_features.webauthn'))
-                    <button type="button" onclick="WebAuthn.login()" class="w-full flex items-center justify-center gap-3 py-3 px-4 border-2 border-dashed border-gray-300 rounded-xl text-sm font-semibold text-gray-700 
-                                       hover:bg-white hover:border-indigo-500 hover:text-indigo-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 
-                                       transition-all duration-200 bg-transparent">
-                        <i class="fas fa-fingerprint text-xl"></i>
-                        <span>Use Passkey</span>
-                    </button>
+                    <div id="passkey-container" class="hidden">
+                        <div class="relative my-8">
+                            <div class="absolute inset-0 flex items-center">
+                                <div class="w-full border-t border-gray-200"></div>
+                            </div>
+                            <div class="relative flex justify-center text-sm">
+                                <span class="px-3 bg-gray-50 text-gray-500 font-medium">Or continue with</span>
+                            </div>
+                        </div>
+
+                        <button type="button" onclick="WebAuthn.login()" class="w-full flex items-center justify-center gap-3 py-3 px-4 border-2 border-dashed border-gray-300 rounded-xl text-sm font-semibold text-gray-700 
+                                                                            hover:bg-white hover:border-indigo-500 hover:text-indigo-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 
+                                                                            transition-all duration-200 bg-transparent">
+                            <i class="fas fa-fingerprint text-xl"></i>
+                            <span>Sign in with Passkey</span>
+                        </button>
+                    </div>
                 @endif
 
             </div>
@@ -207,10 +214,10 @@
                     icon: 'error',
                     title: 'Login Failed',
                     html: `<ul class="text-sm text-left m-0 pl-4 list-disc">
-                                                            @foreach($errors->all() as $error)
-                                                                <li>{{ $error }}</li>
-                                                            @endforeach
-                                                           </ul>`
+                                                                                                        @foreach($errors->all() as $error)
+                                                                                                            <li>{{ $error }}</li>
+                                                                                                        @endforeach
+                                                                                                       </ul>`
                 });
             });
         @endif
@@ -229,9 +236,16 @@
             spinner.classList.remove('hidden');
         });
 
-        // Auto-lowercase email
-        document.getElementById('emailInput')?.addEventListener('input', function () {
+        // Auto-lowercase username
+        document.getElementById('usernameInput')?.addEventListener('input', function () {
             this.value = this.value.toLowerCase();
+        });
+
+        // WebAuthn Capability Check
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (await WebAuthn.isAvailable()) {
+                document.getElementById('passkey-container').classList.remove('hidden');
+            }
         });
     </script>
 

@@ -15,13 +15,14 @@
             </div>
             <div class="d-flex flex-wrap gap-2">
                 @can('inventory.edit')
-                    <button class="btn btn-white border shadow-sm rounded-pill px-4 fw-bold" data-bs-toggle="modal"
-                        data-bs-target="#importModal">
-                        <i class="fas fa-file-import me-2 text-secondary"></i>Import CSV
+                    <button
+                        class="btn btn-light border shadow-sm rounded-pill px-4 fw-bold dark:bg-slate-800 dark:text-white dark:border-slate-700"
+                        data-bs-toggle="modal" data-bs-target="#importModal">
+                        <i class="fas fa-file-import me-2 text-secondary dark:text-slate-400"></i>Import CSV
                     </button>
                     <a href="{{ route('products.batch_create') }}"
-                        class="btn btn-white border shadow-sm rounded-pill px-4 fw-bold">
-                        <i class="fas fa-table me-2 text-primary"></i>Batch Create
+                        class="btn btn-light border shadow-sm rounded-pill px-4 fw-bold dark:bg-slate-800 dark:text-white dark:border-slate-700">
+                        <i class="fas fa-table me-2 text-primary dark:text-blue-400"></i>Batch Create
                     </a>
                     <a href="{{ route('products.create') }}" class="btn btn-primary shadow-lg rounded-pill px-4 fw-bold">
                         <i class="fas fa-plus-circle me-2"></i>Add New Product
@@ -54,7 +55,7 @@
                             <div class="d-flex flex-column">
                                 <span class="text-muted small text-uppercase fw-bold ls-1">Low Stock</span>
                                 <h2 class="mb-0 fw-bold text-danger mt-1">
-                                    {{ \App\Models\Product::whereRaw('stock <= reorder_point')->count() }}
+                                    {{ \App\Models\Inventory::where('store_id', session('active_store_id') ?? 1)->whereColumn('stock', '<=', 'reorder_point')->count() }}
                                 </h2>
                             </div>
                             <div class="bg-danger bg-opacity-10 text-danger rounded-3 p-2">
@@ -176,16 +177,17 @@
                                 <td class="text-end fw-bold text-dark">₱{{ number_format($product->price, 2) }}</td>
                                 <td class="text-center">
                                     <span
-                                        class="{{ $product->stock <= $product->reorder_point ? 'text-danger fw-bold' : 'text-dark fw-bold' }}">{{ $product->stock }}</span>
+                                        class="{{ $product->getStockForStore(session('active_store_id') ?? 1) <= $product->getReorderPointForStore(session('active_store_id') ?? 1) ? 'text-danger fw-bold' : 'text-dark fw-bold' }}">{{ $product->getStockForStore(session('active_store_id') ?? 1) }}</span>
                                     <small class="text-muted d-block x-small">{{ $product->unit }}</small>
                                 </td>
                                 <td class="text-center">
-                                    @if($product->stock == 0) <span
+                                    @if($product->getStockForStore(session('active_store_id') ?? 1) == 0) <span
                                         class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill px-3">Out
                                         of Stock</span>
-                                    @elseif($product->stock <= $product->reorder_point) <span
-                                        class="badge bg-warning-subtle text-warning border border-warning-subtle text-dark-emphasis rounded-pill px-3">Low
-                                        Stock</span>
+                                    @elseif($product->getStockForStore(session('active_store_id') ?? 1) <= $product->getReorderPointForStore(session('active_store_id') ?? 1))
+                                        <span
+                                            class="badge bg-warning-subtle text-warning border border-warning-subtle text-dark-emphasis rounded-pill px-3">Low
+                                            Stock</span>
                                     @else <span
                                         class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3">Active</span>
                                     @endif
@@ -340,14 +342,15 @@
                                         style="max-width: 150px;">{{ $product->category->name ?? 'Uncategorized' }}</span>
 
                                     {{-- Stock Badge --}}
-                                    @if($product->stock == 0)
+                                    @if($product->getStockForStore(session('active_store_id') ?? 1) == 0)
                                         <span class="badge bg-danger-subtle text-danger rounded-pill x-small">Out of Stock</span>
-                                    @elseif($product->stock <= $product->reorder_point)
+                                    @elseif($product->getStockForStore(session('active_store_id') ?? 1) <= $product->getReorderPointForStore(session('active_store_id') ?? 1))
                                         <span
                                             class="badge bg-warning-subtle text-warning text-dark-emphasis rounded-pill x-small">Low:
-                                            {{ $product->stock }}</span>
+                                            {{ $product->getStockForStore(session('active_store_id') ?? 1) }}</span>
                                     @else
-                                        <span class="text-secondary x-small"><b>Stock(s):</b> {{ $product->stock }}<b> Unit:</b>
+                                        <span class="text-secondary x-small"><b>Stock(s):</b>
+                                            {{ $product->getStockForStore(session('active_store_id') ?? 1) }}<b> Unit:</b>
                                             {{ $product->unit }}</span>
                                     @endif
                                 </div>

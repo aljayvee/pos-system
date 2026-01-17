@@ -7,6 +7,19 @@
         <div class="d-lg-none sticky-top bg-white border-bottom shadow-sm z-3">
             <div class="px-3 py-3 d-flex align-items-center justify-content-between">
                 <h6 class="m-0 fw-bold text-dark"><i class="fas fa-history text-secondary me-2"></i>Activity Logs</h6>
+                <div>
+                    @if(isset($integrityStatus['status']) && $integrityStatus['status'] === 'OK')
+                        <div
+                            class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1 rounded-3 shadow-sm">
+                            <i class="fas fa-shield-alt"></i> <span class="d-none d-sm-inline ms-1">SECURE</span>
+                        </div>
+                    @else
+                        <button class="btn btn-danger badge px-2 py-1 rounded-3 shadow-sm border-0" data-bs-toggle="modal"
+                            data-bs-target="#integrityModal">
+                            <i class="fas fa-exclamation-triangle"></i> <span class="d-none d-sm-inline ms-1">TAMPERED</span>
+                        </button>
+                    @endif
+                </div>
             </div>
         </div>
 
@@ -16,19 +29,21 @@
                 <h4 class="fw-bold text-dark mb-1"><i class="fas fa-history text-secondary me-2"></i>Audit Logs</h4>
                 <p class="text-muted small mb-0">Track all system activities and security events.</p>
             </div>
-            <div>
-                @if(isset($integrityStatus['status']) && $integrityStatus['status'] === 'OK')
-                    <div
-                        class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 rounded-4 shadow-sm animate__animated animate__fadeIn">
-                        <i class="fas fa-shield-alt me-2"></i>System Integrity: <strong>SECURE</strong>
-                    </div>
-                @else
-                    <button class="btn btn-danger badge px-3 py-2 rounded-4 shadow-sm animate__animated animate__flash border-0"
-                        data-bs-toggle="modal" data-bs-target="#integrityModal">
-                        <i class="fas fa-exclamation-triangle me-2"></i>TAMPERING DETECTED (Click for Report)
-                    </button>
-                @endif
-            </div>
+            @if(config('safety_flag_features.log_integrity'))
+                <div>
+                    @if(isset($integrityStatus['status']) && $integrityStatus['status'] === 'OK')
+                        <div
+                            class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 rounded-4 shadow-sm animate__animated animate__fadeIn">
+                            <i class="fas fa-shield-alt me-2"></i>System Integrity: <strong>SECURE</strong>
+                        </div>
+                    @else
+                        <button class="btn btn-danger badge px-3 py-2 rounded-4 shadow-sm animate__animated animate__flash border-0"
+                            data-bs-toggle="modal" data-bs-target="#integrityModal">
+                            <i class="fas fa-exclamation-triangle me-2"></i>TAMPERING DETECTED (Click for Report)
+                        </button>
+                    @endif
+                </div>
+            @endif
         </div>
 
         <div class="px-3 px-md-0 pt-3 pt-md-0">
@@ -169,25 +184,27 @@
                                 <div class="position-absolute bg-white border border-2 border-{{ $color }} rounded-circle shadow-sm"
                                     style="width: 14px; height: 14px; left: -8px; top: 6px;"></div>
 
-                                <div
-                                    class="card shadow-sm border-0 {{ $isTampered ? 'bg-danger-subtle border border-danger' : 'bg-light' }} rounded-4">
-                                    <div class="card-body p-3">
-                                        <div class="d-flex justify-content-between align-items-center mb-2">
-                                            <span
-                                                class="badge bg-{{ $color }}-subtle text-{{ $color }} border border-{{ $color }}-subtle rounded-pill px-3">
-                                                {{ ucfirst($log->action) }}
-                                            </span>
-                                            <div class="text-end">
-                                                <small class="text-muted d-block"
-                                                    style="font-size: 0.75rem;">{{ \Carbon\Carbon::parse($log->created_at)->format('M d, h:i A') }}</small>
-                                                @if($isTampered) <span class="badge bg-danger">TAMPERED</span> @endif
+                                @if(config('safety_flag_features.log_integrity'))
+                                    <div
+                                        class="card shadow-sm border-0 {{ $isTampered ? 'bg-danger-subtle border border-danger' : 'bg-light' }} rounded-4">
+                                        <div class="card-body p-3">
+                                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                                <span
+                                                    class="badge bg-{{ $color }}-subtle text-{{ $color }} border border-{{ $color }}-subtle rounded-pill px-3">
+                                                    {{ ucfirst($log->action) }}
+                                                </span>
+                                                <div class="text-end">
+                                                    <small class="text-muted d-block"
+                                                        style="font-size: 0.75rem;">{{ \Carbon\Carbon::parse($log->created_at)->format('M d, h:i A') }}</small>
+                                                    @if($isTampered) <span class="badge bg-danger">TAMPERED</span> @endif
+                                                </div>
                                             </div>
-                                        </div>
 
-                                        <h6 class="fw-bold text-dark mb-1">{{ $log->user->name ?? 'System' }}</h6>
-                                        <p class="mb-0 text-secondary small lh-sm">{{ $log->description }}</p>
+                                            <h6 class="fw-bold text-dark mb-1">{{ $log->user->name ?? 'System' }}</h6>
+                                            <p class="mb-0 text-secondary small lh-sm">{{ $log->description }}</p>
+                                        </div>
                                     </div>
-                                </div>
+                                @endif
                             </div>
                         @empty
                             <div class="text-center py-5 text-muted">No activity logs found.</div>
@@ -278,5 +295,4 @@
             </div>
         </div>
     @endif
-
 @endsection

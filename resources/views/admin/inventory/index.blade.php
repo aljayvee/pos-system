@@ -153,23 +153,27 @@
                                     <td class="text-end text-muted">₱{{ number_format($product->cost ?? 0, 2) }}</td>
                                     <td class="text-end fw-bold text-dark">₱{{ number_format($product->price, 2) }}</td>
                                     <td class="text-center">
+                                        @php 
+                                            $stock = $product->getStockForStore(session('active_store_id') ?? 1); 
+                                            $reorder = $product->getReorderPointForStore(session('active_store_id') ?? 1); 
+                                        @endphp
                                         <div class="d-flex flex-column align-items-center">
                                             <span
-                                                class="fw-bold {{ $product->stock <= 10 ? 'text-danger' : 'text-dark' }}">{{ $product->stock }}</span>
+                                                class="fw-bold {{ $stock <= 10 ? 'text-danger' : 'text-dark' }}">{{ $stock }}</span>
                                             {{-- Mini Progress Bar --}}
                                             <div class="progress w-75 mt-1" style="height: 4px;">
                                                 @php
-                                                    $percent = min(100, ($product->stock / ($product->reorder_point > 0 ? $product->reorder_point * 3 : 50)) * 100);
-                                                    $color = $product->stock == 0 ? 'bg-danger' : ($product->stock <= 10 ? 'bg-warning' : 'bg-success');
+                                                    $percent = min(100, ($stock / ($reorder > 0 ? $reorder * 3 : 50)) * 100);
+                                                    $color = $stock == 0 ? 'bg-danger' : ($stock <= 10 ? 'bg-warning' : 'bg-success');
                                                 @endphp
                                                 <div class="progress-bar {{ $color }}" style="width: {{ $percent }}%"></div>
                                             </div>
                                         </div>
                                     </td>
                                     <td class="text-center pe-4">
-                                        @if($product->stock == 0)
+                                        @if($stock == 0)
                                             <span class="badge bg-danger-subtle text-danger rounded-pill px-3">Out of Stock</span>
-                                        @elseif($product->stock <= 10)
+                                        @elseif($stock <= $reorder)
                                             <span
                                                 class="badge bg-warning-subtle text-warning text-dark-emphasis rounded-pill px-3">Low
                                                 Stock</span>
@@ -218,13 +222,17 @@
                                             style="font-size: 0.65rem;">{{ $product->sku ?? '' }}</small>
                                     </div>
                                     <div class="text-end">
+                                        @php 
+                                            $stock = $product->getStockForStore(session('active_store_id') ?? 1); 
+                                            $reorder = $product->getReorderPointForStore(session('active_store_id') ?? 1); 
+                                        @endphp
                                         <small
-                                            class="fw-bold {{ $product->stock <= 10 ? 'text-danger' : 'text-dark' }}">{{ $product->stock }}
+                                            class="fw-bold {{ $stock <= 10 ? 'text-danger' : 'text-dark' }}">{{ $stock }}
                                             <span class="text-muted fw-normal">units</span></small>
                                         <div class="progress mt-1" style="height: 4px; width: 60px;">
                                             @php
-                                                $percent = min(100, ($product->stock / ($product->reorder_point > 0 ? $product->reorder_point * 3 : 50)) * 100);
-                                                $color = $product->stock == 0 ? 'bg-danger' : ($product->stock <= 10 ? 'bg-warning' : 'bg-success');
+                                                $percent = min(100, ($stock / ($reorder > 0 ? $reorder * 3 : 50)) * 100);
+                                                $color = $stock == 0 ? 'bg-danger' : ($stock <= 10 ? 'bg-warning' : 'bg-success');
                                             @endphp
                                             <div class="progress-bar {{ $color }}" style="width: {{ $percent }}%"></div>
                                         </div>

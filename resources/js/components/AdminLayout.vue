@@ -40,10 +40,10 @@
 
                <div class="d-flex align-items-center text-nowrap">
                    <!-- Desktop Logo -->
-                   <img v-if="!isMobile" src="/images/verapos_logo.jpg" alt="VeraPOS" 
-                        class="img-fluid transition-all" 
+                   <img v-if="!isMobile" src="/images/verapos_logo_v2.png" alt="VeraPOS" 
+                        class="img-fluid transition-all"
                         :class="isOpen ? 'h-auto w-auto max-h-[50px]' : 'w-100 rounded-3'"
-                        style="max-height: 50px; object-fit: contain; mix-blend-multiply;">
+                        style="max-height: 50px; object-fit: contain;">
 
                    <!-- Mobile Photo Brand -->
                    <div v-else class="d-flex align-items-center">
@@ -78,7 +78,7 @@
              <!-- DASHBOARD -->
              <li class="nav-item">
                  <a href="/admin/dashboard" class="nav-link d-flex align-items-center" :class="{ 'active': currentPath === '/admin/dashboard' }">
-                    <div class="icon-wrapper"><i class="fas fa-grid-2"></i></div> <!-- Using grid icon for modern feel if avail, fallback handles it generally -->
+                    <div class="icon-wrapper"><i class="fas fa-th-large"></i></div>
                     <span class="text-nowrap fade-text ms-3 fw-medium" v-show="isOpen || isMobile">Dashboard</span>
                  </a>
              </li>
@@ -181,9 +181,9 @@
                     </a>
                 </li>
                 <li class="nav-item" v-if="can('settings.manage')">
-                    <a href="/admin/settings" class="nav-link d-flex align-items-center" :class="{ 'active': currentPath.includes('/settings') }">
+                    <a href="/admin/store-preferences" class="nav-link d-flex align-items-center" :class="{ 'active': currentPath.includes('/store-preferences') }">
                        <div class="icon-wrapper"><i class="fas fa-cog"></i></div>
-                       <span class="text-nowrap fade-text ms-3 fw-medium" v-show="isOpen || isMobile">More Features</span>
+                       <span class="text-nowrap fade-text ms-3 fw-medium" v-show="isOpen || isMobile">Store Preferences</span>
                     </a>
                 </li>
                 <li class="nav-item" v-if="can('logs.view')">
@@ -509,7 +509,7 @@
 import ThemeManager from '../theme';
 
 export default {
-  props: ['userName', 'userRole', 'userPermissions', 'userPhoto', 'pageTitle', 'csrfToken', 'outOfStock', 'lowStock', 'enableRegisterLogs', 'systemMode', 'enableBirCompliance'],
+  props: ['userName', 'userRole', 'userPermissions', 'userPhoto', 'pageTitle', 'csrfToken', 'outOfStock', 'lowStock', 'enableRegisterLogs', 'systemMode', 'enableBirCompliance', 'userId'],
   data() {
     const isMobile = window.innerWidth < 992;
     let initialOpen = !isMobile;
@@ -526,6 +526,7 @@ export default {
       isOpen: initialOpen,
       notifOpen: false,
       accountDropdownOpen: false,
+      isModalOpen: false, // ADDED: Modal state tracker
       currentPath: window.location.pathname,
       isNavigating: false,
       
@@ -560,6 +561,15 @@ export default {
                       // Optionally re-fetch to be safe and get full relations
                       this.fetchPendingApprovals();
                   });
+
+              // ADDED: Device Consent Modal Listener
+              window.Echo.private(`App.Models.User.${this.userId}`) // Need to ensure userId is available or use a global config
+                  .listen('.LoginRequestCreated', (e) => {
+                      console.log('Login Request Received:', e);
+                      if (e && e.details) {
+                          this.showConsentModal(e.details);
+                      }
+                  });
           }
       }
       
@@ -571,6 +581,15 @@ export default {
                   this.$refs.sidebarContentRef.scrollTop = parseInt(savedScroll);
               });
           }
+      }
+      
+      // Ensure Loader is hidden when Vue is ready
+      if (window.hideSkeletonLoading) {
+          // Use nextTick to ensure render completion
+          this.$nextTick(() => {
+             // Slight delay to match blade layout feel or just instant
+             setTimeout(window.hideSkeletonLoading, 100); 
+          });
       }
   },
   beforeUnmount() {
@@ -633,6 +652,14 @@ export default {
             }
 
             this.isNavigating = true;
+            
+            // Show Skeleton Overlay directly (FORCE)
+            const skeletonOverlay = document.getElementById('skeleton-loading-overlay');
+            if (skeletonOverlay) {
+                skeletonOverlay.style.setProperty('display', 'block', 'important');
+                skeletonOverlay.style.zIndex = '2147483647'; // Max Z-Index
+            }
+
             setTimeout(() => { this.isNavigating = false; }, 5000);
         }
     },
@@ -691,6 +718,50 @@ export default {
             } else {
                  alert('System error: ' + err.message);
             }
+        });
+    },
+
+    // ADDED: Device Consent Logic
+    showConsentModal(details) {
+        if (this.isModalOpen) return;
+        this.isModalOpen = true;
+
+        window.Swal.fire({
+            title: 'New Login Detected',
+            html: `
+                <div class="text-start text-sm">
+                    <p>A new device is trying to log in:</p>
+                    <ul class="list-unstyled ms-2 mt-2">
+                            <li><i class="fas fa-network-wired me-2"></i><strong>IP:</strong> ${details.ip}</li>
+                            <li><i class="fas fa-desktop me-2"></i><strong>Device:</strong> ${details.device}</li>
+                    </ul>
+                    <p class="mt-4 fw-bold text-danger">Do you want to allow this?</p>
+                </div>
+            `,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, Allow',
+            cancelButtonText: 'No, Block',
+            allowOutsideClick: false,
+            backdrop: `rgba(0,0,0,0.8)`
+        }).then((result) => {
+            this.isModalOpen = false;
+            let decision = result.isConfirmed ? 'approve' : 'deny';
+
+            axios.post('/auth/resolve-login-request', { // Use relative path or pass route via props
+                decision: decision,
+                request_id: details.request_id,
+                _token: this.csrfToken
+            }).then(res => {
+                if (res.data.action === 'logout_self') {
+                    window.location.reload();
+                } else {
+                    window.Swal.fire('Blocked', 'The login request was denied.', 'success');
+                }
+            }).catch(err => {
+                console.error(err);
+                window.Swal.fire('Error', 'Could not process request', 'error');
+            });
         });
     }
   },
@@ -803,6 +874,7 @@ export default {
     box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
 }
 .nav-link.active .icon-wrapper { color: white !important; }
+html.dark .nav-link.active .icon-wrapper { background-color: transparent !important; }
 
 /* ICONS */
 .icon-wrapper { 

@@ -99,14 +99,7 @@
                                                         value="{{ old('name', $user->name) }}" required
                                                         style="font-size: 1rem;">
                                                 </div>
-                                                <div class="col-12 col-md-6">
-                                                    <label class="form-label fw-bold small text-secondary">Email
-                                                        Address</label>
-                                                    <input type="email" name="email"
-                                                        class="form-control form-control-lg bg-light border-0"
-                                                        value="{{ old('email', $user->email) }}" required
-                                                        style="font-size: 1rem;">
-                                                </div>
+                                                {{-- Username and Email hidden for editing --}}
                                                 <div class="col-12 col-md-6">
                                                     <label class="form-label fw-bold small text-secondary">Role</label>
                                                     <select name="role" class="form-select form-select-lg bg-light border-0"
@@ -213,7 +206,8 @@
                                                         <tr>
                                                             <td class="ps-4 py-3">
                                                                 <div class="fw-bold text-dark">
-                                                                    {{ ucwords(str_replace('.', ' ', $perm->value)) }}</div>
+                                                                    {{ ucwords(str_replace('.', ' ', $perm->value)) }}
+                                                                </div>
                                                                 <div class="small text-muted">{{ $perm->label() }}</div>
                                                             </td>
 
@@ -320,7 +314,8 @@
                                                 <div class="card-body p-3">
                                                     <div class="mb-3">
                                                         <div class="fw-bold text-dark h6 mb-1">
-                                                            {{ ucwords(str_replace('.', ' ', $perm->value)) }}</div>
+                                                            {{ ucwords(str_replace('.', ' ', $perm->value)) }}
+                                                        </div>
                                                         <div class="small text-secondary">{{ $perm->label() }}</div>
                                                     </div>
 
