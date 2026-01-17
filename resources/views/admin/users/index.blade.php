@@ -82,7 +82,7 @@
                     <tr>
                         <td class="ps-4">
                             <div class="fw-bold text-dark">{{ $user->name }}</div>
-                            <div class="small text-muted">{{ $user->email }}</div>
+                            <div class="small text-muted">{{ $user->username }}</div>
                         </td>
                         <td>
                             <span class="badge {{ $user->role == 'admin' ? 'bg-danger-subtle text-danger border border-danger' : 'bg-info-subtle text-info-emphasis border border-info' }}">

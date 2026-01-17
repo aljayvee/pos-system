@@ -1,6 +1,6 @@
 {
   "resources/css/app.css": {
-    "file": "assets/app-DbspatSy.css",
+    "file": "assets/app-C1PbPDgf.css",
     "src": "resources/css/app.css",
     "isEntry": true,
     "name": "app",
@@ -8,13 +8,28 @@
       "app.css"
     ]
   },
+  "resources/css/premium-ui.css": {
+    "file": "assets/premium-ui-D8NJKjOj.css",
+    "src": "resources/css/premium-ui.css",
+    "isEntry": true,
+    "name": "premium-ui",
+    "names": [
+      "premium-ui.css"
+    ]
+  },
   "resources/js/app.js": {
-    "file": "assets/app-TAelKcf-.js",
+    "file": "assets/app-BF7HZg_X.js",
     "name": "app",
     "src": "resources/js/app.js",
     "isEntry": true,
     "css": [
-      "assets/app-CWZRMy8C.css"
+      "assets/app-ClNmQ2gF.css"
     ]
+  },
+  "resources/js/cashier.js": {
+    "file": "assets/cashier-DtgUhhwx.js",
+    "name": "cashier",
+    "src": "resources/js/cashier.js",
+    "isEntry": true
   }
 }

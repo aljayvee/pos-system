@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use App\Models\ActivityLog;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Hash;
+use App\Models\Store;
 
 class UserController extends Controller
 {
@@ -17,38 +18,43 @@ class UserController extends Controller
         $query = \App\Models\User::where('store_id', $storeId);
 
         if ($request->has('search') && $request->search != '') {
-             $search = $request->search;
-             $query->where(function($q) use ($search) {
-                 $q->where('name', 'like', "%{$search}%")
-                   ->orWhere('email', 'like', "%{$search}%");
-             });
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%");
+            });
         }
-        
+
         $users = $query->latest()->paginate(10);
-        
+
         return view('admin.users.index', compact('users'));
     }
 
     public function create()
     {
-        // Fetch list of Admins for Approval Modal (if needed by Manager)
         $admins = User::where('role', 'admin')->where('is_active', true)->get(['id', 'name', 'email']);
-        return view('admin.users.create', compact('admins'));
+        $stores = Store::all(); // Pass stores
+        return view('admin.users.create', compact('admins', 'stores'));
     }
 
     public function store(Request $request)
     {
         $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email',
-            'password' => 'required|min:6|confirmed', 
-            'role' => 'required|in:admin,cashier,manager,supervisor,stock_clerk,auditor',
-            'approver_id' => 'nullable|exists:users,id' // Validate approver if sent
+            'first_name' => 'required|string|max:255',
+            'last_name' => 'required|string|max:255',
+            'username' => 'required|string|max:255|unique:users',
+            'email' => 'nullable|string|email|max:255|unique:users',
+            'role' => 'required|string',
+            'assigned_branch' => 'nullable|string',
+            'password' => 'required|string|min:8|confirmed',
+            'birthdate' => 'nullable|date',
+            'gender' => 'nullable|string|in:Male,Female,Other',
+            'approver_id' => 'nullable|exists:users,id'
         ]);
 
         // STRICT RULE: Manager cannot create Admin (Backend Check)
         if (auth()->user()->role === 'manager' && $request->role === 'admin') {
-            if($request->wantsJson()) {
+            if ($request->wantsJson()) {
                 return response()->json(['success' => false, 'message' => 'Managers cannot create Admin accounts.']);
             }
             return back()->with('error', 'Security Alert: Managers cannot create Admin accounts.');
@@ -56,29 +62,40 @@ class UserController extends Controller
 
         $isActive = true;
         $isPendingApproval = false;
-        
+
         // Manager Creating User -> Require Approval
         if (auth()->user()->role === 'manager') {
             $isActive = false;
             $isPendingApproval = true;
-            
+
             if (!$request->approver_id) {
-                 if($request->wantsJson()) {
+                if ($request->wantsJson()) {
                     return response()->json(['success' => false, 'message' => 'Please select an administrator to approve this request.']);
-                 }
-                 return back()->with('error', 'Administrator selection is required.');
+                }
+                return back()->with('error', 'Administrator selection is required.');
             }
         }
 
+        $fullName = $request->first_name . ' ' . $request->last_name;
+
         $user = User::create([
-            'name' => $request->name,
+            'name' => $request->first_name . ' ' . $request->last_name,
+            'first_name' => $request->first_name,
+            'last_name' => $request->last_name,
+            'username' => $request->username,
             'email' => $request->email,
-            'password' => Hash::make($request->password),
             'role' => $request->role,
-            'store_id' => $this->getActiveStoreId(),
+            'assigned_branch' => $request->assigned_branch,
+            'password' => Hash::make($request->password),
+            'birthdate' => $request->birthdate,
+            // 'age' => $request->age, // Removed
+            'gender' => $request->gender,
+            'permissions' => [],
+            // Allow Admin to set store, else default to current context
+            'store_id' => auth()->user()->role === 'admin' ? ($request->store_id ?? $this->getActiveStoreId()) : $this->getActiveStoreId(),
             'is_active' => $isActive
         ]);
-        
+
         if ($isPendingApproval) {
             // Create Approval Request
             $approvalRequest = \App\Models\RoleChangeRequest::create([
@@ -89,11 +106,14 @@ class UserController extends Controller
                 'status' => 'pending',
                 'expires_at' => now()->addMinutes(10)
             ]);
-            
-            if($request->wantsJson()) {
+
+            // Broadcast Event
+            \App\Events\ApprovalRequestCreated::dispatch($approvalRequest);
+
+            if ($request->wantsJson()) {
                 return response()->json([
-                    'success' => true, 
-                    'pending_approval' => true, 
+                    'success' => true,
+                    'pending_approval' => true,
                     'request_id' => $approvalRequest->id
                 ]);
             }
@@ -101,7 +121,7 @@ class UserController extends Controller
             return redirect()->route('users.index')->with('warning', 'User created but requires Admin approval to activate.');
         }
 
-        if($request->wantsJson()) {
+        if ($request->wantsJson()) {
             return response()->json(['success' => true]);
         }
         return redirect()->route('users.index')->with('success', 'User created successfully.');
@@ -111,7 +131,7 @@ class UserController extends Controller
     {
         // STRICT RULE: Manager cannot edit Admin
         if (auth()->user()->role === 'manager' && $user->role === 'admin') {
-             return redirect()->route('users.index')->with('error', 'Security Alert: Managers cannot edit Admin accounts.');
+            return redirect()->route('users.index')->with('error', 'Security Alert: Managers cannot edit Admin accounts.');
         }
 
         // Get permissions for the user's current role to show "Default" status
@@ -123,8 +143,9 @@ class UserController extends Controller
 
         // Fetch list of Admins for Approval Modal
         $admins = User::where('role', 'admin')->where('is_active', true)->get(['id', 'name', 'email']);
+        $stores = Store::all();
 
-        return view('admin.users.edit', compact('user', 'rolePermissions', 'admins'));
+        return view('admin.users.edit', compact('user', 'rolePermissions', 'admins', 'stores'));
     }
 
     public function update(Request $request, User $user)
@@ -137,10 +158,11 @@ class UserController extends Controller
 
         $request->validate([
             'name' => 'required|string|max:255',
-            'email' => ['required', 'email', Rule::unique('users')->ignore($user->id)],
+            'email' => ['nullable', 'email', Rule::unique('users')->ignore($user->id)],
             'role' => 'required|in:admin,cashier,manager,supervisor,stock_clerk,auditor', // Updated roles
             'password' => 'nullable|min:6',
-            'permissions' => 'nullable|array'
+            'permissions' => 'nullable|array',
+            'store_id' => 'nullable|exists:stores,id'
         ]);
 
         $data = [
@@ -155,21 +177,21 @@ class UserController extends Controller
 
         // STRICT RULE: Manager cannot edit Admin
         if ($isManager && $user->role === 'admin') {
-             return redirect()->route('users.index')->with('error', 'Security Alert: Managers cannot edit Admin accounts.');
+            return redirect()->route('users.index')->with('error', 'Security Alert: Managers cannot edit Admin accounts.');
         }
 
         // STRICT RULE: Manager cannot promote/demote ANY role without approval
         if ($isManager && $request->role !== $user->role) {
-             // Check for Approval Token
-             if ($request->filled('admin_approval_token')) {
-                 $valid = $this->verifyApprovalToken($request->admin_approval_token);
-                 if (!$valid) {
-                     return back()->with('error', 'Security Alert: Invalid or expired admin approval.');
-                 }
-                 // Allowed!
-             } else {
-                 return back()->with('error', 'Security Alert: Managers require Admin approval to change user roles.');
-             }
+            // Check for Approval Token
+            if ($request->filled('admin_approval_token')) {
+                $valid = $this->verifyApprovalToken($request->admin_approval_token);
+                if (!$valid) {
+                    return back()->with('error', 'Security Alert: Invalid or expired admin approval.');
+                }
+                // Allowed!
+            } else {
+                return back()->with('error', 'Security Alert: Managers require Admin approval to change user roles.');
+            }
         }
 
         if (!$isSelf || $isAdmin) {
@@ -180,24 +202,29 @@ class UserController extends Controller
 
             // Allowed to update Role
             $data['role'] = $request->role;
-            
+
             // Allowed to update Permissions
             if ($request->has('permissions')) {
                 $perms = collect($request->permissions)
                     ->filter(fn($val) => !is_null($val))
                     ->map(fn($val) => (bool) $val)
                     ->toArray();
-                
+
                 $data['permissions'] = !empty($perms) ? $perms : null;
             }
         } elseif ($request->role !== $user->role) {
-             // If self (non-admin) tries to change role, fail or ignore? 
-             // Form validation passed, but logic denies.
-             return back()->with('error', 'Security Alert: You cannot change your own role.');
+            // If self (non-admin) tries to change role, fail or ignore? 
+            // Form validation passed, but logic denies.
+            return back()->with('error', 'Security Alert: You cannot change your own role.');
         }
 
         if ($request->filled('password')) {
             $data['password'] = Hash::make($request->password);
+        }
+
+        // Allow Admin to update store_id
+        if ($isAdmin && $request->has('store_id')) {
+            $data['store_id'] = $request->store_id;
         }
 
         $user->update($data);
@@ -213,7 +240,7 @@ class UserController extends Controller
 
         // STRICT RULE: Manager cannot delete Admin
         if (auth()->user()->role === 'manager' && $user->role === 'admin') {
-             return back()->with('error', 'Security Alert: Managers cannot delete Admin accounts.');
+            return back()->with('error', 'Security Alert: Managers cannot delete Admin accounts.');
         }
 
         ActivityLog::create([
@@ -225,7 +252,7 @@ class UserController extends Controller
         $user->delete();
         return back()->with('success', 'User deleted successfully.');
     }
-    
+
     public function toggleStatus(User $user)
     {
         if ($user->id === auth()->id()) {
@@ -234,7 +261,7 @@ class UserController extends Controller
 
         // STRICT RULE: Manager cannot toggle Admin
         if (auth()->user()->role === 'manager' && $user->role === 'admin') {
-             return back()->with('error', 'Security Alert: Managers cannot deactivate Admin accounts.');
+            return back()->with('error', 'Security Alert: Managers cannot deactivate Admin accounts.');
         }
 
         // ADVANCED PERMISSION CHECK: user.unlock
@@ -286,7 +313,7 @@ class UserController extends Controller
             'timestamp' => now()->timestamp,
             'nonce' => \Illuminate\Support\Str::random(8)
         ];
-        
+
         $token = base64_encode(json_encode($payload)) . '.' . hash_hmac('sha256', json_encode($payload), env('APP_KEY'));
 
         ActivityLog::create([
@@ -305,10 +332,10 @@ class UserController extends Controller
         $storeId = $this->getActiveStoreId();
         // Get only trashed users
         $users = \App\Models\User::onlyTrashed()
-                    ->where('store_id', $storeId)
-                    ->latest('deleted_at')
-                    ->paginate(10);
-        
+            ->where('store_id', $storeId)
+            ->latest('deleted_at')
+            ->paginate(10);
+
         return view('admin.users.archived', compact('users'));
     }
 
@@ -329,7 +356,7 @@ class UserController extends Controller
     public function forceDelete($id)
     {
         $user = \App\Models\User::withTrashed()->findOrFail($id);
-        
+
         // Prevent self-delete or super admin delete if needed
         if ($user->id === auth()->id()) {
             return back()->with('error', 'Cannot delete yourself.');
@@ -351,13 +378,15 @@ class UserController extends Controller
         try {
             [$payloadJson, $hash] = explode('.', $token);
             $payload = json_decode(base64_decode($payloadJson), true);
-            
+
             // Verify HMAC
             $expectedHash = hash_hmac('sha256', base64_decode($payloadJson), env('APP_KEY'));
-            if (!hash_equals($expectedHash, $hash)) return false;
+            if (!hash_equals($expectedHash, $hash))
+                return false;
 
             // Verify Timestamp (valid for 5 mins)
-            if (now()->timestamp - $payload['timestamp'] > 300) return false;
+            if (now()->timestamp - $payload['timestamp'] > 300)
+                return false;
 
             return true;
         } catch (\Exception $e) {

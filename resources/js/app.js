@@ -1,35 +1,25 @@
 import './bootstrap';
 import { createApp } from 'vue';
-import NProgress from 'nprogress';
-import 'nprogress/nprogress.css';
+
 
 // CHANGED: Import AdminLayout instead of SidebarLayout to match your Blade template
+import Swal from 'sweetalert2';
+window.Swal = Swal;
+
+import './webauthn.js';
 import AdminLayout from './components/AdminLayout.vue';
 import StatsCard from './components/StatsCard.vue';
 import ToastManager from './components/ToastManager.vue';
 import SwipeItem from './components/SwipeItem.vue';
 import OfflineIndicator from './components/OfflineIndicator.vue';
+import ThemeManager from './theme';
 
-// Configure NProgress for premium feel
-NProgress.configure({
-    minimum: 0.3,
-    easing: 'ease',
-    speed: 500,
-    showSpinner: false, // Keep it clean
-    trickleSpeed: 200
-});
+// Initialize Theme
+ThemeManager.init();
+// window.ThemeManager is now handled inside theme.js
 
-// Global smooth transition listeners
-document.addEventListener('click', e => {
-    const link = e.target.closest('a');
-    if (link && link.href && link.href.startsWith(window.location.origin) && !link.target && !e.ctrlKey && !e.metaKey && link.getAttribute('href') !== '#') {
-        NProgress.start();
-    }
-});
-document.addEventListener('submit', e => {
-    if (!e.target.target) NProgress.start();
-});
-window.addEventListener('pageshow', () => NProgress.done());
+
+
 
 const app = createApp({});
 
@@ -95,3 +85,74 @@ setTimeout(() => {
         if (window.laravel_flash.info) app.config.globalProperties.$toast.info(window.laravel_flash.info);
     }
 }, 100);
+
+// --- Global Mobile Modal Swipe Logic ---
+document.addEventListener('DOMContentLoaded', () => {
+    let startY = 0;
+    let currentY = 0;
+    let isDragging = false;
+    let activeModal = null;
+    let activeContent = null;
+
+    document.addEventListener('touchstart', (e) => {
+        const modal = e.target.closest('.modal-bottom-sheet.show');
+        if (!modal) return;
+
+        const content = modal.querySelector('.modal-content');
+        if (!content || !content.contains(e.target)) return;
+
+        // Ensure we are at the top (don't interfere with internal scrolling)
+        if (content.scrollTop > 0) return;
+
+        activeModal = modal;
+        activeContent = content;
+        startY = e.touches[0].clientY;
+        isDragging = true;
+        activeContent.style.transition = 'none'; // Disable transition for direct 1:1 movement
+    }, { passive: true });
+
+    document.addEventListener('touchmove', (e) => {
+        if (!isDragging || !activeContent) return;
+
+        currentY = e.touches[0].clientY;
+        let diff = currentY - startY;
+
+        // Only allow dragging DOWN
+        if (diff > 0) {
+            // Prevent default page scroll ONLY if we are firmly dragging the modal
+            if (e.cancelable && diff > 10) e.preventDefault();
+            activeContent.style.transform = `translateY(${diff}px)`;
+        }
+    }, { passive: false }); // Passive false allows preventDefault
+
+    document.addEventListener('touchend', (e) => {
+        if (!isDragging || !activeContent) return;
+
+        const diff = currentY - startY;
+        isDragging = false;
+        activeContent.style.transition = 'transform 0.3s ease-out'; // Restore smooth animation
+
+        if (diff > 120) { // Threshold to close
+            // Close Modal
+            const modalInstance = bootstrap.Modal.getInstance(activeModal);
+            if (modalInstance) modalInstance.hide();
+        } else {
+            // Snap back
+            activeContent.style.transform = '';
+        }
+
+        activeModal = null;
+        activeContent = null;
+    });
+
+    // Reset transform on hidden to ensure clean state next time
+    document.addEventListener('hidden.bs.modal', (e) => {
+        if (e.target.classList.contains('modal-bottom-sheet')) {
+            const content = e.target.querySelector('.modal-content');
+            if (content) {
+                content.style.transform = '';
+                content.style.transition = '';
+            }
+        }
+    });
+});

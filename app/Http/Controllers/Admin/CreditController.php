@@ -15,12 +15,12 @@ class CreditController extends Controller
     public function index(Request $request)
     {
         $query = CustomerCredit::with('customer', 'sale')
-                    ->where('is_paid', false);
+            ->where('is_paid', false);
 
         // 1. Search by Customer Name
         if ($request->filled('search')) {
             $search = $request->search;
-            $query->whereHas('customer', function($q) use ($search) {
+            $query->whereHas('customer', function ($q) use ($search) {
                 $q->where('name', 'like', "%$search%");
             });
         }
@@ -46,7 +46,13 @@ class CreditController extends Controller
     }
 
     // REPLACE the existing 'storePayment' method with this:
-    
+
+    public function showPaymentForm($id)
+    {
+        $credit = CustomerCredit::where('credit_id', $id)->with('customer', 'sale')->firstOrFail();
+        return view('admin.credits.pay', compact('credit'));
+    }
+
     public function storePayment(Request $request, $id) // Accept ID, not Model
     {
         $request->validate([
@@ -60,13 +66,13 @@ class CreditController extends Controller
         try {
             // 1. LOCK the record. 
             // This pauses any other process trying to touch this specific credit.
-            $credit = CustomerCredit::where('id', $id)->lockForUpdate()->firstOrFail();
+            $credit = CustomerCredit::where('credit_id', $id)->lockForUpdate()->firstOrFail();
 
             // 2. Validate Fresh Data (Consistency)
             if ($credit->is_paid) {
                 // Return error immediately if someone else just paid it
                 DB::rollBack();
-                return back()->with('error', 'This credit was already fully paid by another transaction just now.');
+                return redirect()->route('credits.index')->with('error', 'This credit was already fully paid by another transaction just now.');
             }
 
             if ($request->amount > $credit->remaining_balance) {
@@ -76,7 +82,7 @@ class CreditController extends Controller
 
             // 3. Process Payment (Atomicity)
             CreditPayment::create([
-                'customer_credit_id' => $credit->id,
+                'customer_credit_id' => $credit->credit_id,
                 'user_id' => Auth::id(),
                 'amount' => $request->amount,
                 'payment_date' => now(),
@@ -89,11 +95,11 @@ class CreditController extends Controller
             $credit->remaining_balance -= $request->amount;
 
             // Handle strict floating point comparisons
-            if ($credit->remaining_balance <= 0.01) { 
+            if ($credit->remaining_balance <= 0.01) {
                 $credit->remaining_balance = 0;
                 $credit->is_paid = true;
             }
-            
+
             $credit->save();
 
             // 5. Log Activity
@@ -104,7 +110,7 @@ class CreditController extends Controller
             ]);
 
             DB::commit(); // Release Lock
-            return back()->with('success', 'Payment recorded successfully.');
+            return redirect()->route('credits.index')->with('success', 'Payment recorded successfully.');
 
         } catch (\Exception $e) {
             DB::rollBack();
@@ -115,18 +121,18 @@ class CreditController extends Controller
     public function history(CustomerCredit $credit)
     {
         $payments = CreditPayment::where('customer_credit_id', $credit->id)
-                        ->with('user')
-                        ->latest()
-                        ->get();
-                        
+            ->with('user')
+            ->latest()
+            ->get();
+
         return view('admin.credits.history', compact('credit', 'payments'));
     }
 
     public function paymentLogs()
     {
         $payments = CreditPayment::with(['credit.customer', 'user'])
-                        ->latest('payment_date')
-                        ->get();
+            ->latest('payment_date')
+            ->get();
 
         return view('admin.credits.logs', compact('payments'));
     }
@@ -137,14 +143,14 @@ class CreditController extends Controller
 
         $filename = "outstanding_credits_" . date('Y-m-d') . ".csv";
         $headers = [
-            "Content-type"        => "text/csv",
+            "Content-type" => "text/csv",
             "Content-Disposition" => "attachment; filename=$filename",
-            "Pragma"              => "no-cache",
-            "Cache-Control"       => "must-revalidate, post-check=0, pre-check=0",
-            "Expires"             => "0"
+            "Pragma" => "no-cache",
+            "Cache-Control" => "must-revalidate, post-check=0, pre-check=0",
+            "Expires" => "0"
         ];
 
-        $callback = function() use ($credits) {
+        $callback = function () use ($credits) {
             $file = fopen('php://output', 'w');
             fputcsv($file, ['Credit ID', 'Customer Name', 'Date', 'Due Date', 'Original Amount', 'Paid', 'Balance']);
 

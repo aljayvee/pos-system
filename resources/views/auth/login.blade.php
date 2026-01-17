@@ -1,240 +1,257 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <link rel="icon" href="{{ asset('images/favicon.png') }}" type="image/png">
     <title>Login - POS System</title>
-    
+
     {{-- PWA Manifest --}}
     <link rel="manifest" href="{{ asset('manifest.json') }}">
     <meta name="theme-color" content="#4f46e5">
 
+    <meta name="app-url" content="{{ url('/') }}">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+
     {{-- Fonts & Icons --}}
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    {{-- Scripts & Styles --}}
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 
     <style>
-        :root {
-            --primary-gradient: linear-gradient(135deg, #4f46e5 0%, #3730a3 100%);
-        }
-        
         body {
-            background: #f1f5f9;
-            background-image: radial-gradient(#e0e7ff 1px, transparent 1px);
-            background-size: 24px 24px;
             font-family: 'Inter', sans-serif;
-            height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
         }
 
-        .login-card {
-            width: 100%;
-            max-width: 420px;
-            background: white;
-            border-radius: 24px;
-            box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.1);
-            overflow: hidden;
-            border: 1px solid rgba(255,255,255,0.8);
-            position: relative;
-        }
-
-        .login-header {
-            background: var(--primary-gradient);
-            padding: 40px 30px;
-            text-align: center;
-            color: white;
-            position: relative;
-        }
-        
-        /* Decorative circle in header */
-        .login-header::after {
-            content: '';
-            position: absolute;
-            bottom: -20px;
-            left: 0;
-            right: 0;
-            height: 40px;
-            background: white;
-            border-radius: 50% 50% 0 0 / 100% 100% 0 0;
-            transform: scaleX(1.5);
-        }
-
-        .brand-icon {
-            width: 64px;
-            height: 64px;
-            background: rgba(255,255,255,0.2);
-            backdrop-filter: blur(5px);
-            border-radius: 16px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 15px;
-            font-size: 1.8rem;
-            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
-        }
-
-        .form-floating > .form-control {
-            border-radius: 12px;
-            border: 1px solid #e2e8f0;
-            padding-left: 15px;
-        }
-        
-        .form-floating > .form-control:focus {
-            border-color: #4f46e5;
-            box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
-        }
-
-        .btn-login {
-            background: var(--primary-gradient);
-            border: none;
-            border-radius: 12px;
-            padding: 14px;
-            font-weight: 600;
-            font-size: 1rem;
-            letter-spacing: 0.5px;
-            transition: all 0.3s ease;
-        }
-        
-        .btn-login:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px -5px rgba(79, 70, 229, 0.4);
-        }
-
-        /* Mobile Adjustments */
-        @media (max-width: 480px) {
-            body { background: white; align-items: flex-start; }
-            .login-card { box-shadow: none; border-radius: 0; border: none; max-width: 100%; height: 100vh; }
-            .login-header { padding: 60px 30px 50px; border-radius: 0 0 30px 30px; }
-            .login-header::after { display: none; }
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
         }
     </style>
 </head>
-<body>
 
-    <div class="login-card">
-        {{-- Header Section --}}
-        <div class="login-header">
-            <div class="brand-icon">
-                <i class="fas fa-cash-register"></i>
+<body class="bg-gray-50 text-slate-800">
+
+    <div class="min-h-screen flex w-full">
+
+        <!-- LARGE SCREEN: Left Split (Branding) -->
+        <div
+            class="hidden lg:flex lg:w-1/2 xl:w-7/12 bg-indigo-600 relative overflow-hidden flex-col justify-between p-12 text-white">
+            <!-- Decorative Background Elements -->
+            <div class="absolute top-0 left-0 w-full h-full overflow-hidden z-0">
+                <div class="absolute top-[-10%] right-[-5%] w-96 h-96 bg-indigo-500 rounded-full blur-3xl opacity-50">
+                </div>
+                <div
+                    class="absolute bottom-[-10%] left-[-10%] w-[500px] h-[500px] bg-indigo-800 rounded-full blur-3xl opacity-40">
+                </div>
+                <div
+                    class="absolute top-[40%] left-[20%] w-64 h-64 bg-indigo-400 rounded-full blur-2xl opacity-20 animate-pulse">
+                </div>
             </div>
-            <h4 class="fw-bold mb-1">Welcome Back!</h4>
-            <p class="mb-0 opacity-75 small">Sign in to your Store POS Terminal</p>
+
+            <!-- Content -->
+            <div class="relative z-10">
+                <div class="flex items-center gap-3 mb-8">
+                    <img src="{{ asset('images/verapos_logo_v2.png') }}" alt="VeraPOS Logo"
+                        class="h-14 w-auto rounded-lg">
+                </div>
+            </div>
+
+            <div class="relative z-10 max-w-lg">
+                <h1 class="text-5xl font-bold mb-6 leading-tight">Manage your business with confidence.</h1>
+                <p class="text-indigo-100 text-lg leading-relaxed mb-8">
+                    Streamline your point of sale operations, track inventory in real-time, and gain actionable insights
+                    to grow your business.
+                </p>
+
+
+            </div>
+
+            <div class="relative z-10 text-xs text-indigo-300">
+                &copy; {{ date('Y') }} VERAPOS System. All rights reserved.
+            </div>
         </div>
 
-        {{-- Form Section --}}
-        <div class="p-4 pt-5">
-            <form action="{{ route('login') }}" method="POST">
-                @csrf
-                
-                {{-- Email Input with Floating Label --}}
-                <div class="form-floating mb-3">
-                    <input type="email" name="email" class="form-control" id="emailInput" required autofocus>
-                    <label for="emailInput" class="text-muted"><i class="fas fa-envelope me-2"></i>Email Address</label>
+        <!-- RIGHT SPLIT (Form) -->
+        <div class="w-full lg:w-1/2 xl:w-5/12 flex items-center justify-center p-6 sm:p-12 relative">
+
+            <!-- Mobile decorative bubble -->
+            <div
+                class="absolute top-0 right-0 w-64 h-64 bg-indigo-100 rounded-full blur-3xl opacity-60 lg:hidden -z-10 pointer-events-none">
+            </div>
+
+            <div class="w-full max-w-md space-y-8">
+
+                <!-- Header (Mobile/Desktop consistent) -->
+                <div class="text-center lg:text-left">
+                    <div class="lg:hidden flex justify-center mb-6">
+                        <div
+                            class="w-14 h-14 bg-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-indigo-500/30 transform rotate-3">
+                            <i class="fas fa-layer-group text-2xl"></i>
+                        </div>
+                    </div>
+                    <h2 class="text-3xl font-bold tracking-tight text-gray-900">Welcome back</h2>
+                    <p class="mt-2 text-sm text-gray-500">Please enter your details to sign in.</p>
                 </div>
 
-                {{-- Password Input with Floating Label --}}
-                <div class="form-floating mb-4">
-                    <input type="password" name="password" class="form-control" id="passwordInput" required>
-                    <label for="passwordInput" class="text-muted"><i class="fas fa-lock me-2"></i>Password</label>
-                </div>
+                <form action="{{ route('login') }}" method="POST" class="mt-8 space-y-6">
+                    @csrf
 
-                {{-- Replace your existing button with this one --}}
-                    <button type="submit" id="loginBtn" class="btn btn-primary w-100 btn-login text-white mb-3">
-                        <span id="btnText">SIGN IN</span>
-                        <span id="btnSpinner" class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                    <div class="space-y-5">
+                        <!-- Username Input -->
+                        <div>
+                            <label for="usernameInput"
+                                class="block text-sm font-medium text-gray-700 mb-1">Username</label>
+                            <div class="relative">
+                                <div
+                                    class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                                    <i class="fas fa-user"></i>
+                                </div>
+                                <input id="usernameInput" name="username" type="text" autocomplete="username" required
+                                    autofocus class="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 
+                                           focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-all shadow-sm
+                                           hover:border-gray-400" placeholder="Enter your username">
+                            </div>
+                        </div>
+
+                        <!-- Password Input -->
+                        <div>
+                            <label for="passwordInput"
+                                class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                            <div class="relative">
+                                <div
+                                    class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                                    <i class="fas fa-lock"></i>
+                                </div>
+                                <input id="passwordInput" name="password" type="password"
+                                    autocomplete="current-password" required class="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 
+                                           focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-all shadow-sm
+                                           hover:border-gray-400" placeholder="••••••••">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-between">
+                        @if(config('safety_flag_features.remember_me'))
+                            <div class="flex items-center">
+                                <input id="remember" name="remember" type="checkbox"
+                                    class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded cursor-pointer">
+
+                                <label for="remember"
+                                    class="ml-2 block text-sm text-gray-900 cursor-pointer select-none">Remember me</label>
+
+                            </div>
+                        @endif
+                        <div class="text-sm">
+                            <a href="{{ route('password.request') }}"
+                                class="font-medium text-indigo-600 hover:text-indigo-500">
+                                Forgot password?
+                            </a>
+                        </div>
+                    </div>
+
+                    <button type="submit" id="loginBtn"
+                        class="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-semibold rounded-lg text-white 
+                               bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 
+                               transition-all duration-200 shadow-lg shadow-indigo-600/30 transform hover:-translate-y-0.5">
+                        <span class="absolute left-0 inset-y-0 flex items-center pl-3">
+                            <i
+                                class="fas fa-arrow-right text-indigo-400 group-hover:text-indigo-300 transition-colors"></i>
+                        </span>
+                        <span id="btnText">Sign in to account</span>
+                        <span id="btnSpinner" class="hidden ml-2"><i class="fas fa-circle-notch fa-spin"></i></span>
                     </button>
+                </form>
 
-                <!--<div class="text-center">
-                    <a href="#" class="text-decoration-none small text-secondary fw-medium">Forgot Password?</a>
-                </div>-->
-            </form>
-        </div>
+                @if(config('safety_flag_features.webauthn'))
+                    <div id="passkey-container" class="hidden">
+                        <div class="relative my-8">
+                            <div class="absolute inset-0 flex items-center">
+                                <div class="w-full border-t border-gray-200"></div>
+                            </div>
+                            <div class="relative flex justify-center text-sm">
+                                <span class="px-3 bg-gray-50 text-gray-500 font-medium">Or continue with</span>
+                            </div>
+                        </div>
 
-        {{-- Footer Section --}}
-        <div class="bg-light p-3 text-center border-top">
-            <small class="text-muted fw-bold" style="font-size: 0.7rem;">POWERED BY VERAPOS</small>
+                        <button type="button" onclick="WebAuthn.login()" class="w-full flex items-center justify-center gap-3 py-3 px-4 border-2 border-dashed border-gray-300 rounded-xl text-sm font-semibold text-gray-700 
+                                                                            hover:bg-white hover:border-indigo-500 hover:text-indigo-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 
+                                                                            transition-all duration-200 bg-transparent">
+                            <i class="fas fa-fingerprint text-xl"></i>
+                            <span>Sign in with Passkey</span>
+                        </button>
+                    </div>
+                @endif
+
+            </div>
         </div>
     </div>
 
     {{-- SCRIPTS --}}
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-    {{-- Update your existing error handling script --}}
     <script>
-        // 1. Error Handling (Only if errors exist)
+        // Error Handling
         @if($errors->any())
-            document.addEventListener("DOMContentLoaded", function() {
-                let title = 'Login Failed';
-                let message = `
-                    <ul class="mb-0 ps-3">
-                        @foreach($errors->all() as $error)
-                            <li>{{ $error }}</li>
-                        @endforeach
-                    </ul>
-                `;
+            document.addEventListener("DOMContentLoaded", function () {
+                const Toast = Swal.mixin({
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 4000,
+                    timerProgressBar: true,
+                    didOpen: (toast) => {
+                        toast.addEventListener('mouseenter', Swal.stopTimer)
+                        toast.addEventListener('mouseleave', Swal.resumeTimer)
+                    }
+                });
 
-                // Check for CSRF timeout
-                @if(session('status') == '419')
-                    title = 'Session Expired';
-                    message = 'Your security token expired. Please refresh and try again.';
-                @endif
-
-                Swal.fire({
+                Toast.fire({
                     icon: 'error',
-                    title: title,
-                    html: `<div class="text-start bg-light p-3 rounded border text-danger small">${message}</div>`,
-                    confirmButtonColor: '#4f46e5',
-                    confirmButtonText: 'Refresh Page',
-                }).then((result) => {
-                    if (result.isConfirmed) window.location.reload();
+                    title: 'Login Failed',
+                    html: `<ul class="text-sm text-left m-0 pl-4 list-disc">
+                                                                                                        @foreach($errors->all() as $error)
+                                                                                                            <li>{{ $error }}</li>
+                                                                                                        @endforeach
+                                                                                                       </ul>`
                 });
             });
         @endif
 
-        // 2. Global Form Logic (Always Active)
-        document.addEventListener("DOMContentLoaded", function() {
-            const form = document.querySelector('form');
-            const emailInput = document.getElementById('emailInput');
+        // Button Loading State
+        document.querySelector('form').addEventListener('submit', function (e) {
             const btn = document.getElementById('loginBtn');
-            const text = document.getElementById('btnText');
             const spinner = document.getElementById('btnSpinner');
+            const text = document.getElementById('btnText');
 
-            // Enforce Lowercase on Email Input
-            if(emailInput) {
-                emailInput.addEventListener('input', function() {
-                    this.value = this.value.toLowerCase();
-                });
-            }
+            if (btn.disabled) return;
 
-            // Handle Submit Loading State
-            if(form) {
-                form.addEventListener('submit', function(e) {
-                    // Prevent multiple clicks
-                    if(btn.disabled) {
-                        e.preventDefault(); 
-                        return;
-                    }
+            btn.disabled = true;
+            btn.classList.add('cursor-not-allowed', 'opacity-80');
+            text.textContent = 'Verifying...';
+            spinner.classList.remove('hidden');
+        });
 
-                    // Activate Loading State
-                    btn.disabled = true;
-                    btn.style.opacity = '0.7';
-                    text.innerText = "Verifying...";
-                    spinner.classList.remove('d-none');
-                });
+        // Auto-lowercase username
+        document.getElementById('usernameInput')?.addEventListener('input', function () {
+            this.value = this.value.toLowerCase();
+        });
+
+        // WebAuthn Capability Check
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (await WebAuthn.isAvailable()) {
+                document.getElementById('passkey-container').classList.remove('hidden');
             }
         });
     </script>
 
-    {{-- Service Worker --}}
     <script>
-        if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js');
+        if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js');
     </script>
-
 </body>
+
 </html>

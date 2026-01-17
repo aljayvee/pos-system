@@ -38,11 +38,11 @@ class LogUserActivity
                     $action = $method . ' ' . ($request->route()->getName() ?? $url);
                 }
 
-                \App\Models\ActivityLog::create([
-                    'user_id' => $user->id,
-                    'action' => 'Navigation', // Grouping category
-                    'description' => "User accessed: {$method} /{$url} (IP: {$ip})",
-                ]);
+                // \App\Models\ActivityLog::create([
+                //     'user_id' => $user->id,
+                //     'action' => 'Navigation', // Grouping category
+                //     'description' => "User accessed: {$method} /{$url} (IP: {$ip})",
+                // ]);
             }
         } catch (\Exception $e) {
             // Fail silently to prevent blocking user

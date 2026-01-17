@@ -40,6 +40,9 @@ class ApprovalController extends Controller
             'description' => "Requested approval from {$approver->name} to promote user #{$request->target_user_id} to {$request->new_role}."
         ]);
 
+        // Broadcast Event
+        \App\Events\ApprovalRequestCreated::dispatch($approvalRequest);
+
         return response()->json(['success' => true, 'request_id' => $approvalRequest->id]);
     }
 
@@ -82,14 +85,15 @@ class ApprovalController extends Controller
     public function getPending()
     {
         // Only Admins
-        if (auth()->user()->role !== 'admin') return response()->json([]);
+        if (auth()->user()->role !== 'admin')
+            return response()->json([]);
 
         $pending = RoleChangeRequest::with(['requester', 'targetUser'])
-                    ->where('approver_id', auth()->id())
-                    ->where('status', 'pending')
-                    ->where('expires_at', '>', now())
-                    ->get();
-        
+            ->where('approver_id', auth()->id())
+            ->where('status', 'pending')
+            ->where('expires_at', '>', now())
+            ->get();
+
         return response()->json(['requests' => $pending]);
     }
 
@@ -97,50 +101,52 @@ class ApprovalController extends Controller
     public function decideRequest(Request $request, $id)
     {
         $approvalRequest = RoleChangeRequest::findOrFail($id);
-        
+
         // Validation
-        if ($approvalRequest->approver_id !== auth()->id()) abort(403);
-        if ($approvalRequest->expires_at < now()) return response()->json(['success' => false, 'message' => 'Request expired.']);
+        if ($approvalRequest->approver_id !== auth()->id())
+            abort(403);
+        if ($approvalRequest->expires_at < now())
+            return response()->json(['success' => false, 'message' => 'Request expired.']);
 
         $decision = $request->input('decision'); // 'approve' or 'reject'
-        
-        if ($decision === 'approve') {
-             // Verify Password
-             if (!Hash::check($request->password, auth()->user()->password)) {
-                 return response()->json(['success' => false, 'message' => 'Invalid password.']);
-             }
-             
-             $approvalRequest->update(['status' => 'approved']);
-             
-             // Activate User if this was a creation request
-             $targetUser = $approvalRequest->targetUser;
-             $logAction = 'Approve Role Change';
-             $logDesc = "Approved role change for request #{$id}.";
 
-             if (!$targetUser->is_active) {
-                 $targetUser->update(['is_active' => true]);
-                 $logAction = 'Approve User Creation';
-                 $logDesc = "Approved creation of new user {$targetUser->name} ({$targetUser->email}).";
-             }
-             
-             ActivityLog::create([
+        if ($decision === 'approve') {
+            // Verify Password
+            if (!Hash::check($request->password, auth()->user()->password)) {
+                return response()->json(['success' => false, 'message' => 'Invalid password.']);
+            }
+
+            $approvalRequest->update(['status' => 'approved']);
+
+            // Activate User if this was a creation request
+            $targetUser = $approvalRequest->targetUser;
+            $logAction = 'Approve Role Change';
+            $logDesc = "Approved role change for request #{$id}.";
+
+            if (!$targetUser->is_active) {
+                $targetUser->update(['is_active' => true]);
+                $logAction = 'Approve User Creation';
+                $logDesc = "Approved creation of new user {$targetUser->name} ({$targetUser->email}).";
+            }
+
+            ActivityLog::create([
                 'user_id' => auth()->id(),
                 'action' => $logAction,
                 'description' => $logDesc
             ]);
         } else {
-             $approvalRequest->update(['status' => 'rejected']);
-             
-             // Cleanup: If the user was inactive (newly created) and rejected, delete them.
-             $targetUser = $approvalRequest->targetUser;
-             if (!$targetUser->is_active) {
+            $approvalRequest->update(['status' => 'rejected']);
+
+            // Cleanup: If the user was inactive (newly created) and rejected, delete them.
+            $targetUser = $approvalRequest->targetUser;
+            if (!$targetUser->is_active) {
                 $targetUser->delete();
                 $logDesc = "Rejected creation of new user {$targetUser->name} ({$targetUser->email}) and deleted account.";
-             } else {
+            } else {
                 $logDesc = "Rejected role change for request #{$id}.";
-             }
+            }
 
-             ActivityLog::create([
+            ActivityLog::create([
                 'user_id' => auth()->id(),
                 'action' => 'Rejected Request',
                 'description' => $logDesc

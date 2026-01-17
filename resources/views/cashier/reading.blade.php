@@ -1,55 +1,106 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ $data['type'] }} Report</title>
     <style>
-        @page { margin: 0; padding: 0; }
-        body { 
-            font-family: 'Courier New', Courier, monospace; 
-            font-size: 12px; 
+        @page {
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 12px;
             line-height: 1.2;
-            margin: 0; 
-            padding: 10px; 
-            background: #fff; 
+            margin: 0;
+            padding: 10px;
+            background: #fff;
             color: #000;
         }
-        .receipt { 
-            width: 100%; 
-            max-width: 380px; 
-            margin: 0 auto; 
+
+        .receipt {
+            width: 100%;
+            max-width: 380px;
+            margin: 0 auto;
         }
-        .text-center { text-align: center; }
-        .text-right { text-align: right; }
-        .fw-bold { font-weight: bold; }
-        .line { border-bottom: 1px dashed #000; margin: 5px 0; }
-        .row { display: flex; justify-content: space-between; }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .text-right {
+            text-align: right;
+        }
+
+        .fw-bold {
+            font-weight: bold;
+        }
+
+        .line {
+            border-bottom: 1px dashed #000;
+            margin: 5px 0;
+        }
+
+        .row {
+            display: flex;
+            justify-content: space-between;
+        }
+
         @media print {
-            .no-print { display: none; }
-            body { padding: 0; width: 100%; }
-            .receipt { max-width: 100%; }
+            .no-print {
+                display: none;
+            }
+
+            body {
+                padding: 0;
+                width: 100%;
+            }
+
+            .receipt {
+                max-width: 100%;
+            }
         }
     </style>
 </head>
+
 <body>
 
     <div class="receipt">
         <div class="text-center fw-bold">
             {{ $data['store_name'] ?? 'Sari-Sari Store' }}<br>
             TIN: {{ $data['tin'] ?? '000-000-000' }}<br>
-            MIN: {{ $data['machine_no'] }}
+            MIN: {{ $data['machine_no'] }}<br>
+            @if(!empty($data['serial_no']) && $data['serial_no'] != 'N/A')
+                SN: {{ $data['serial_no'] }}<br>
+            @endif
+            @if(!empty($data['ptu_no']) && $data['ptu_no'] != 'N/A')
+                PTU: {{ $data['ptu_no'] }}
+            @endif
         </div>
 
         <div class="text-center" style="margin-top: 10px; font-size: 14px;">
-            ** {{ $data['type'] }} **
+            @if(stripos($data['type'], 'Z') !== false)
+                ** FINAL Z-READING **<br>
+                Z-Counter: {{ sprintf('%04d', $data['z_counter'] ?? 0) }}
+            @else
+                ** READING ONLY - DO NOT RESET **
+            @endif
         </div>
         <div class="text-center">{{ $data['date'] }}</div>
 
         <div class="line"></div>
 
-        <div class="row"><span>Beg OR No:</span> <span>{{ $data['beg_or'] }}</span></div>
-        <div class="row"><span>End OR No:</span> <span>{{ $data['end_or'] }}</span></div>
+        <div class="line"></div>
+
+        <div class="row"><span>{{ $data['is_bir'] ? 'Beg SI No:' : 'Beg OR No:' }}</span>
+            <span>{{ $data['beg_or'] }}</span>
+        </div>
+        <div class="row"><span>{{ $data['is_bir'] ? 'End SI No:' : 'End OR No:' }}</span>
+            <span>{{ $data['end_or'] }}</span>
+        </div>
         <div class="row"><span>Trans Count:</span> <span>{{ $data['trans_count'] }}</span></div>
 
         <div class="line"></div>
@@ -60,7 +111,7 @@
         <div class="line"></div>
         <div class="row fw-bold"><span>NET SALES:</span> <span>{{ number_format($data['net_sales'], 2) }}</span></div>
         <br>
-        
+
         <div class="row"><span>Cash Sales:</span> <span>{{ number_format($data['cash_sales'], 2) }}</span></div>
         <div class="row"><span>Card/Digi:</span> <span>{{ number_format($data['card_sales'], 2) }}</span></div>
         <div class="row"><span>Credit:</span> <span>{{ number_format($data['credit_sales'], 2) }}</span></div>
@@ -76,18 +127,25 @@
         <div class="line"></div>
 
         <div class="fw-bold">ACCUMULATORS</div>
-        <div class="row"><span>Old Grand Total:</span> <span>{{ number_format($data['old_accumulated_sales'], 2) }}</span></div>
+        <div class="row"><span>Old Grand Total:</span>
+            <span>{{ number_format($data['old_accumulated_sales'], 2) }}</span>
+        </div>
         <div class="row"><span>Today's Net Sales:</span> <span>{{ number_format($data['net_sales'], 2) }}</span></div>
         <div class="line"></div>
-        <div class="row fw-bold"><span>NEW GRAND TOTAL:</span> <span>{{ number_format($data['new_accumulated_sales'], 2) }}</span></div>
+        <div class="row fw-bold"><span>NEW GRAND TOTAL:</span>
+            <span>{{ number_format($data['new_accumulated_sales'], 2) }}</span>
+        </div>
 
         <div class="text-center" style="margin-top: 20px;">
             <div>Report Generated By: System</div>
             <div>--- End of Report ---</div>
         </div>
 
-        <button onclick="window.print()" class="no-print" style="width: 100%; padding: 10px; margin-top: 20px; background: #000; color: #fff; border: none; cursor: pointer;">PRINT REPORT</button>
+        <button onclick="window.print()" class="no-print"
+            style="width: 100%; padding: 10px; margin-top: 20px; background: #000; color: #fff; border: none; cursor: pointer;">PRINT
+            REPORT</button>
     </div>
 
 </body>
+
 </html>

@@ -9,3 +9,6 @@ Artisan::command('inspire', function () {
 
 // Schedule Log Pruning
 \Illuminate\Support\Facades\Schedule::command('logs:prune --days=7')->daily();
+
+// Security Heartbeat: Daily Integrity Check
+\Illuminate\Support\Facades\Schedule::command('integrity:report')->dailyAt('08:00');

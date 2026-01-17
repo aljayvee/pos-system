@@ -10,10 +10,12 @@ use Illuminate\Support\Facades\Auth;
 class CashRegisterController extends Controller
 {
     protected $service;
+    protected $zReadingProcessor;
 
-    public function __construct(CashRegisterService $service)
+    public function __construct(CashRegisterService $service, \App\Services\BIR\ZReadingProcessor $zReadingProcessor)
     {
         $this->service = $service;
+        $this->zReadingProcessor = $zReadingProcessor;
     }
 
     // 1. GET STATUS (Is Register Open?)
@@ -39,7 +41,7 @@ class CashRegisterController extends Controller
         $request->validate(['opening_amount' => 'required|numeric|min:0']);
 
         $storeId = session('active_store_id', auth()->user()->store_id ?? 1);
-        
+
         try {
             $session = $this->service->openSession($storeId, Auth::id(), $request->opening_amount);
             return response()->json(['success' => true, 'session' => $session]);
@@ -62,9 +64,20 @@ class CashRegisterController extends Controller
         try {
             // Optional: Check if closing user matches opening user? Or allow anyone to close?
             // "Shared Session" = Anyone can close.
-            
+
             $session = $this->service->closeSession($request->session_id, $request->closing_amount, $request->notes);
-            return response()->json(['success' => true, 'session' => $session]);
+
+            // [BIR] Mandatory Z-Reading Generation
+            $zReading = null;
+            if (config('safety_flag_features.bir_tax_compliance')) {
+                $zReading = $this->zReadingProcessor->generate($session->store_id);
+            }
+
+            return response()->json([
+                'success' => true,
+                'session' => $session,
+                'z_reading' => $zReading // Pass data to frontend for auto-printing
+            ]);
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 400);
         }
@@ -75,7 +88,7 @@ class CashRegisterController extends Controller
     {
         // Permission Check
         if (!in_array(Auth::user()->role, ['manager', 'admin'])) {
-             return response()->json(['message' => 'Unauthorized'], 403);
+            return response()->json(['message' => 'Unauthorized'], 403);
         }
 
         $request->validate([
@@ -86,9 +99,9 @@ class CashRegisterController extends Controller
 
         try {
             $this->service->requestAdjustment(
-                $request->session_id, 
-                Auth::id(), 
-                $request->new_amount, 
+                $request->session_id,
+                Auth::id(),
+                $request->new_amount,
                 $request->reason
             );
             return response()->json(['success' => true, 'message' => 'Adjustment requested successfully.']);
@@ -102,7 +115,7 @@ class CashRegisterController extends Controller
     {
         // Permission Check (Strict Admin)
         if (Auth::user()->role !== 'admin') {
-             return response()->json(['message' => 'Unauthorized. Only Admins can approve.'], 403);
+            return response()->json(['message' => 'Unauthorized. Only Admins can approve.'], 403);
         }
 
         $request->validate(['action' => 'required|in:approve,reject']);

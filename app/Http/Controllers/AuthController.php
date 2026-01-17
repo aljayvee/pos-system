@@ -6,8 +6,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Session;
-use Illuminate\Support\Str; 
-use Illuminate\Support\Facades\RateLimiter; 
+use Illuminate\Support\Str;
+use Illuminate\Support\Facades\RateLimiter;
 
 class AuthController extends Controller
 {
@@ -19,24 +19,33 @@ class AuthController extends Controller
     public function login(Request $request)
     {
         $credentials = $request->validate([
-            'email' => 'required|email',
+            'username' => 'required|string',
             'password' => 'required'
         ]);
 
-        if (Auth::attempt($credentials)) {
+        // Rate Limiting (Throttle Login Attempts)
+        $key = 'login_attempts:' . $request->ip();
+        if (RateLimiter::tooManyAttempts($key, 5)) {
+            $seconds = RateLimiter::availableIn($key);
+            return back()->withErrors(['username' => 'Too many login attempts. Please try again in ' . ceil($seconds / 60) . ' minutes.']);
+        }
+
+        $remember = $request->boolean('remember');
+
+        if (Auth::attempt($credentials, $remember)) {
             $user = Auth::user();
-            
+
             // Check if user is active (Approval Workflow)
             if (!$user->is_active) {
                 Auth::logout();
-                return back()->withErrors(['email' => 'Your account is currently inactive or pending approval.']);
+                return back()->withErrors(['username' => 'Your account is currently inactive or pending approval.']);
             }
-            
+
             // --- SMART CHECK START ---
-            
+
             // Check if there is an existing session in the DB
             if ($user->active_session_id && $user->active_session_id !== Session::getId()) {
-                
+
                 // 1. GET LAST KNOWN DEVICE (From Cache)
                 $lastDevice = Cache::get('user_device_' . $user->id);
                 $currentDevice = $request->header('User-Agent');
@@ -51,12 +60,12 @@ class AuthController extends Controller
                 }
 
                 // 3. IF DIFFERENT DEVICE -> TRIGGER CONSENT FLOW
-                
+
                 // (Rate Limit to prevent spam)
                 $key = 'consent_request:' . $user->id;
                 if (RateLimiter::tooManyAttempts($key, 3)) {
                     Auth::logout();
-                    return back()->withErrors(['email' => 'Too many login attempts. Please check your email.']);
+                    return back()->withErrors(['username' => 'Too many login attempts. Please check your email.']);
                 }
                 RateLimiter::hit($key, 60);
 
@@ -75,6 +84,9 @@ class AuthController extends Controller
                 $pendingRequests[$requestId] = $requestData;
                 Cache::put('login_requests_' . $user->id, $pendingRequests, 300);
 
+                // Broadcast Event
+                \App\Events\LoginRequestCreated::dispatch($requestData, $user->id);
+
                 // Send to Waiting Room
                 return redirect()->route('auth.consent.wait', ['request_id' => $requestId]);
             }
@@ -84,26 +96,40 @@ class AuthController extends Controller
             $request->session()->regenerate();
             $this->updateUserSession($user, $request);
 
+            // Clear Rate Limiter on Success
+            RateLimiter::clear($key);
+
             return $this->redirectBasedOnRole($user);
         }
 
-        return back()->withErrors(['email' => 'Invalid credentials.']);
+        // Increment Rate Limiter on Failure
+        RateLimiter::hit($key, 60);
+
+        return back()->withErrors(['username' => 'Invalid credentials.']);
     }
 
     // Helper to update DB and Cache Device Info
     protected function updateUserSession($user, Request $request)
     {
         $sessionId = $request->session()->getId();
-        
+
         // Update DB with new Session ID
         $user->update(['active_session_id' => $sessionId]);
-        
+
         // Update Device Cache (We now track User-Agent instead of IP)
         Cache::put('user_device_' . $user->id, $request->header('User-Agent'), 86400); // Store for 24 hours
     }
 
     protected function redirectBasedOnRole($user)
     {
+        // Check for Email Verification (New User Onboarding)
+        // Skip for Admin if it's the very first setup (handled by SetupController check, but good to be safe)
+        // Actually, SetupController::index checks User::count().
+        // Here we just check if verified. Use !hasVerifiedEmail() or check column directly.
+        if (is_null($user->email_verified_at)) {
+            return redirect()->route('onboarding.index');
+        }
+
         // Cashiers go directly to POS
         if ($user->role === 'cashier') {
             return redirect()->route('cashier.pos');
@@ -123,12 +149,12 @@ class AuthController extends Controller
     public function checkConsentStatus(Request $request)
     {
         $user = Auth::user();
-        
+
         // Approved? (DB matches my browser session)
         if ($user->active_session_id === Session::getId()) {
-             $requestId = $request->query('request_id');
-             $this->removeRequest($user->id, $requestId);
-             return response()->json(['status' => 'approved', 'redirect' => $user->role === 'admin' ? route('admin.dashboard') : route('cashier.pos')]);
+            $requestId = $request->query('request_id');
+            $this->removeRequest($user->id, $requestId);
+            return response()->json(['status' => 'approved', 'redirect' => $user->role === 'admin' ? route('admin.dashboard') : route('cashier.pos')]);
         }
 
         // Denied? (Ticket gone)
@@ -153,7 +179,7 @@ class AuthController extends Controller
     public function resolveLoginRequest(Request $request)
     {
         $user = Auth::user();
-        $decision = $request->input('decision'); 
+        $decision = $request->input('decision');
         $requestId = $request->input('request_id');
 
         $pending = Cache::get('login_requests_' . $user->id, []);
@@ -163,17 +189,16 @@ class AuthController extends Controller
 
         if ($decision === 'approve') {
             $requestData = $pending[$requestId];
-            
+
             // Approve: Update DB to the NEW session
             $user->update(['active_session_id' => $requestData['session_id']]);
-            
+
             // Update Known Device to the NEW Device (Critical step!)
             Cache::put('user_device_' . $user->id, $requestData['device'], 86400);
 
-            Cache::forget('login_requests_' . $user->id); 
+            Cache::forget('login_requests_' . $user->id);
             return response()->json(['success' => true, 'action' => 'logout_self']);
-        } 
-        else {
+        } else {
             $this->removeRequest($user->id, $requestId);
             return response()->json(['success' => true, 'action' => 'stay']);
         }
@@ -182,7 +207,7 @@ class AuthController extends Controller
     protected function removeRequest($userId, $requestId)
     {
         $pending = Cache::get('login_requests_' . $userId, []);
-        if(isset($pending[$requestId])) {
+        if (isset($pending[$requestId])) {
             unset($pending[$requestId]);
             Cache::put('login_requests_' . $userId, $pending, 300);
         }
@@ -193,11 +218,11 @@ class AuthController extends Controller
     {
         // 1. Find User (Middleware 'signed' already verified the signature)
         $user = \App\Models\User::findOrFail($id);
-        
+
         // 2. Login User
         Auth::login($user);
         $request->session()->regenerate();
-        
+
         // 3. Trust this device (Update Session & Cache)
         $this->updateUserSession($user, $request);
 
@@ -210,9 +235,9 @@ class AuthController extends Controller
 
     public function logout(Request $request)
     {
-        if(Auth::check()){
-             Auth::user()->update(['active_session_id' => null]);
-             Cache::forget('user_device_' . Auth::id()); // Clear device memory on clean logout
+        if (Auth::check()) {
+            Auth::user()->update(['active_session_id' => null]);
+            Cache::forget('user_device_' . Auth::id()); // Clear device memory on clean logout
         }
         Auth::logout();
         $request->session()->invalidate();

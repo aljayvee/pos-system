@@ -9,21 +9,20 @@
             {{-- Existing Tiers (for Edit) --}}
             @if(isset($product) && $product->pricingTiers->count() > 0)
                 @foreach($product->pricingTiers as $index => $tier)
-                    <div class="row g-2 align-items-center mb-2 tier-row">
+                    <div class="row g-2 align-items-end mb-3 tier-row">
                         <div class="col-4">
-                            <div class="form-floating form-floating-custom">
-                                <input type="number" name="tiers[{{ $index }}][quantity]" class="form-control bg-light border-0 fw-bold" value="{{ $tier->quantity }}" placeholder="Qty" required min="2">
-                                <label>Qty (e.g. 2)</label>
+                            <label class="form-label fw-bold small text-secondary">Qty</label>
+                            <input type="number" name="tiers[{{ $index }}][quantity]" class="form-control bg-light border-0 fw-bold py-3" value="{{ $tier->quantity }}" placeholder="e.g. 2" required min="2">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fw-bold small text-secondary">Total Price</label>
+                            <div class="input-group shadow-sm rounded-3 overflow-hidden border-0">
+                                <span class="input-group-text bg-light border-0 text-muted">₱</span>
+                                <input type="number" step="0.01" name="tiers[{{ $index }}][price]" class="form-control bg-light border-0 fw-bold py-3" value="{{ $tier->price }}" placeholder="0.00" required min="0">
                             </div>
                         </div>
-                        <div class="col-5">
-                            <div class="form-floating form-floating-custom">
-                                <input type="number" step="0.01" name="tiers[{{ $index }}][price]" class="form-control bg-light border-0 fw-bold" value="{{ $tier->price }}" placeholder="Price" required min="0">
-                                <label>Total Price (e.g. 5.00)</label>
-                            </div>
-                        </div>
-                        <div class="col-3">
-                            <button type="button" class="btn btn-outline-danger w-100 h-100" onclick="removeTier(this)">
+                        <div class="col-2">
+                             <button type="button" class="btn btn-outline-danger w-100 py-3 fw-bold rounded-3" onclick="removeTier(this)">
                                 <i class="fas fa-trash"></i>
                             </button>
                         </div>
@@ -33,7 +32,7 @@
             @endif
         </div>
 
-        <button type="button" class="btn btn-light border w-100 fw-bold text-secondary mt-2" onclick="addTier()">
+        <button type="button" class="btn btn-light border w-100 fw-bold text-secondary mt-2 py-3" onclick="addTier()">
             <i class="fas fa-plus-circle me-1"></i> Add Pricing Tier
         </button>
     </div>
@@ -45,21 +44,20 @@
     function addTier() {
         const container = document.getElementById('pricing-tiers-container');
         const html = `
-            <div class="row g-2 align-items-center mb-2 tier-row">
+            <div class="row g-2 align-items-end mb-3 tier-row">
                 <div class="col-4">
-                    <div class="form-floating form-floating-custom">
-                        <input type="number" name="tiers[${tierIndex}][quantity]" class="form-control bg-light border-0 fw-bold" placeholder="Qty" required min="2">
-                        <label>Qty (e.g. 2)</label>
+                    <label class="form-label fw-bold small text-secondary">Qty</label>
+                    <input type="number" name="tiers[${tierIndex}][quantity]" class="form-control bg-light border-0 fw-bold py-3" placeholder="e.g. 2" required min="2">
+                </div>
+                <div class="col-6">
+                    <label class="form-label fw-bold small text-secondary">Total Price</label>
+                    <div class="input-group shadow-sm rounded-3 overflow-hidden border-0">
+                        <span class="input-group-text bg-light border-0 text-muted">₱</span>
+                        <input type="number" step="0.01" name="tiers[${tierIndex}][price]" class="form-control bg-light border-0 fw-bold py-3" placeholder="0.00" required min="0">
                     </div>
                 </div>
-                <div class="col-5">
-                    <div class="form-floating form-floating-custom">
-                        <input type="number" step="0.01" name="tiers[${tierIndex}][price]" class="form-control bg-light border-0 fw-bold" placeholder="Price" required min="0">
-                        <label>Total Price</label>
-                    </div>
-                </div>
-                <div class="col-3">
-                    <button type="button" class="btn btn-outline-danger w-100 h-100" onclick="removeTier(this)">
+                <div class="col-2">
+                    <button type="button" class="btn btn-outline-danger w-100 py-3 fw-bold rounded-3" onclick="removeTier(this)">
                         <i class="fas fa-trash"></i>
                     </button>
                 </div>

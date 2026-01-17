@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Store;
 use App\Models\Product;
 use App\Models\Inventory;
+use App\Models\Setting;
 use Illuminate\Http\Request;
 
 class StoreController extends Controller
@@ -18,12 +19,19 @@ class StoreController extends Controller
 
     public function store(Request $request)
     {
-        $request->validate(['name' => 'required']);
+        $request->validate([
+            'name' => 'required',
+            'street' => 'nullable|string',
+            'barangay' => 'nullable|string',
+            'city' => 'nullable|string',
+            'region' => 'nullable|string',
+            'country' => 'nullable|string',
+        ]);
         $store = Store::create($request->all());
 
         // Initialize Inventory for new store (0 stock for all existing products)
         $products = Product::all();
-        foreach($products as $product) {
+        foreach ($products as $product) {
             Inventory::create([
                 'product_id' => $product->id,
                 'store_id' => $store->id,
@@ -33,17 +41,50 @@ class StoreController extends Controller
 
         return back()->with('success', 'New branch created successfully.');
     }
-    
+
     // Switch Active Store (For Admin Context)
-    public function switch(Request $request, $id) {
+    public function switch(Request $request, $id)
+    {
         session(['active_store_id' => $id]);
         return back()->with('success', 'Switched active store context.');
     }
 
     public function update(Request $request, Store $store)
     {
-        $request->validate(['name' => 'required']);
+        $request->validate([
+            'name' => 'required',
+            'street' => 'nullable|string',
+            'barangay' => 'nullable|string',
+            'city' => 'nullable|string',
+            'region' => 'nullable|string',
+            'country' => 'nullable|string',
+        ]);
         $store->update($request->all());
+
+        // SYNC: Update Settings table (Store Identity)
+        Setting::updateOrCreate(
+            ['store_id' => $store->id, 'key' => 'store_name'],
+            ['value' => $store->name]
+        );
+
+        $fullAddress = collect([
+            $store->street,
+            $store->barangay,
+            $store->city,
+            $store->region,
+            $store->country
+        ])->filter()->implode(', ');
+
+        Setting::updateOrCreate(
+            ['store_id' => $store->id, 'key' => 'store_address'],
+            ['value' => $fullAddress]
+        );
+
+        Setting::updateOrCreate(
+            ['store_id' => $store->id, 'key' => 'store_contact'],
+            ['value' => $store->contact_number]
+        );
+
         return back()->with('success', 'Store details updated successfully.');
     }
 }

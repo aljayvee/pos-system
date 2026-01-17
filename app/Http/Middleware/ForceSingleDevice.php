@@ -11,6 +11,9 @@ class ForceSingleDevice
 {
     public function handle(Request $request, Closure $next)
     {
+        \Illuminate\Support\Facades\Log::info('ForceSingleDevice: Start ' . $request->path());
+        $start = microtime(true);
+
         $user = Auth::user();
 
         // 1. If not logged in, continue
@@ -34,6 +37,7 @@ class ForceSingleDevice
             ]);
         }
 
+        \Illuminate\Support\Facades\Log::info('ForceSingleDevice: End ' . $request->path() . ' Duration: ' . (microtime(true) - $start));
         return $next($request);
     }
 }

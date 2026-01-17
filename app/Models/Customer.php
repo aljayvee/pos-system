@@ -17,6 +17,11 @@ class Customer extends Model
         'points'
     ];
 
+    protected static function booted()
+    {
+        static::addGlobalScope(new \App\Models\Scopes\StoreScope);
+    }
+
     // Relationship to Sales
     public function sales()
     {

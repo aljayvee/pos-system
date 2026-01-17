@@ -9,12 +9,16 @@ return [
     | This configuration file controls the visibility of "Work In Progress" 
     | or "Non-Compliant" features in the user interface.
     |
-    | Set to `true` to reveal the feature.
+    | Set to `true` to reveal the feature.  
     | Set to `false` to hide the feature.
     |
     */
 
     'bir_tax_compliance' => false,
-    'online_payment' => false, 
-    'multi_store' => false, 
+    'online_payment' => false,
+    'multi_store' => false,
+    'log_integrity' => false,
+    'cashier_stats_widgets' => false,
+    'webauthn' => false,
+    'remember_me' => false,
 ];

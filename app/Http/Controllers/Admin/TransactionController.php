@@ -21,15 +21,20 @@ class TransactionController extends Controller
         $storeId = ($multiStoreEnabled == '1') ? session('active_store_id', auth()->user()->store_id ?? 1) : 1;
 
         // Filter Query
-        $query = Sale::with(['user', 'customer'])
-                     ->where('store_id', $storeId) // <--- FILTER
-                     ->latest();
+        $query = Sale::with(['user', 'customer', 'salesReturns'])
+            ->where('store_id', $storeId);
+
+        if ($request->has('archived')) {
+            $query->onlyTrashed();
+        }
+
+        $query->latest();
 
         // Search by ID or Reference
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where('id', $search)
-                  ->orWhere('reference_number', 'like', "%$search%");
+                ->orWhere('reference_number', 'like', "%$search%");
         }
 
         $transactions = $query->paginate(15);
@@ -92,13 +97,42 @@ class TransactionController extends Controller
             $sale->delete();
         });
 
-        return redirect()->route('transactions.index')->with('success', 'Transaction #' . $id . ' has been voided and inventory restored.');
+        return redirect()->route('transactions.index')->with('success', 'Transaction #' . $id . ' has been archived (Voided) and inventory restored.');
     }
 
+    // NEW: Print Receipt from Admin
     // NEW: Print Receipt from Admin
     public function printReceipt(\App\Models\Sale $sale)
     {
         $sale->load('saleItems.product', 'user', 'customer');
-        return view('cashier.receipt', compact('sale'));
+        $storeId = $sale->store_id;
+
+        // 1. Fetch Basic Settings
+        $settings = \App\Models\Setting::where('store_id', $storeId)
+            ->whereIn('key', ['store_name', 'store_address', 'store_contact', 'receipt_footer'])
+            ->pluck('value', 'key');
+
+        // 2. Decrypt TIN
+        $rawTin = \App\Models\Setting::where('store_id', $storeId)->where('key', 'store_tin')->value('value');
+        try {
+            $tin = $rawTin ? \Illuminate\Support\Facades\Crypt::decryptString($rawTin) : '';
+        } catch (\Illuminate\Contracts\Encryption\DecryptException $e) {
+            $tin = $rawTin;
+        }
+
+        // 3. Decrypt Permit
+        $rawPermit = \App\Models\Setting::where('store_id', $storeId)->where('key', 'business_permit')->value('value');
+        try {
+            $permit = $rawPermit ? \Illuminate\Support\Facades\Crypt::decryptString($rawPermit) : '';
+        } catch (\Illuminate\Contracts\Encryption\DecryptException $e) {
+            $permit = $rawPermit;
+        }
+
+        // 4. Use COMPLIANT or GENERIC view based on flag
+        if (config('safety_flag_features.bir_tax_compliance')) {
+            return view('cashier.receipt_invoice', compact('sale', 'settings', 'tin', 'permit'));
+        } else {
+            return view('cashier.receipt_generic', compact('sale', 'settings', 'tin', 'permit'));
+        }
     }
 }

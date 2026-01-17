@@ -16,12 +16,23 @@ class CheckLogIntegrity extends Command
 
         $result = $service->verifyChain();
 
-        if ($result === true) {
+        if ($result['status'] === 'OK') {
             $this->info('✅ Chain is Valid. All logs are secure.');
             return 0;
         } else {
-            $this->error('❌ TAMPERING DETECTED at Log ID: ' . $result);
-            $this->warn('The chain is broken from this point onwards.');
+            $this->error('❌ TAMPERING DETECTED');
+            $this->table(
+                ['Log ID', 'Reason', 'Expected', 'Actual'],
+                [
+                    [
+                        $result['log_id'] ?? 'N/A',
+                        $result['reason'] ?? 'Unknown',
+                        substr($result['expected_hash'] ?? '', 0, 10) . '...',
+                        substr($result['actual_hash'] ?? '', 0, 10) . '...'
+                    ]
+                ]
+            );
+            $this->warn('The chain is broken from Log ID: ' . ($result['log_id'] ?? 'Unknown'));
             return 1;
         }
     }
