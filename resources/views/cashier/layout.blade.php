@@ -484,8 +484,8 @@
         {{-- DESKTOP SIDEBAR --}}
         <aside class="app-sidebar d-none d-lg-flex">
             <div class="sidebar-brand">
-                <img src="{{ asset('images/verapos_logo_v2.png') }}" alt="VeraPOS" class="img-fluid rounded-3"
-                    style="max-height: 50px; max-width: 100%;">
+                <i class="fas fa-layer-group fa-2x text-primary"></i>
+                <span class="text">VeraPOS</span>
             </div>
 
             <nav class="sidebar-nav">

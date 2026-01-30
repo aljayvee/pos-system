@@ -262,29 +262,26 @@
                             </div>
                         </div>
 
-                        <div class="accordion" id="hashAccordion">
-                            <div class="accordion-item border-0 bg-transparent">
-                                <h2 class="accordion-header">
-                                    <button
-                                        class="accordion-button collapsed bg-white border shadow-sm rounded-3 py-2 px-3 small"
-                                        type="button" data-bs-toggle="collapse" data-bs-target="#collapseHashes">
-                                        <i class="fas fa-code me-2"></i> View Technical Details
-                                    </button>
-                                </h2>
-                                <div id="collapseHashes" class="accordion-collapse collapse" data-bs-parent="#hashAccordion">
-                                    <div class="accordion-body p-0 pt-2">
-                                        <label class="small text-muted fw-bold">Expected Hash (valid):</label>
-                                        <div class="bg-dark text-success p-2 rounded small font-monospace text-break mb-2">
-                                            {{ $integrityStatus['expected_hash'] ?? 'N/A' }}
-                                        </div>
-                                        <label class="small text-muted fw-bold">Actual Hash (found in DB):</label>
-                                        <div class="bg-dark text-danger p-2 rounded small font-monospace text-break">
-                                            {{ $integrityStatus['actual_hash'] ?? 'N/A' }}
-                                        </div>
-                                    </div>
+                        <details class="bg-white border rounded-3 shadow-sm">
+                            <summary class="px-3 py-2 fw-bold text-dark d-flex align-items-center justify-content-between"
+                                style="cursor: pointer;">
+                                <span><i class="fas fa-code me-2 text-secondary"></i>View Technical Details</span>
+                                <i class="fas fa-chevron-down small text-muted"></i>
+                            </summary>
+                            <div class="p-3 border-top bg-light">
+                                <label class="small text-muted fw-bold d-block mb-1">Expected Hash (valid):</label>
+                                <div
+                                    class="bg-dark text-success p-2 rounded small font-monospace text-break mb-3 border border-success">
+                                    {{ $integrityStatus['expected_hash'] ?? 'N/A' }}
+                                </div>
+
+                                <label class="small text-muted fw-bold d-block mb-1">Actual Hash (found in DB):</label>
+                                <div
+                                    class="bg-dark text-danger p-2 rounded small font-monospace text-break border border-danger">
+                                    {{ $integrityStatus['actual_hash'] ?? 'N/A' }}
                                 </div>
                             </div>
-                        </div>
+                        </details>
 
                     </div>
                     <div class="modal-footer border-0 bg-light rounded-bottom-4">

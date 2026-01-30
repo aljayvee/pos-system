@@ -40,10 +40,10 @@
 
                <div class="d-flex align-items-center text-nowrap">
                    <!-- Desktop Logo -->
-                   <img v-if="!isMobile" src="/images/verapos_logo_v2.png" alt="VeraPOS" 
-                        class="img-fluid transition-all"
-                        :class="isOpen ? 'h-auto w-auto max-h-[50px]' : 'w-100 rounded-3'"
-                        style="max-height: 50px; object-fit: contain;">
+                   <div v-if="!isMobile" class="d-flex align-items-center justify-content-center gap-2">
+                       <i class="fas fa-layer-group fa-2x text-primary"></i>
+                       <h3 v-show="isOpen" class="mb-0 fw-bold text-primary tracking-tight" style="font-family: 'Inter', sans-serif;">VeraPOS</h3>
+                   </div>
 
                    <!-- Mobile Photo Brand -->
                    <div v-else class="d-flex align-items-center">

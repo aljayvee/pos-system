@@ -1,6 +1,6 @@
 {
   "resources/css/app.css": {
-    "file": "assets/app-C1PbPDgf.css",
+    "file": "assets/app-BJ54B-Cm.css",
     "src": "resources/css/app.css",
     "isEntry": true,
     "name": "app",
@@ -18,16 +18,16 @@
     ]
   },
   "resources/js/app.js": {
-    "file": "assets/app-BF7HZg_X.js",
+    "file": "assets/app-DH2t1CEe.js",
     "name": "app",
     "src": "resources/js/app.js",
     "isEntry": true,
     "css": [
-      "assets/app-ClNmQ2gF.css"
+      "assets/app-D3LCU2Bt.css"
     ]
   },
   "resources/js/cashier.js": {
-    "file": "assets/cashier-DtgUhhwx.js",
+    "file": "assets/cashier-C525NCRb.js",
     "name": "cashier",
     "src": "resources/js/cashier.js",
     "isEntry": true

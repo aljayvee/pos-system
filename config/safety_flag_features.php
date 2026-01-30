@@ -17,8 +17,10 @@ return [
     'bir_tax_compliance' => false,
     'online_payment' => false,
     'multi_store' => false,
-    'log_integrity' => false,
+    'log_integrity' => true, 
     'cashier_stats_widgets' => false,
     'webauthn' => false,
     'remember_me' => false,
+    'customer_list' => false,
+    'credits_list' => false,
 ];

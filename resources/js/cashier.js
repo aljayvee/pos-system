@@ -236,7 +236,20 @@ window.removeDiscount = function () {
 };
 
 window.getCartTotals = function () {
-    let rawTotal = cart.reduce((acc, item) => acc + (item.price * item.qty), 0);
+    // [FIX] Apply MultiBuy Strategy
+    let rawTotal = cart.reduce((acc, item) => {
+        let itemTotal = item.price * item.qty;
+
+        // Check for pricing tiers (handle snake_case from Laravel JSON)
+        const tiers = item.pricing_tiers || item.pricingTiers || [];
+
+        if (tiers.length > 0) {
+            itemTotal = PricingStrategies.MultiBuy(parseFloat(item.price), item.qty, tiers);
+        }
+
+        return acc + itemTotal;
+    }, 0);
+
     let vatableSales = 0;
     let vatAmount = 0;
     let vatExemptSales = 0;
@@ -307,7 +320,14 @@ function updateCartUI() {
         </div>`;
     } else {
         html = cart.map((item, index) => {
-            const lineTotal = item.price * item.qty;
+            // [FIX] Calculate Line Total with Strategy
+            const tiers = item.pricing_tiers || item.pricingTiers || [];
+            let lineTotal = item.price * item.qty;
+
+            if (tiers.length > 0) {
+                lineTotal = PricingStrategies.MultiBuy(parseFloat(item.price), item.qty, tiers);
+            }
+
             return `
         <div class="d-flex align-items-center justify-content-between p-2 mb-2 bg-white rounded-3 shadow-sm product-card-wrapper">
             <div class="d-flex align-items-center flex-grow-1" style="overflow:hidden;">
@@ -321,6 +341,7 @@ function updateCartUI() {
             </div>
             <div class="text-end me-3">
                 <div class="text-primary small fw-bold">₱${lineTotal.toFixed(2)}</div>
+                ${tiers.length > 0 && lineTotal < (item.price * item.qty) ? '<small class="text-danger fw-bold" style="font-size:0.7rem;">(Promo Applied)</small>' : ''}
             </div>
             <div class="d-flex align-items-center bg-light rounded-pill border p-1">
                 <button class="btn btn-sm btn-link text-dark fw-bold p-0 d-flex align-items-center justify-content-center" style="width: 28px; height: 28px; text-decoration:none;" onclick="modifyQty(${index}, -1)">−</button>

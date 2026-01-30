@@ -1,16 +1,11 @@
 <!DOCTYPE html>
-<html lang="en" class="light">
+<html lang="en">
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <meta name="force-theme" content="light">
-    <title>System Setup | VERAPOS</title>
-
-    {{-- PWA Manifest --}}
-    <link rel="manifest" href="{{ asset('manifest.json') }}">
-    <meta name="theme-color" content="#4f46e5">
+    <title>Setup | VERAPOS</title>
 
     {{-- Fonts & Icons --}}
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
@@ -24,530 +19,592 @@
     <style>
         body {
             font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
         }
 
-        /* Step Wizard Styling */
-        .step-indicator {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 2.5rem;
-            /* w-10 */
-            height: 2.5rem;
-            /* h-10 */
-            border-radius: 9999px;
-            /* rounded-full */
-            border-width: 2px;
-            border-style: solid;
-            font-size: 0.875rem;
-            /* text-sm */
-            font-weight: 600;
-            /* font-semibold */
-            transition: all 0.3s ease;
-        }
-
-        .step-indicator.active {
-            border-color: #4f46e5;
-            /* border-indigo-600 */
-            color: #4f46e5;
-            /* text-indigo-600 */
+        /* Shopee-like Header */
+        .shopee-header {
             background-color: white;
+            box-shadow: 0 1px 4px 0 rgba(0, 0, 0, 0.05);
+            padding: 1rem 0;
         }
 
-        .step-indicator.completed {
-            border-color: #4f46e5;
-            background-color: #4f46e5;
+        /* Violet Theme Overrides */
+        .btn-violet {
+            background-color: #7c3aed;
+            /* violet-600 */
             color: white;
         }
 
-        .step-indicator.pending {
-            border-color: #e5e7eb;
-            /* border-gray-200 */
+        .btn-violet:hover {
+            background-color: #6d28d9;
+            /* violet-700 */
+        }
+
+        .text-violet {
+            color: #7c3aed;
+        }
+
+        .border-violet {
+            border-color: #7c3aed;
+        }
+
+        .bg-violet-main {
+            background-color: #7c3aed;
+        }
+
+        /* Step Indicators */
+        .step-circle {
+            width: 2rem;
+            height: 2rem;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.875rem;
+            font-weight: 600;
+            background-color: #e5e7eb;
+            /* gray-200 */
             color: #9ca3af;
-            /* text-gray-400 */
-            background-color: white;
+            /* gray-400 */
+        }
+
+        .step-circle.active {
+            background-color: #7c3aed;
+            color: white;
+        }
+
+        .step-circle.completed {
+            background-color: #10b981;
+            /* green-500 */
+            color: white;
         }
 
         .step-line {
-            flex: 1;
-            height: 0.125rem;
-            /* h-0.5 */
+            height: 2px;
             background-color: #e5e7eb;
-            /* bg-gray-200 */
-            transition: all 0.3s ease;
+            flex: 1;
         }
 
-        .step-line.completed {
-            background-color: #4f46e5;
-            /* bg-indigo-600 */
+        .step-line.active {
+            background-color: #7c3aed;
         }
     </style>
 </head>
 
-<body class="bg-gray-50 text-slate-800">
+<body class="bg-gray-100 min-h-screen flex flex-col">
 
-    <div class="min-h-screen flex w-full relative">
-
-
-
-        <!-- LARGE SCREEN: Left Split (Branding) -->
-        <div
-            class="hidden lg:flex lg:w-1/2 xl:w-7/12 bg-indigo-600 relative overflow-hidden flex-col justify-between p-12 text-white">
-            <!-- Decorative Background Elements -->
-            <div class="absolute top-0 left-0 w-full h-full overflow-hidden z-0">
-                <div class="absolute top-[-10%] right-[-5%] w-96 h-96 bg-indigo-500 rounded-full blur-3xl opacity-50">
-                </div>
-                <div
-                    class="absolute bottom-[-10%] left-[-10%] w-[500px] h-[500px] bg-indigo-800 rounded-full blur-3xl opacity-40">
-                </div>
-                <div
-                    class="absolute top-[40%] left-[20%] w-64 h-64 bg-indigo-400 rounded-full blur-2xl opacity-20 animate-pulse">
-                </div>
+    <!-- HEADER -->
+    <header class="shopee-header">
+        <div class="container mx-auto px-6 flex items-center justify-between">
+            <div class="flex items-center gap-4">
+                <a href="#" class="flex items-center gap-2">
+                    <span class="text-2xl font-bold text-violet text-violet-600">VeraPOS</span>
+                </a>
+                <span class="text-xl text-gray-700">Setup an account</span>
             </div>
 
-            <!-- Content -->
-            <div class="relative z-10">
-                <div class="flex items-center gap-3 mb-8">
-                    <!-- Assuming logo usage similar to login -->
-                    <img src="{{ asset('images/verapos_logo.jpg') }}" alt="VeraPOS Logo"
-                        class="h-14 w-auto mix-blend-multiply rounded-lg">
-                </div>
-            </div>
-
-            <div class="relative z-10 max-w-lg">
-                <h1 class="text-5xl font-bold mb-6 leading-tight">Setup your business.</h1>
-                <p class="text-indigo-100 text-lg leading-relaxed mb-8">
-                    Configure your admin account and settings to get started with VeraPOS.
-                </p>
-            </div>
-
-            <div class="relative z-10 text-xs text-indigo-300">
-                &copy; {{ date('Y') }} VERAPOS System. All rights reserved.
-            </div>
         </div>
+    </header>
 
-        <!-- RIGHT SPLIT (Form) -->
-        <div class="w-full lg:w-1/2 xl:w-5/12 flex items-center justify-center p-6 sm:p-12 relative">
-            <div class="w-full max-w-lg space-y-8">
+    <!-- MAIN CONTENT -->
+    <div class="flex-1 bg-violet-600 flex items-center justify-center p-6">
 
-                <div class="text-center lg:text-left">
-                    <h2 class="text-3xl font-bold tracking-tight text-gray-900">Account Setup</h2>
-                    <p class="mt-2 text-sm text-gray-500">Follow the steps to initialize the system.</p>
+        <!-- Large Background Icon/Graphic (Optional, mimicking Shopee) -->
+
+
+        <!-- FORM CARD -->
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-md overflow-hidden flex flex-col">
+            <div class="p-8 flex-1">
+                <h2 class="text-2xl font-medium text-gray-800 mb-6" id="step-title">Setup an account</h2>
+
+                <!-- PROGRESS (Hidden visually to match cleaner look, or small dots) -->
+                <!-- We can keep it internal logic-wise, but visual can be simple -->
+                <div class="flex gap-2 mb-6 justify-center">
+                    <div class="h-1 w-8 rounded bg-violet-600 transition-all" id="prog-1"></div>
+                    <div class="h-1 w-8 rounded bg-gray-200 transition-all" id="prog-2"></div>
+                    <div class="h-1 w-8 rounded bg-gray-200 transition-all" id="prog-3"></div>
+                    <div class="h-1 w-8 rounded bg-gray-200 transition-all" id="prog-4"></div>
+                    <div class="h-1 w-8 rounded bg-gray-200 transition-all" id="prog-5"></div>
                 </div>
 
-                <!-- Wizard Progress -->
-                <div class="flex items-center justify-between mt-6 mb-8">
-                    <div class="step-indicator active" id="step-indicator-1">1</div>
-                    <div class="step-line" id="step-line-1"></div>
-                    <div class="step-indicator pending" id="step-indicator-2">2</div>
-                    <div class="step-line" id="step-line-2"></div>
-                    <div class="step-indicator pending" id="step-indicator-3">3</div>
-                </div>
+                <form id="signup-form" class="space-y-5">
 
-                <!-- STEP 1: PERSONAL DETAILS -->
-                <div id="step-1">
-                    <form id="form-step-1" class="space-y-5">
-                        <div class="grid grid-cols-1 gap-4">
-                            <!-- Helper for common input style -->
-                            <div>
-                                <label class="block text-xs font-medium text-gray-700 mb-1">First Name</label>
-                                <input type="text" name="first_name" required
-                                    class="block w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
-                            </div>
-                            <div>
-                                <label class="block text-xs font-medium text-gray-700 mb-1">Middle Name <span
-                                        class="text-gray-400 font-normal">(Optional)</span></label>
-                                <input type="text" name="middle_name"
-                                    class="block w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
-                            </div>
-                            <div>
-                                <label class="block text-xs font-medium text-gray-700 mb-1">Last Name</label>
-                                <input type="text" name="last_name" required
-                                    class="block w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
-                            </div>
+                    <!-- STEP 1: GMAIL INPUT -->
+                    <div id="step-1" class="step-content">
+                        <div>
+                            <input type="email" id="input-email"
+                                class="w-full px-4 py-3 rounded border border-gray-300 focus:border-violet-600 focus:ring-1 focus:ring-violet-600 outline-none transition"
+                                placeholder="Valid Gmail Address" required>
                         </div>
+                        <button type="button" onclick="nextStep(1)"
+                            class="w-full btn-violet py-3 rounded font-medium mt-4 shadow-sm">NEXT</button>
+                    </div>
 
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- STEP 2: NAME -->
+                    <div id="step-2" class="step-content hidden">
+                        <div class="space-y-4">
+                            <input type="text" name="first_name"
+                                class="w-full px-4 py-3 rounded border border-gray-300 focus:border-violet-600 outline-none"
+                                placeholder="First Name" required>
+                            <input type="text" name="middle_name"
+                                class="w-full px-4 py-3 rounded border border-gray-300 focus:border-violet-600 outline-none"
+                                placeholder="Middle Name (Optional)">
+                            <input type="text" name="last_name"
+                                class="w-full px-4 py-3 rounded border border-gray-300 focus:border-violet-600 outline-none"
+                                placeholder="Last Name" required>
+                        </div>
+                        <div class="flex gap-3 mt-6">
+                            <button type="button" onclick="prevStep(2)"
+                                class="w-1/3 py-3 rounded border border-gray-300 text-gray-600 hover:bg-gray-50 font-medium">BACK</button>
+                            <button type="button" onclick="nextStep(2)"
+                                class="flex-1 btn-violet py-3 rounded font-medium shadow-sm">NEXT</button>
+                        </div>
+                    </div>
+
+                    <!-- STEP 3: DEMOGRAPHICS -->
+                    <div id="step-3" class="step-content hidden">
+                        <div class="space-y-4">
                             <div>
-                                <label class="block text-xs font-medium text-gray-700 mb-1">Username</label>
-                                <div class="relative">
-                                    <div
-                                        class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
-                                        <i class="fas fa-user"></i>
-                                    </div>
-                                    <input type="text" name="username" required placeholder="For login"
-                                        class="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg text-gray-900 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
-                                </div>
+                                <label class="block text-sm text-gray-600 mb-1">Date of Birth</label>
+                                <input type="date" name="birthdate"
+                                    class="w-full px-4 py-3 rounded border border-gray-300 focus:border-violet-600 outline-none"
+                                    required>
                             </div>
                             <div>
-                                <label class="block text-xs font-medium text-gray-700 mb-1">Gender</label>
-                                <select name="gender" required
-                                    class="block w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
-                                    <option value="">Select</option>
+                                <label class="block text-sm text-gray-600 mb-1">Gender</label>
+                                <select id="gender-select" name="gender"
+                                    class="w-full px-4 py-3 rounded border border-gray-300 focus:border-violet-600 outline-none"
+                                    onchange="toggleCustomGender(this.value)">
+                                    <option value="" disabled selected>Select Gender</option>
                                     <option value="Male">Male</option>
                                     <option value="Female">Female</option>
-                                    <option value="Other">Other</option>
+                                    <option value="Custom">Custom</option>
                                 </select>
+                                <input type="text" id="custom-gender-input"
+                                    class="w-full px-4 py-3 rounded border border-gray-300 focus:border-violet-600 outline-none mt-2 hidden"
+                                    placeholder="Please specify gender">
                             </div>
                         </div>
-
-                        <div>
-                            <label class="block text-xs font-medium text-gray-700 mb-1">Date of Birth</label>
-                            <input type="date" name="birthdate" required
-                                class="block w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                        <div class="flex gap-3 mt-6">
+                            <button type="button" onclick="prevStep(3)"
+                                class="w-1/3 py-3 rounded border border-gray-300 text-gray-600 hover:bg-gray-50 font-medium">BACK</button>
+                            <button type="button" onclick="nextStep(3)"
+                                class="flex-1 btn-violet py-3 rounded font-medium shadow-sm">NEXT</button>
                         </div>
+                    </div>
 
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-xs font-medium text-gray-700 mb-1">Password</label>
-                                <input type="password" name="password" required minlength="8"
-                                    class="block w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                    <!-- STEP 4: ACCOUNT -->
+                    <div id="step-4" class="step-content hidden">
+                        <div class="space-y-4">
+                            <input type="text" name="username"
+                                class="w-full px-4 py-3 rounded border border-gray-300 focus:border-violet-600 outline-none"
+                                placeholder="Preferred Username" required>
+
+                            <div class="relative">
+                                <input type="password" name="password" id="password"
+                                    class="w-full px-4 py-3 rounded border border-gray-300 focus:border-violet-600 outline-none"
+                                    placeholder="Password" required oninput="validatePassword()">
+                                <i class="fas fa-eye absolute right-4 top-4 text-gray-400 cursor-pointer"
+                                    onclick="togglePassword('password')"></i>
                             </div>
-                            <div>
-                                <label class="block text-xs font-medium text-gray-700 mb-1">Confirm</label>
-                                <input type="password" name="password_confirmation" required minlength="8"
-                                    class="block w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+
+                            <div class="relative">
+                                <input type="password" name="password_confirmation" id="chk_password"
+                                    class="w-full px-4 py-3 rounded border border-gray-300 focus:border-violet-600 outline-none"
+                                    placeholder="Confirm Password" required oninput="validatePassword()">
+                            </div>
+
+                            <!-- Password Rules -->
+                            <div class="p-3 bg-gray-50 rounded text-xs space-y-1 text-gray-500">
+                                <p id="rule-length"><i class="far fa-circle"></i> Min 8 chars</p>
+                                <p id="rule-lower"><i class="far fa-circle"></i> Lowercase</p>
+                                <p id="rule-upper"><i class="far fa-circle"></i> Uppercase</p>
+                                <p id="rule-num"><i class="far fa-circle"></i> Number</p>
+                                <p id="rule-special"><i class="far fa-circle"></i> Special (!@#$%^&*)</p>
                             </div>
                         </div>
+                        <div class="flex gap-3 mt-6">
+                            <button type="button" onclick="prevStep(4)"
+                                class="w-1/3 py-3 rounded border border-gray-300 text-gray-600 hover:bg-gray-50 font-medium">BACK</button>
+                            <button type="button" onclick="nextStep(4)" id="btn-step-4"
+                                class="flex-1 btn-violet py-3 rounded font-medium shadow-sm disabled:opacity-50 disabled:cursor-not-allowed">NEXT</button>
+                        </div>
+                    </div>
 
-                        <div class="col-md-12">
-                            <ul class="text-xs text-gray-500 space-y-1 mt-2" id="password-requirements">
-                                <li id="req-length"><i class="far fa-circle mr-1"></i> At least 8 characters</li>
-                                <li id="req-lower"><i class="far fa-circle mr-1"></i> Lowercase letter</li>
-                                <li id="req-upper"><i class="far fa-circle mr-1"></i> Uppercase letter</li>
-                                <li id="req-number"><i class="far fa-circle mr-1"></i> Number</li>
-                                <li id="req-special"><i class="far fa-circle mr-1"></i> Special character (e.g.
-                                    !@#$%^&*()~?)</li>
-                                <li id="req-match"><i class="far fa-circle mr-1"></i> Passwords match</li>
-                            </ul>
+                    <!-- STEP 5: VERIFICATION -->
+                    <div id="step-5" class="step-content hidden text-center">
+                        <div class="mb-6">
+                            <i class="fas fa-mobile-alt text-4xl text-gray-400 mb-2"></i>
+                            <h3 class="text-lg font-semibold text-gray-800">OTP Verification</h3>
+                            <p class="text-sm text-gray-500">Enter the 6-digit code sent to <span id="display-email"
+                                    class="font-medium text-gray-700"></span></p>
                         </div>
 
-                        <div class="pt-4">
-                            <button type="submit" id="step1-submit-btn" disabled
-                                class="w-full flex justify-center py-3 px-4 border border-transparent text-sm font-semibold rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 shadow-md disabled:opacity-50 disabled:cursor-not-allowed">
-                                Next Step <i class="fas fa-arrow-right ml-2 mt-0.5"></i>
+                        <div id="otp-initial-view">
+                            <button type="button" id="btn-init-otp" onclick="initiateOtp()"
+                                class="btn-violet px-8 py-3 rounded font-medium shadow-sm">
+                                Send Code
                             </button>
                         </div>
-                    </form>
-                </div>
 
-                <!-- STEP 2: GMAIL VERIFICATION -->
-                <div id="step-2" style="display: none;">
-                    <div class="mb-6">
-                        <h5 class="text-lg font-bold text-gray-900">Email Verification</h5>
-                        <p class="text-sm text-gray-500">Verify your Gmail for account security.</p>
-                    </div>
-
-                    <form id="form-step-2" class="space-y-6">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Gmail Address</label>
-                            <div class="flex gap-2">
-                                <input type="email" id="email-input" placeholder="example@gmail.com"
-                                    class="block w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
-                                <button type="button" id="btn-send-otp" onclick="sendOtp()"
-                                    class="btn-loading-target px-6 py-3 border border-transparent text-sm font-medium rounded-lg text-white bg-gray-800 hover:bg-gray-900 focus:outline-none whitespace-nowrap">
-                                    Send Code
-                                </button>
+                        <div id="otp-entry-view" class="hidden">
+                            <div class="flex justify-center gap-2 mb-4">
+                                <input type="text" id="otp-input" maxlength="6"
+                                    class="w-48 text-center text-2xl tracking-[0.5em] font-bold border-b-2 border-violet-600 outline-none py-2"
+                                    placeholder="••••••" oninput="checkOtp(this)">
                             </div>
-                            <div id="otp-timer" class="text-xs text-red-500 mt-2 font-bold" style="display: none;">
+
+                            <div class="text-sm">
+                                <p id="timer-text" class="text-gray-500">Resend code in <span id="time-left"
+                                        class="font-bold text-violet-600">120</span>s</p>
+                                <button id="btn-resend" type="button" onclick="resendOtp()"
+                                    class="text-violet-600 hover:underline hidden font-medium">Resend Code</button>
                             </div>
                         </div>
 
-                        <div id="otp-section" style="display: none;"
-                            class="text-center bg-gray-50 p-6 rounded-xl border border-dashed border-gray-300">
-                            <label class="block text-sm font-medium text-gray-700 mb-3">Enter 6-Digit Code</label>
-                            <input type="text" id="otp-input" maxlength="6"
-                                class="block w-48 mx-auto px-4 py-3 text-2xl text-center tracking-[0.5em] font-bold border-2 border-indigo-500 rounded-lg text-indigo-700 focus:ring-indigo-500 focus:border-indigo-600 outline-none"
-                                placeholder="000000" oninput="checkAutoSubmit(this)">
-                            <p class="text-xs text-gray-400 mt-2">Auto-submits when completed</p>
-                        </div>
-                    </form>
-
-                    <div class="mt-6 flex justify-start">
-                        <button type="button" class="text-sm text-gray-500 hover:text-gray-900 underline"
-                            onclick="goToStep(1)">Back to details</button>
-                    </div>
-                </div>
-
-                <!-- STEP 3: SUCCESS -->
-                <div id="step-3" style="display: none;" class="text-center py-10">
-                    <div class="mb-6 flex justify-center">
-                        <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center">
-                            <i class="fas fa-check text-4xl text-green-600"></i>
+                        <div class="mt-8">
+                            <button type="button" onclick="prevStep(5)"
+                                class="text-sm text-gray-400 hover:text-gray-600">Back</button>
                         </div>
                     </div>
-                    <h4 class="text-2xl font-bold text-gray-900 mb-2">Account Created!</h4>
-                    <p class="text-gray-500 mb-8">Your account has been successfully verified.</p>
 
-                    <a href="{{ route('auth.mpin.setup') }}"
-                        class="w-full flex justify-center py-3 px-4 border border-transparent text-sm font-semibold rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 shadow-md">
-                        Setup MPIN <i class="fas fa-lock ml-2 mt-0.5"></i>
-                    </a>
+                    <!-- STEP 6: SUCCESS (Hidden Step for Transition) -->
+                    <div id="step-6" class="step-content hidden text-center py-10">
+                        <div
+                            class="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-check text-2xl"></i>
+                        </div>
+                        <h2 class="text-2xl font-bold text-gray-800 mb-2">Success!</h2>
+                        <p class="text-gray-500 mb-8">Your account has been created.</p>
+                        <a href="{{ route('auth.mpin.setup') }}"
+                            class="block w-full btn-violet py-3 rounded font-medium shadow-sm">Setup MPIN</a>
+                    </div>
+
+                </form>
+
+                <div class="mt-8 text-center" id="footer-links">
+                    <p class="text-xs text-gray-400">By signing up, you agree to VeraPOS's <a href="#"
+                            class="text-violet-600">Terms of Service</a> & <a href="#" class="text-violet-600">Privacy
+                            Policy</a></p>
+
                 </div>
 
             </div>
         </div>
     </div>
 
+    <!-- SCRIPTS -->
     <script>
-        // --- API ROUTES ---
         const ROUTES = {
             step1: "{{ route('admin.setup.step1') }}",
             sendOtp: "{{ route('admin.setup.sendOtp') }}",
             verify: "{{ route('admin.setup.verify') }}"
         };
 
-        // --- STEP 1 LOGIC ---
-        document.getElementById('form-step-1').addEventListener('submit', async function (e) {
-            e.preventDefault();
-            setLoading(true);
+        const formData = {};
+        let currentStep = 1;
+        let timerInterval;
 
-            try {
-                const formData = new FormData(this);
-                const response = await axios.post(ROUTES.step1, formData);
-
-                if (response.data.success) {
-                    goToStep(2);
+        // --- NAVIGATION ---
+        async function nextStep(step) {
+            // Validation Logic
+            if (step === 1) {
+                const email = document.getElementById('input-email').value;
+                if (!email || !email.includes('@')) {
+                    return Swal.fire('Error', 'Please enter a valid Gmail address.', 'error');
                 }
-            } catch (error) {
-                showError(error);
-            } finally {
-                setLoading(false);
-            }
-        });
-
-        // --- STEP 2 LOGIC ---
-        let otpTimerInterval;
-        let timeLeft = 0;
-
-        async function sendOtp() {
-            const email = document.getElementById('email-input').value;
-            if (!email || !email.includes('@')) {
-                Swal.fire('Error', 'Please enter a valid email address', 'error');
-                return;
+                formData.email = email;
             }
 
-            setLoading(true);
-            try {
-                const response = await axios.post(ROUTES.sendOtp, { email: email });
-                if (response.data.success) {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'OTP Sent',
-                        text: 'Please check your inbox (and spam folder)',
-                        timer: 2000,
-                        showConfirmButton: false
-                    });
-                    document.getElementById('otp-section').style.display = 'block';
-                    document.getElementById('email-input').readOnly = true;
-                    document.getElementById('btn-send-otp').disabled = true;
-                    document.getElementById('btn-send-otp').classList.add('opacity-50', 'cursor-not-allowed');
-                    startTimer(60);
-                } else {
-                    Swal.fire('Error', response.data.message, 'error');
+            if (step === 2) {
+                const fname = document.querySelector('input[name="first_name"]').value;
+                const lname = document.querySelector('input[name="last_name"]').value;
+                if (!fname.trim() || !lname.trim()) {
+                    return Swal.fire('Missing Info', 'First and Last name are required.', 'warning');
                 }
-            } catch (error) {
-                showError(error);
-            } finally {
-                setLoading(false);
+                formData.first_name = fname;
+                formData.middle_name = document.querySelector('input[name="middle_name"]').value;
+                formData.last_name = lname;
+            }
+
+            if (step === 3) {
+                const dob = document.querySelector('input[name="birthdate"]').value;
+                const genderSelect = document.getElementById('gender-select').value;
+                let finalGender = genderSelect;
+
+                if (genderSelect === 'Custom') {
+                    finalGender = document.getElementById('custom-gender-input').value;
+                }
+
+                if (!dob || !finalGender) {
+                    return Swal.fire('Missing Info', 'Date of birth and Gender are required.', 'warning');
+                }
+                formData.birthdate = dob;
+                formData.gender = finalGender;
+            }
+
+            if (step === 4) {
+                const username = document.querySelector('input[name="username"]').value;
+                const pwd = document.querySelector('input[name="password"]').value;
+                if (!username.trim()) return Swal.fire('Error', 'Username required', 'warning');
+
+                // Password logic validated by oninput, but double check
+                if (!validatePassword()) return Swal.fire('Weak Password', 'Please meet all password requirements.', 'warning');
+
+                formData.username = username;
+                formData.password = pwd;
+                formData.password_confirmation = document.querySelector('input[name="password_confirmation"]').value;
+
+                // SUBMIT DATA TO BACKEND
+                // We use a modified call that manages UI
+                if (!await submitPersonalData()) return;
+            }
+
+            // --- DELAY & UI FEEDBACK (1.5s) ---
+            const btn = document.querySelector(`#step-${step} button[onclick*="nextStep"]`) || document.getElementById('btn-step-4');
+            if (btn && step !== 4) { // Step 4 handled by submitPersonalData but we want to keep it disabled
+                btn.dataset.originalText = btn.innerText;
+                btn.innerText = 'Processing...';
+                btn.disabled = true;
+            }
+
+            await new Promise(resolve => setTimeout(resolve, 1500));
+
+            if (btn && step !== 4) {
+                btn.innerText = btn.dataset.originalText;
+                btn.disabled = false;
+            }
+
+            // Transition
+            showStep(step + 1);
+
+            if (step + 1 === 5) {
+                // Determine logic for OTP
+                document.getElementById('display-email').innerText = formData.email;
+                document.getElementById('footer-links').style.display = 'none'; // hide footer for clean OTP view
+
+                // Reset View
+                document.getElementById('otp-initial-view').classList.remove('hidden');
+                document.getElementById('otp-entry-view').classList.add('hidden');
             }
         }
 
-        function startTimer(seconds) {
-            timeLeft = seconds;
-            const timerDisplay = document.getElementById('otp-timer');
-            timerDisplay.style.display = 'block';
+        function prevStep(step) {
+            showStep(step - 1);
+            if (step - 1 < 5) {
+                document.getElementById('footer-links').style.display = 'block';
+            }
+        }
 
-            clearInterval(otpTimerInterval);
-            otpTimerInterval = setInterval(() => {
-                timeLeft--;
-                timerDisplay.textContent = `Resend in ${timeLeft}s`;
-                if (timeLeft <= 0) {
-                    clearInterval(otpTimerInterval);
-                    timerDisplay.style.display = 'none';
-                    const btn = document.getElementById('btn-send-otp');
-                    btn.disabled = false;
-                    btn.classList.remove('opacity-50', 'cursor-not-allowed');
-                    btn.textContent = 'Resend Code';
+        function showStep(stepNum) {
+            currentStep = stepNum;
+            // Hide all
+            document.querySelectorAll('.step-content').forEach(el => el.classList.add('hidden'));
+            // Show target
+            document.getElementById(`step-${stepNum}`).classList.remove('hidden');
+
+            // Update Progress Bar
+            for (let i = 1; i <= 5; i++) {
+                const bar = document.getElementById(`prog-${i}`);
+                if (i <= stepNum) {
+                    bar.classList.remove('bg-gray-200');
+                    bar.classList.add('bg-violet-600');
+                } else {
+                    bar.classList.add('bg-gray-200');
+                    bar.classList.remove('bg-violet-600');
+                }
+            }
+
+            // Update Header Title
+            const titles = {
+                1: 'Setup an account',
+                2: 'Personal Info',
+                3: 'Demographics',
+                4: 'Account Setup',
+                5: 'Verification'
+            };
+            if (titles[stepNum]) document.getElementById('step-title').innerText = titles[stepNum];
+        }
+
+        function toggleCustomGender(val) {
+            const customInput = document.getElementById('custom-gender-input');
+            if (val === 'Custom') customInput.classList.remove('hidden');
+            else customInput.classList.add('hidden');
+        }
+
+        function togglePassword(id) {
+            const el = document.getElementById(id);
+            el.type = el.type === 'password' ? 'text' : 'password';
+        }
+
+        // --- PASSWORD VALIDATION ---
+        function validatePassword() {
+            const val = document.getElementById('password').value;
+            const confirm = document.getElementById('chk_password').value;
+
+            const rules = {
+                length: val.length >= 8,
+                lower: /[a-z]/.test(val),
+                upper: /[A-Z]/.test(val),
+                num: /[0-9]/.test(val),
+                special: /[!@#$%^&*]/.test(val)
+            };
+
+            let validCount = 0;
+            for (const [key, passed] of Object.entries(rules)) {
+                const el = document.getElementById(`rule-${key}`);
+                const icon = el.querySelector('i');
+                if (passed) {
+                    el.classList.add('text-green-600', 'font-medium');
+                    el.classList.remove('text-gray-500');
+                    icon.className = 'fas fa-check-circle';
+                    validCount++;
+                } else {
+                    el.classList.remove('text-green-600', 'font-medium');
+                    el.classList.add('text-gray-500');
+                    icon.className = 'far fa-circle';
+                }
+            }
+
+            // Match check is implicit but let's ensure it blocks 'Next'
+            const btn = document.getElementById('btn-step-4');
+            const isMatch = val === confirm && val.length > 0;
+
+            const allPassed = validCount === 5 && isMatch;
+            btn.disabled = !allPassed;
+
+            return allPassed;
+        }
+
+        // --- API CALLS ---
+        async function submitPersonalData() {
+            try {
+                // Show loading on button
+                const btn = document.getElementById('btn-step-4');
+                const originalText = btn.innerText;
+                btn.innerText = 'Creating...';
+                btn.disabled = true;
+
+                await axios.post(ROUTES.step1, formData);
+
+                // Keep the loading state for the delay interaction in nextStep
+                // btn.innerText = originalText; 
+                // btn.disabled = false;
+                return true;
+            } catch (error) {
+                const btn = document.getElementById('btn-step-4');
+                btn.innerText = 'NEXT';
+                btn.disabled = false;
+
+                const msg = error.response?.data?.message || 'Error occurred';
+                Swal.fire('Error', msg, 'error');
+                return false;
+            }
+        }
+
+        async function initiateOtp() {
+            const btn = document.getElementById('btn-init-otp');
+            const originalText = btn.innerText;
+            btn.innerText = 'Sending...';
+            btn.disabled = true;
+
+            try {
+                await triggerOtpSend(true);
+            } catch (error) {
+                // Restore button if error (triggerOtpSend catches its own errors but for safety)
+                btn.innerText = originalText;
+                btn.disabled = false;
+            }
+            // If success, view switches, so button hidden anyway. But we can restore state just in case.
+            btn.innerText = originalText;
+            btn.disabled = false;
+        }
+
+        async function triggerOtpSend(isInitial = false) {
+            try {
+                await axios.post(ROUTES.sendOtp, { email: formData.email });
+
+                if (isInitial) {
+                    await Swal.fire({
+                        icon: 'info',
+                        title: 'Check your Inbox',
+                        text: 'Please check your Gmail Inbox for the code.',
+                        confirmButtonText: 'Okay',
+                        confirmButtonColor: '#7c3aed'
+                    });
+
+                    // Switch views
+                    document.getElementById('otp-initial-view').classList.add('hidden');
+                    document.getElementById('otp-entry-view').classList.remove('hidden');
+                } else {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Code Sent',
+                        text: 'Please check your email.',
+                        timer: 1500,
+                        showConfirmButton: false
+                    });
+                }
+
+                startTimer(120);
+            } catch (error) {
+                Swal.fire('Error', 'Failed to send OTP', 'error');
+            }
+        }
+
+        function resendOtp() {
+            triggerOtpSend(false);
+            document.getElementById('btn-resend').classList.add('hidden');
+            document.getElementById('timer-text').classList.remove('hidden');
+        }
+
+        function startTimer(seconds) {
+            let left = seconds;
+            const display = document.getElementById('time-left');
+            const timerContainer = document.getElementById('timer-text');
+            const resendBtn = document.getElementById('btn-resend');
+
+            timerContainer.classList.remove('hidden');
+            resendBtn.classList.add('hidden');
+
+            clearInterval(timerInterval);
+            display.innerText = left;
+
+            timerInterval = setInterval(() => {
+                left--;
+                display.innerText = left;
+                if (left <= 0) {
+                    clearInterval(timerInterval);
+                    timerContainer.classList.add('hidden');
+                    resendBtn.classList.remove('hidden');
                 }
             }, 1000);
         }
 
-        async function checkAutoSubmit(input) {
+        async function checkOtp(input) {
             if (input.value.length === 6) {
-                const email = document.getElementById('email-input').value;
-                const code = input.value;
-
-                setLoading(true);
                 try {
-                    const response = await axios.post(ROUTES.verify, { email: email, code: code });
-                    if (response.data.success) {
-                        goToStep(3);
+                    input.disabled = true;
+                    const res = await axios.post(ROUTES.verify, {
+                        email: formData.email,
+                        code: input.value
+                    });
+
+                    if (res.data.success) {
+                        showStep(6); // Success View
                     } else {
-                        Swal.fire('Invalid OTP', 'The code you entered is incorrect.', 'error');
-                        input.value = '';
+                        throw new Error('Invalid Code');
                     }
                 } catch (error) {
-                    showError(error);
+                    Swal.fire('Invalid', 'The code is incorrect.', 'error');
                     input.value = '';
-                } finally {
-                    setLoading(false);
+                    input.disabled = false;
+                    input.focus();
                 }
             }
         }
 
-        // --- NAVIGATION ---
-        function goToStep(step) {
-            // Hide all contents
-            // document.querySelectorAll('[id^="step-content-"]').forEach(el => el.style.display = 'none'); // Logic fix: ensure IDs match
-            // Actually my HTML used id="step-1", "step-2". Previous code used querySelectorAll('[id^="step-"]'). match step-\d.
-
-            // Hide all
-            document.querySelectorAll('[id^="step-"]').forEach(el => {
-                if (el.id.match(/^step-\d$/)) el.style.display = 'none';
-            });
-            // Show target
-            document.getElementById(`step-${step}`).style.display = 'block';
-
-            // Update Indicators
-            const updateState = (id, state, number) => {
-                const el = document.getElementById(id);
-                // Reset basic classes
-                el.className = 'step-indicator transition-all duration-300';
-
-                if (state === 'completed') {
-                    el.classList.add('border-indigo-600', 'bg-indigo-600', 'text-white');
-                    el.innerHTML = '<i class="fas fa-check"></i>';
-                } else if (state === 'active') {
-                    el.classList.add('border-indigo-600', 'text-indigo-600', 'bg-white');
-                    el.innerText = number;
-                } else {
-                    // pending
-                    el.classList.add('border-gray-200', 'text-gray-400', 'bg-white');
-                    el.innerText = number;
-                }
-            };
-
-            // Logic
-            updateState('step-indicator-1', step > 1 ? 'completed' : (step === 1 ? 'active' : 'pending'), '1');
-
-            const line1 = document.getElementById('step-line-1');
-            if (step > 1) {
-                line1.classList.remove('bg-gray-200');
-                line1.classList.add('bg-indigo-600');
-            } else {
-                line1.classList.add('bg-gray-200');
-                line1.classList.remove('bg-indigo-600');
-            }
-
-            updateState('step-indicator-2', step > 2 ? 'completed' : (step === 2 ? 'active' : 'pending'), '2');
-
-            const line2 = document.getElementById('step-line-2');
-            if (step > 2) {
-                line2.classList.remove('bg-gray-200');
-                line2.classList.add('bg-indigo-600');
-            } else {
-                line2.classList.add('bg-gray-200');
-                line2.classList.remove('bg-indigo-600');
-            }
-
-            updateState('step-indicator-3', step === 3 ? 'active' : 'pending', '3'); // Step 3 never 'completed' in this wizard view context (it's the end)
-        }
-
-        // --- HELPER: Get Active Step ---
-        function getActiveStepNumber() {
-            if (document.getElementById('step-1').style.display !== 'none') return 1;
-            if (document.getElementById('step-2').style.display !== 'none') return 2;
-            if (document.getElementById('step-3').style.display !== 'none') return 3;
-            return 1;
-        }
-
-        function setLoading(isLoading) {
-            const stepNum = getActiveStepNumber();
-            const indicator = document.getElementById(`step-indicator-${stepNum}`);
-            const btn = document.querySelector(`#step-${stepNum} button[type="submit"], #step-${stepNum} button[type="button"].btn-loading-target`);
-
-            if (isLoading) {
-                // Store original text
-                if (!indicator.dataset.originalText) {
-                    indicator.dataset.originalText = indicator.innerText;
-                }
-                // Show Spinner
-                indicator.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i>';
-                indicator.classList.add('border-indigo-600', 'text-indigo-600');
-
-                // Disable button
-                if (btn) {
-                    btn.disabled = true;
-                    btn.classList.add('opacity-75', 'cursor-not-allowed');
-                }
-            } else {
-                // Restore text
-                if (indicator.dataset.originalText) {
-                    indicator.innerText = indicator.dataset.originalText;
-                }
-                // Button restore handled by logic or page transition usually, but safe to revert
-                if (btn) {
-                    btn.disabled = false;
-                    btn.classList.remove('opacity-75', 'cursor-not-allowed');
-                }
-            }
-        }
-
-        function showError(error) {
-            const msg = error.response?.data?.message || 'An unexpected error occurred.';
-            Swal.fire('Error', msg, 'error');
-
-            // Validation errors
-            if (error.response?.data?.errors) {
-                const errors = Object.values(error.response.data.errors).flat().join('\n');
-                Swal.fire('Validation Error', errors, 'warning');
-            }
-        }
-        // --- PASSWORD VALIDATION ---
-        const passwordInput = document.querySelector('input[name="password"]');
-        const confirmInput = document.querySelector('input[name="password_confirmation"]');
-        const submitBtn = document.getElementById('step1-submit-btn');
-
-        function validatePassword() {
-            const val = passwordInput.value;
-            const confirmVal = confirmInput.value;
-
-            const checks = {
-                length: val.length >= 8,
-                lower: /[a-z]/.test(val),
-                upper: /[A-Z]/.test(val),
-                number: /[0-9]/.test(val),
-                special: /[^A-Za-z0-9]/.test(val),
-                match: val.length > 0 && val === confirmVal
-            };
-
-            let allValid = true;
-
-            for (const key in checks) {
-                const el = document.getElementById(`req-${key}`);
-                const icon = el.querySelector('i');
-                const isValid = checks[key];
-
-                if (isValid) {
-                    el.classList.remove('text-gray-500');
-                    el.classList.add('text-green-600', 'font-medium');
-                    icon.classList.remove('far', 'fa-circle');
-                    icon.classList.add('fas', 'fa-check-circle');
-                } else {
-                    el.classList.add('text-gray-500');
-                    el.classList.remove('text-green-600', 'font-medium');
-                    icon.classList.add('far', 'fa-circle');
-                    icon.classList.remove('fas', 'fa-check-circle');
-                    allValid = false;
-                }
-            }
-
-            submitBtn.disabled = !allValid;
-        }
-
-        passwordInput.addEventListener('input', validatePassword);
-        confirmInput.addEventListener('input', validatePassword);
     </script>
 </body>
 

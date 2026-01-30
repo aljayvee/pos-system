@@ -58,7 +58,18 @@ class CheckoutService
 
             foreach ($data['cart'] as $item) {
                 $validatedItem = $this->validateAndLockItem($item, $storeId, $userId);
-                $calculatedTotal += ($validatedItem['price'] * $validatedItem['qty']);
+
+                // [FIX] Use PricingService for calculation (MultiBuy)
+                // We need to pass the tiers which are loaded in validateAndLockItem
+                $pricingService = new \App\Services\Pricing\PricingService();
+                $itemTotal = $pricingService->calculateTotal($validatedItem['inventory']->product, $validatedItem['qty']);
+
+                $calculatedTotal += $itemTotal;
+
+                // Override price in validated item for record keeping
+                // Note: The unit price stored in SaleItem will be the effective unit price
+                $validatedItem['price'] = $itemTotal / $validatedItem['qty'];
+
                 $validatedItems[] = $validatedItem;
             }
 
@@ -197,7 +208,7 @@ class CheckoutService
 
     private function validateAndLockItem($item, $storeId, $userId)
     {
-        $query = Inventory::with('product')
+        $query = Inventory::with(['product', 'product.pricingTiers'])
             ->where('product_id', $item['id'])
             ->where('store_id', $storeId);
 

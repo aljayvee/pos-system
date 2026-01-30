@@ -47,13 +47,7 @@ class POSController extends Controller
             ->whereNull('products.deleted_at')
             ->with(['category', 'pricingTiers'])
             ->select(
-                'products.id',
-                'products.name',
-                'products.sku',
-                'products.price',
-                'products.image',
-                'products.category_id',
-                'products.unit',
+                'products.*',
                 'inventories.stock as current_stock',
                 'inventories.reorder_point'
             )

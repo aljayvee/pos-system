@@ -21,6 +21,8 @@ class CheckLogIntegrity extends Command
             return 0;
         } else {
             $this->error('❌ TAMPERING DETECTED');
+
+            // 1. Display Table
             $this->table(
                 ['Log ID', 'Reason', 'Expected', 'Actual'],
                 [
@@ -32,6 +34,19 @@ class CheckLogIntegrity extends Command
                     ]
                 ]
             );
+
+            // 2. Alert Admins & Managers
+            $recipients = \App\Models\User::whereIn('role', ['admin', 'manager'])
+                ->whereNotNull('email')
+                ->get();
+
+            $this->info("Alerting " . $recipients->count() . " admins/managers...");
+
+            foreach ($recipients as $user) {
+                \Illuminate\Support\Facades\Mail::to($user->email)->send(new \App\Mail\LogTampered($result));
+                $this->line(" - Sent to: {$user->email}");
+            }
+
             $this->warn('The chain is broken from Log ID: ' . ($result['log_id'] ?? 'Unknown'));
             return 1;
         }

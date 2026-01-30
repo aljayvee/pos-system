@@ -9,7 +9,7 @@
 
     {{-- PWA Manifest --}}
     <link rel="manifest" href="{{ asset('manifest.json') }}">
-    <meta name="theme-color" content="#4f46e5">
+    <meta name="theme-color" content="#7c3aed">
 
     <meta name="app-url" content="{{ url('/') }}">
     <meta name="csrf-token" content="{{ csrf_token() }}">
@@ -40,30 +40,30 @@
 
         <!-- LARGE SCREEN: Left Split (Branding) -->
         <div
-            class="hidden lg:flex lg:w-1/2 xl:w-7/12 bg-indigo-600 relative overflow-hidden flex-col justify-between p-12 text-white">
+            class="hidden lg:flex lg:w-1/2 xl:w-7/12 bg-violet-600 relative overflow-hidden flex-col justify-between p-12 text-white">
             <!-- Decorative Background Elements -->
             <div class="absolute top-0 left-0 w-full h-full overflow-hidden z-0">
-                <div class="absolute top-[-10%] right-[-5%] w-96 h-96 bg-indigo-500 rounded-full blur-3xl opacity-50">
+                <div class="absolute top-[-10%] right-[-5%] w-96 h-96 bg-violet-500 rounded-full blur-3xl opacity-50">
                 </div>
                 <div
-                    class="absolute bottom-[-10%] left-[-10%] w-[500px] h-[500px] bg-indigo-800 rounded-full blur-3xl opacity-40">
+                    class="absolute bottom-[-10%] left-[-10%] w-[500px] h-[500px] bg-violet-800 rounded-full blur-3xl opacity-40">
                 </div>
                 <div
-                    class="absolute top-[40%] left-[20%] w-64 h-64 bg-indigo-400 rounded-full blur-2xl opacity-20 animate-pulse">
+                    class="absolute top-[40%] left-[20%] w-64 h-64 bg-violet-400 rounded-full blur-2xl opacity-20 animate-pulse">
                 </div>
             </div>
 
             <!-- Content -->
             <div class="relative z-10">
                 <div class="flex items-center gap-3 mb-8">
-                    <img src="{{ asset('images/verapos_logo_v2.png') }}" alt="VeraPOS Logo"
-                        class="h-14 w-auto rounded-lg">
+                    <h1 class="text-4xl font-extrabold text-white tracking-tight"
+                        style="font-family: 'Inter', sans-serif;">VeraPOS</h1>
                 </div>
             </div>
 
             <div class="relative z-10 max-w-lg">
                 <h1 class="text-5xl font-bold mb-6 leading-tight">Manage your business with confidence.</h1>
-                <p class="text-indigo-100 text-lg leading-relaxed mb-8">
+                <p class="text-violet-100 text-lg leading-relaxed mb-8">
                     Streamline your point of sale operations, track inventory in real-time, and gain actionable insights
                     to grow your business.
                 </p>
@@ -71,7 +71,7 @@
 
             </div>
 
-            <div class="relative z-10 text-xs text-indigo-300">
+            <div class="relative z-10 text-xs text-violet-300">
                 &copy; {{ date('Y') }} VERAPOS System. All rights reserved.
             </div>
         </div>
@@ -81,7 +81,7 @@
 
             <!-- Mobile decorative bubble -->
             <div
-                class="absolute top-0 right-0 w-64 h-64 bg-indigo-100 rounded-full blur-3xl opacity-60 lg:hidden -z-10 pointer-events-none">
+                class="absolute top-0 right-0 w-64 h-64 bg-violet-100 rounded-full blur-3xl opacity-60 lg:hidden -z-10 pointer-events-none">
             </div>
 
             <div class="w-full max-w-md space-y-8">
@@ -90,7 +90,7 @@
                 <div class="text-center lg:text-left">
                     <div class="lg:hidden flex justify-center mb-6">
                         <div
-                            class="w-14 h-14 bg-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-indigo-500/30 transform rotate-3">
+                            class="w-14 h-14 bg-violet-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-violet-500/30 transform rotate-3">
                             <i class="fas fa-layer-group text-2xl"></i>
                         </div>
                     </div>
@@ -113,7 +113,7 @@
                                 </div>
                                 <input id="usernameInput" name="username" type="text" autocomplete="username" required
                                     autofocus class="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 
-                                           focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-all shadow-sm
+                                           focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500 sm:text-sm transition-all shadow-sm
                                            hover:border-gray-400" placeholder="Enter your username">
                             </div>
                         </div>
@@ -129,7 +129,7 @@
                                 </div>
                                 <input id="passwordInput" name="password" type="password"
                                     autocomplete="current-password" required class="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 
-                                           focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-all shadow-sm
+                                           focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500 sm:text-sm transition-all shadow-sm
                                            hover:border-gray-400" placeholder="••••••••">
                             </div>
                         </div>
@@ -139,7 +139,7 @@
                         @if(config('safety_flag_features.remember_me'))
                             <div class="flex items-center">
                                 <input id="remember" name="remember" type="checkbox"
-                                    class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded cursor-pointer">
+                                    class="h-4 w-4 text-violet-600 focus:ring-violet-500 border-gray-300 rounded cursor-pointer">
 
                                 <label for="remember"
                                     class="ml-2 block text-sm text-gray-900 cursor-pointer select-none">Remember me</label>
@@ -148,7 +148,7 @@
                         @endif
                         <div class="text-sm">
                             <a href="{{ route('password.request') }}"
-                                class="font-medium text-indigo-600 hover:text-indigo-500">
+                                class="font-medium text-violet-600 hover:text-violet-500">
                                 Forgot password?
                             </a>
                         </div>
@@ -156,11 +156,11 @@
 
                     <button type="submit" id="loginBtn"
                         class="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-semibold rounded-lg text-white 
-                               bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 
-                               transition-all duration-200 shadow-lg shadow-indigo-600/30 transform hover:-translate-y-0.5">
+                               bg-violet-600 hover:bg-violet-700 active:bg-violet-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-violet-500 
+                               transition-all duration-200 shadow-lg shadow-violet-600/30 transform hover:-translate-y-0.5">
                         <span class="absolute left-0 inset-y-0 flex items-center pl-3">
                             <i
-                                class="fas fa-arrow-right text-indigo-400 group-hover:text-indigo-300 transition-colors"></i>
+                                class="fas fa-arrow-right text-violet-400 group-hover:text-violet-300 transition-colors"></i>
                         </span>
                         <span id="btnText">Sign in to account</span>
                         <span id="btnSpinner" class="hidden ml-2"><i class="fas fa-circle-notch fa-spin"></i></span>
@@ -178,9 +178,10 @@
                             </div>
                         </div>
 
-                        <button type="button" onclick="WebAuthn.login()" class="w-full flex items-center justify-center gap-3 py-3 px-4 border-2 border-dashed border-gray-300 rounded-xl text-sm font-semibold text-gray-700 
-                                                                            hover:bg-white hover:border-indigo-500 hover:text-indigo-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 
-                                                                            transition-all duration-200 bg-transparent">
+                        <button type="button" onclick="WebAuthn.login()"
+                            class="w-full flex items-center justify-center gap-3 py-3 px-4 border-2 border-dashed border-gray-300 rounded-xl text-sm font-semibold text-gray-700 
+                                                                                    hover:bg-white hover:border-violet-500 hover:text-violet-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-violet-500 
+                                                                                    transition-all duration-200 bg-transparent">
                             <i class="fas fa-fingerprint text-xl"></i>
                             <span>Sign in with Passkey</span>
                         </button>
@@ -214,10 +215,10 @@
                     icon: 'error',
                     title: 'Login Failed',
                     html: `<ul class="text-sm text-left m-0 pl-4 list-disc">
-                                                                                                        @foreach($errors->all() as $error)
-                                                                                                            <li>{{ $error }}</li>
-                                                                                                        @endforeach
-                                                                                                       </ul>`
+                                                                                                                @foreach($errors->all() as $error)
+                                                                                                                    <li>{{ $error }}</li>
+                                                                                                                @endforeach
+                                                                                                               </ul>`
                 });
             });
         @endif

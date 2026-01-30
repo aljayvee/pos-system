@@ -11,4 +11,8 @@ Artisan::command('inspire', function () {
 \Illuminate\Support\Facades\Schedule::command('logs:prune --days=7')->daily();
 
 // Security Heartbeat: Daily Integrity Check
-\Illuminate\Support\Facades\Schedule::command('integrity:report')->dailyAt('08:00');
+// 1. Hourly Integrity Check
+\Illuminate\Support\Facades\Schedule::command('integrity:check')->hourly();
+
+// 2. Weekly Audit Report (Mondays @ 4am)
+\Illuminate\Support\Facades\Schedule::command('integrity:report')->weeklyOn(1, '04:00');
