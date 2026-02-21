@@ -77,10 +77,10 @@
           <ul class="nav flex-column gap-2">
              <!-- DASHBOARD -->
              <li class="nav-item">
-                 <a href="/admin/dashboard" class="nav-link d-flex align-items-center" :class="{ 'active': currentPath === '/admin/dashboard' }">
+                 <Link href="/admin/dashboard" class="nav-link d-flex align-items-center" :class="{ 'active': currentPath === '/admin/dashboard' }" preserve-scroll>
                     <div class="icon-wrapper"><i class="fas fa-th-large"></i></div>
                     <span class="text-nowrap fade-text ms-3 fw-medium" v-show="isOpen || isMobile">Dashboard</span>
-                 </a>
+                 </Link>
              </li>
 
              <!-- INVENTORY -->
@@ -88,10 +88,10 @@
                 <li class="nav-header mt-4 mb-2 ps-2 text-uppercase text-xs fw-bold text-muted tracking-wider opacity-75" v-show="isOpen || isMobile">Inventory</li>
 
                 <li class="nav-item">
-                    <a href="/admin/categories" class="nav-link d-flex align-items-center" :class="{ 'active': currentPath.includes('/categories') }">
+                    <Link href="/admin/categories" class="nav-link d-flex align-items-center" :class="{ 'active': currentPath.includes('/categories') }" preserve-scroll>
                        <div class="icon-wrapper"><i class="fas fa-tags"></i></div>
                        <span class="text-nowrap fade-text ms-3 fw-medium" v-show="isOpen || isMobile">Categories</span>
-                    </a>
+                    </Link>
                 </li>
 
                 <li class="nav-item">
@@ -404,10 +404,10 @@
       <!-- MOBILE BOTTOM NAVIGATION (Native App Feel) -->
       <nav v-if="isMobile" class="fixed-bottom bg-white border-top shadow-lg pb-safe d-flex justify-content-around align-items-center px-2 py-2" style="z-index: 1045; height: auto; min-height: 70px;">
           <!-- 1. DASHBOARD -->
-          <a href="/admin/dashboard" class="mobile-nav-item" :class="{ 'active': currentPath === '/admin/dashboard' }">
+          <Link href="/admin/dashboard" class="mobile-nav-item" :class="{ 'active': currentPath === '/admin/dashboard' }" preserve-scroll>
               <i class="fas fa-home mb-1"></i>
               <span>Home</span>
-          </a>
+          </Link>
 
           <!-- 2. INVENTORY -->
           <a href="/admin/products" class="mobile-nav-item" :class="{ 'active': currentPath.includes('/products') || currentPath.includes('/inventory') }">
@@ -773,6 +773,26 @@ export default {
                 : 'sidebar-closed-mobile position-fixed top-0 end-0 bottom-0';
         }
         return this.isOpen ? 'sidebar-open' : 'sidebar-closed-desktop';
+    },
+    flashMessages() {
+        return this.$page ? this.$page.props.flash : null;
+    }
+  },
+  watch: {
+    flashMessages: {
+        handler(newFlash) {
+            if (newFlash) {
+                // Slight delay to ensure ToastManager is mounted
+                setTimeout(() => {
+                    if (newFlash.success) this.$toast?.success(newFlash.success);
+                    if (newFlash.error) this.$toast?.error(newFlash.error);
+                    if (newFlash.warning) this.$toast?.warning(newFlash.warning);
+                    if (newFlash.info) this.$toast?.info(newFlash.info);
+                }, 100);
+            }
+        },
+        deep: true,
+        immediate: true
     }
   },
   directives: {

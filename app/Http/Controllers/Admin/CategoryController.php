@@ -12,7 +12,7 @@ class CategoryController extends Controller
     public function index()
     {
         $categories = Category::withCount('products')->get();
-        return view('admin.categories.index', compact('categories'));
+        return \Inertia\Inertia::render('Categories/Index', ['categories' => $categories]);
     }
 
     // New: Get products for a category (AJAX)

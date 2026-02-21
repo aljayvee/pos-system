@@ -1,6 +1,6 @@
 {
   "resources/css/app.css": {
-    "file": "assets/app-BJ54B-Cm.css",
+    "file": "assets/app-DcDvYqt4.css",
     "src": "resources/css/app.css",
     "isEntry": true,
     "name": "app",
@@ -17,13 +17,41 @@
       "premium-ui.css"
     ]
   },
+  "resources/js/Pages/Categories/Index.vue": {
+    "file": "assets/Index-BaEFkJk5.js",
+    "name": "Index",
+    "src": "resources/js/Pages/Categories/Index.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "resources/js/app.js"
+    ],
+    "css": [
+      "assets/Index-C5CRmO_j.css"
+    ]
+  },
+  "resources/js/Pages/Dashboard/Index.vue": {
+    "file": "assets/Index-B7XMydil.js",
+    "name": "Index",
+    "src": "resources/js/Pages/Dashboard/Index.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "resources/js/app.js"
+    ],
+    "css": [
+      "assets/Index-CkXk2eXl.css"
+    ]
+  },
   "resources/js/app.js": {
-    "file": "assets/app-Br0AZOrh.js",
+    "file": "assets/app-C4wB-_Wf.js",
     "name": "app",
     "src": "resources/js/app.js",
     "isEntry": true,
+    "dynamicImports": [
+      "resources/js/Pages/Categories/Index.vue",
+      "resources/js/Pages/Dashboard/Index.vue"
+    ],
     "css": [
-      "assets/app-Ca_SoTtq.css"
+      "assets/app-C4jWk4b2.css"
     ]
   },
   "resources/js/cashier.js": {

@@ -18,6 +18,11 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->append(\App\Http\Middleware\LogUserActivity::class); // Log every click
         $middleware->append(\App\Http\Middleware\EnsureSystemSetup::class); // Force Onboarding if empty
     
+        // Inertia.js Middleware assigned to the web group
+        $middleware->web(append: [
+            \App\Http\Middleware\HandleInertiaRequests::class,
+        ]);
+
         // --- ADD THIS BLOCK ---
         $middleware->validateCsrfTokens(except: [
             'logout', // Exclude the logout route from CSRF checks

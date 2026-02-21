@@ -111,7 +111,7 @@ class DashboardController extends Controller
         // 7. Store Info
         $storeName = \App\Models\Store::where('id', $storeId)->value('name') ?? 'Unknown Store';
 
-        return view('admin.dashboard', compact(
+        return \Inertia\Inertia::render('Dashboard/Index', compact(
             'salesToday',
             'realizedSalesToday',
             'salesMonth',

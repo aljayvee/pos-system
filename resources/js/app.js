@@ -1,5 +1,5 @@
 import './bootstrap';
-import { createApp } from 'vue';
+import { createApp, h } from 'vue';
 
 
 // CHANGED: Import AdminLayout instead of SidebarLayout to match your Blade template
@@ -20,62 +20,79 @@ ThemeManager.init();
 // window.ThemeManager is now handled inside theme.js
 
 
+import { createInertiaApp, Link } from '@inertiajs/vue3';
+import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 
+function setupGlobalVue(app) {
+    // Register the click-outside directive
+    app.directive('click-outside', {
+        mounted(el, binding) {
+            el.clickOutsideEvent = function (event) {
+                if (!(el === event.target || el.contains(event.target))) {
+                    binding.value(event);
+                }
+            };
+            document.body.addEventListener('click', el.clickOutsideEvent);
+        },
+        unmounted(el) {
+            document.body.removeEventListener('click', el.clickOutsideEvent);
+        }
+    });
 
-const app = createApp({});
+    // Register global components
+    app.component('admin-layout', AdminLayout);
+    app.component('stats-card', StatsCard);
+    app.component('dashboard-stats-grid', DashboardStatsGrid);
+    app.component('toast-manager', ToastManager);
+    app.component('swipe-item', SwipeItem);
+    app.component('offline-indicator', OfflineIndicator);
+    app.component('Link', Link);
 
-// Register the click-outside directive (required for the notification dropdown in AdminLayout)
-app.directive('click-outside', {
-    mounted(el, binding) {
-        el.clickOutsideEvent = function (event) {
-            // Check that click was outside the el and its children
-            if (!(el === event.target || el.contains(event.target))) {
-                binding.value(event);
-            }
-        };
-        document.body.addEventListener('click', el.clickOutsideEvent);
-    },
-    unmounted(el) {
-        document.body.removeEventListener('click', el.clickOutsideEvent);
-    }
-});
+    // Global $toast helper
+    app.config.globalProperties.$toast = {
+        show(message, type = 'success', title = null) {
+            window.dispatchEvent(new CustomEvent('toast-show', {
+                detail: { message, type, title }
+            }));
+        },
+        success(message, title) { this.show(message, 'success', title); },
+        error(message, title) { this.show(message, 'error', title); },
+        warning(message, title) { this.show(message, 'warning', title); },
+        info(message, title) { this.show(message, 'info', title); }
+    };
 
-// CHANGED: Register the component as 'admin-layout' so <admin-layout> works in Blade
-app.component('admin-layout', AdminLayout);
-app.component('stats-card', StatsCard);
-app.component('dashboard-stats-grid', DashboardStatsGrid);
-app.component('toast-manager', ToastManager);
-app.component('swipe-item', SwipeItem);
-app.component('offline-indicator', OfflineIndicator);
+    // Global Error Handler
+    app.config.errorHandler = (err, instance, info) => {
+        console.error('Global Vue Error:', err);
+        console.error('Info:', info);
+        if (err.message && err.message.includes('ResizeObserver')) return;
+        app.config.globalProperties.$toast.error(
+            'An unexpected error occurred. Please try again.',
+            'System Error'
+        );
+    };
+}
 
-// Global $toast helper
-app.config.globalProperties.$toast = {
-    show(message, type = 'success', title = null) {
-        window.dispatchEvent(new CustomEvent('toast-show', {
-            detail: { message, type, title }
-        }));
-    },
-    success(message, title) { this.show(message, 'success', title); },
-    error(message, title) { this.show(message, 'error', title); },
-    warning(message, title) { this.show(message, 'warning', title); },
-    info(message, title) { this.show(message, 'info', title); }
-};
+const el = document.getElementById('app');
 
-// Global Error Handler
-app.config.errorHandler = (err, instance, info) => {
-    console.error('Global Vue Error:', err);
-    console.error('Info:', info);
+if (el && el.dataset.page) {
+    // --- INERTIA.JS HYBRID MODE ---
+    createInertiaApp({
+        resolve: (name) => resolvePageComponent(`./Pages/${name}.vue`, import.meta.glob('./Pages/**/*.vue')),
+        setup({ el, App, props, plugin }) {
+            const inertiaApp = createApp({ render: () => h(App, props) })
+                .use(plugin);
 
-    // Filter out minor errors or handle specific types
-    if (err.message && err.message.includes('ResizeObserver')) return; // Ignore harmless resize errors
-
-    app.config.globalProperties.$toast.error(
-        'An unexpected error occurred. Please try again.',
-        'System Error'
-    );
-};
-
-app.mount('#app');
+            setupGlobalVue(inertiaApp);
+            inertiaApp.mount(el);
+        },
+    });
+} else if (el) {
+    // --- STANDARD BLADE MODE ---
+    const bladeApp = createApp({});
+    setupGlobalVue(bladeApp);
+    bladeApp.mount(el);
+}
 
 // Check for Laravel Flash Messages after mount
 // We use a small timeout to ensure the event listener in ToastManager is ready
