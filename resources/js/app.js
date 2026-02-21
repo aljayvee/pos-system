@@ -9,6 +9,7 @@ window.Swal = Swal;
 import './webauthn.js';
 import AdminLayout from './components/AdminLayout.vue';
 import StatsCard from './components/StatsCard.vue';
+import DashboardStatsGrid from './components/DashboardStatsGrid.vue';
 import ToastManager from './components/ToastManager.vue';
 import SwipeItem from './components/SwipeItem.vue';
 import OfflineIndicator from './components/OfflineIndicator.vue';
@@ -42,6 +43,7 @@ app.directive('click-outside', {
 // CHANGED: Register the component as 'admin-layout' so <admin-layout> works in Blade
 app.component('admin-layout', AdminLayout);
 app.component('stats-card', StatsCard);
+app.component('dashboard-stats-grid', DashboardStatsGrid);
 app.component('toast-manager', ToastManager);
 app.component('swipe-item', SwipeItem);
 app.component('offline-indicator', OfflineIndicator);

@@ -60,6 +60,7 @@ Route::group(['middleware' => ['web']], function () {
 Route::middleware(['auth', 'role:admin,manager,supervisor,stock_clerk,auditor', 'mpin.verify'])->prefix('admin')->group(function () {
 
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('admin.dashboard');
+    Route::get('/api/dashboard/stats', [DashboardController::class, 'apiStats'])->name('admin.dashboard.stats');
 
     // 1. INVENTORY MANAGEMENT
     // 1. INVENTORY MANAGEMENT

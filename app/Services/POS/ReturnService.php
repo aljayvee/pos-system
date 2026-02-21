@@ -101,6 +101,9 @@ class ReturnService
                 'description' => "Return processed for Sale #{$saleId} | Total Refund: " . number_format($totalRefund, 2)
             ]);
 
+            // Dispatch Real-time Dashboard Refresh
+            broadcast(new \App\Events\DashboardNeedRefresh($storeId));
+
             return ['success' => true, 'message' => 'Return processed successfully.'];
         });
     }

@@ -125,7 +125,41 @@ class DashboardController extends Controller
             'expiringItems',
             'debtCollectionsToday',
             'estCashInDrawer',
-            'storeName'
+            'storeName',
+            'storeId'
         ));
+    }
+
+    public function apiStats()
+    {
+        $analyticsService = new \App\Services\AnalyticsService();
+        $today = \Carbon\Carbon::today()->toDateString();
+        $startOfMonth = \Carbon\Carbon::now()->startOfMonth();
+
+        $multiStoreEnabled = \App\Models\Setting::where('key', 'enable_multi_store')->value('value') ?? '0';
+        $storeId = ($multiStoreEnabled == '1') ? session('active_store_id', auth()->user()->store_id ?? 1) : 1;
+
+        $salesMetrics = $analyticsService->getDailySalesMetrics($storeId, $today);
+        $profitMetrics = $analyticsService->getDailyProfitMetrics($storeId, $today, $salesMetrics['net_sales'], $salesMetrics['returns_collection']);
+        $cashFlowMetrics = $analyticsService->getDailyCashFlow($storeId, $today);
+
+        // Calculate Monthly Sales
+        $salesQuery = \App\Models\Sale::where('store_id', $storeId);
+        $grossSalesMonth = (clone $salesQuery)->where('created_at', '>=', $startOfMonth)->sum('total_amount');
+        $refundsMonth = \App\Models\SalesReturn::whereHas('sale', function ($q) use ($storeId) {
+            $q->where('store_id', $storeId);
+        })->where('created_at', '>=', $startOfMonth)->sum('refund_amount');
+        $salesMonth = $grossSalesMonth - $refundsMonth;
+
+        $totalCredits = \App\Models\CustomerCredit::where('is_paid', false)->sum('remaining_balance');
+
+        return response()->json([
+            'realizedSalesToday' => number_format($salesMetrics['realized_sales'], 2),
+            'debtCollectionsToday' => number_format($cashFlowMetrics['collections'], 2),
+            'estCashInDrawer' => number_format($cashFlowMetrics['net_cash_flow'], 2),
+            'profitToday' => number_format($profitMetrics['profit'], 2),
+            'salesMonth' => number_format($salesMonth, 2),
+            'totalCredits' => number_format($totalCredits, 2),
+        ]);
     }
 }

@@ -179,6 +179,9 @@ class CheckoutService
                 \App\Events\SaleCreated::dispatch($sale);
             }
 
+            // Dispatch Real-time Dashboard Refresh
+            broadcast(new \App\Events\DashboardNeedRefresh($storeId));
+
             return $sale;
         });
     }

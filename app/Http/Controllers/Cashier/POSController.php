@@ -189,6 +189,10 @@ class POSController extends Controller
             }
 
             DB::commit();
+
+            // Dispatch Real-time Dashboard Refresh
+            broadcast(new \App\Events\DashboardNeedRefresh($storeId));
+
             return response()->json(['success' => true, 'message' => 'Payment collected successfully!']);
 
         } catch (\Exception $e) {

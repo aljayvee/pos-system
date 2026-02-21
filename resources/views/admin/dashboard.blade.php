@@ -60,136 +60,29 @@
             </div>
         </div>
 
-        {{-- 1. STATS SECTION --}}
+        {{-- 1. STATS SECTION (Now powered by Vue Component for Real-time) --}}
+        @php
+            $initialStats = [
+                'realizedSalesToday' => number_format($realizedSalesToday, 2),
+                'debtCollectionsToday' => number_format($debtCollectionsToday, 2),
+                'estCashInDrawer' => number_format($estCashInDrawer, 2),
+                'profitToday' => number_format($profitToday, 2),
+                'salesMonth' => number_format($salesMonth, 2),
+                'totalCredits' => number_format($totalCredits, 2),
+            ];
+            
+            // Check if restock allowed
+            $canRestock = auth()->user()->role !== 'auditor';
+            $restockUrl = route('inventory.index');
+        @endphp
 
-        {{-- ALERT (Mobile & Desktop) --}}
-        @if($outOfStockItems > 0)
-            <div class="mb-4">
-                <div class="alert alert-danger d-flex align-items-center shadow-sm border-0 rounded-4 p-4 glass-panel position-relative overflow-hidden"
-                    role="alert">
-                    <div class="position-absolute top-0 start-0 w-100 h-100 bg-danger opacity-10 pe-none"></div>
-                    <div class="rounded-circle bg-white text-danger p-3 me-3 shadow-sm position-relative z-1">
-                        <i class="fas fa-exclamation-triangle fa-lg"></i>
-                    </div>
-                    <div class="position-relative z-1">
-                        <h5 class="alert-heading fw-bold mb-1">Attention Needed</h5>
-                        <p class="mb-0">
-                            You have <span class="fw-bold text-decoration-underline">{{ $outOfStockItems }} items</span> out of
-                            stock.
-                            @if(auth()->user()->role !== 'auditor')
-                                <a href="{{ route('inventory.index') }}"
-                                    class="btn btn-sm btn-light text-danger fw-bold ms-2 rounded-pill px-3 shadow-sm hover-scale">Restock
-                                    Now</a>
-                            @endif
-                        </p>
-                    </div>
-                </div>
-            </div>
-        @endif
-
-        {{-- DESKTOP GRID (Hidden on Mobile) --}}
-        <div class="row g-4 mb-5 d-none d-md-flex">
-            {{-- ROW 1: CASH FLOW METRICS (TODAY) --}}
-            <div class="col-12 col-sm-6 col-lg-4">
-                <stats-card title="Realized Revenue" value="₱{{ number_format($realizedSalesToday, 2) }}"
-                    subtitle="Cash + Digital + Collections" icon="fas fa-coins" color="primary"></stats-card>
-            </div>
-
-            <div class="col-12 col-sm-6 col-lg-4">
-                <stats-card title="Debt Collections" value="₱{{ number_format($debtCollectionsToday, 2) }}"
-                    subtitle="Collected Today" icon="fas fa-hand-holding-usd" color="info"></stats-card>
-            </div>
-
-            <div class="col-12 col-sm-6 col-lg-4">
-                <stats-card title="Cash in Drawer" value="₱{{ number_format($estCashInDrawer, 2) }}"
-                    subtitle="Expected Cash on Hand" icon="fas fa-wallet" color="success"></stats-card>
-            </div>
-
-            {{-- ROW 2: PERFORMANCE & STATUS --}}
-            <div class="col-12 col-sm-6 col-lg-4">
-                <stats-card title="Profit (Today)" value="₱{{ number_format($profitToday, 2) }}" subtitle="Net Income"
-                    icon="fas fa-chart-line" color="success"></stats-card>
-            </div>
-
-            <div class="col-12 col-sm-6 col-lg-4">
-                <stats-card title="Monthly Sales (Accrual)" value="₱{{ number_format($salesMonth, 2) }}"
-                    subtitle="Includes Unpaid Credits" icon="fas fa-calendar-check" color="primary"></stats-card>
-            </div>
-
-            <div class="col-12 col-sm-6 col-lg-4">
-                <stats-card title="Total Collectibles" value="₱{{ number_format($totalCredits, 2) }}"
-                    subtitle="Unpaid Customer Debts" icon="fas fa-file-invoice-dollar" color="warning"></stats-card>
-            </div>
-        </div>
-
-        {{-- MOBILE ACCORDION (Visible on Mobile Only) --}}
-        <div class="d-md-none mb-5">
-            <div class="d-flex flex-column gap-3">
-
-                {{-- DRAWER 1: CASH FLOW (Custom Toggle) --}}
-                <div class="border-0 rounded-4 shadow-sm overflow-hidden glass-panel mb-0">
-                    <button class="w-100 bg-transparent py-4 px-4 shadow-none border-0 text-start d-flex align-items-center" 
-                            type="button"
-                            onclick="toggleCustomDrawer('drawerCash')">
-                        <div class="rounded-circle bg-primary bg-opacity-10 p-2 me-3 d-flex align-items-center justify-content-center"
-                            style="width: 42px; height: 42px;">
-                            <i class="fas fa-wallet text-primary" style="font-size: 1.2rem;"></i>
-                        </div>
-                        <div class="flex-grow-1">
-                            <h6 class="fw-bold text-dark mb-0">Cash Position</h6>
-                            <small class="text-muted">In Drawer: <span class="fw-bold text-dark">₱{{ number_format($estCashInDrawer, 2) }}</span></small>
-                        </div>
-                        <i class="fas fa-chevron-down text-muted transition-transform" id="icon-drawerCash"></i>
-                    </button>
-                    
-                    <div id="drawerCash" class="hidden-drawer bg-light bg-opacity-50" style="display: none;">
-                        <div class="p-3 pt-0">
-                            <div class="d-flex flex-column gap-3 pt-3">
-                                <stats-card title="Realized Revenue" value="₱{{ number_format($realizedSalesToday, 2) }}"
-                                    subtitle="Cash + Digital + Collections" icon="fas fa-coins"
-                                    color="primary"></stats-card>
-                                <stats-card title="Debt Collections" value="₱{{ number_format($debtCollectionsToday, 2) }}"
-                                    subtitle="Collected Today" icon="fas fa-hand-holding-usd" color="info"></stats-card>
-                                <stats-card title="Cash in Drawer" value="₱{{ number_format($estCashInDrawer, 2) }}"
-                                    subtitle="Expected Cash" icon="fas fa-wallet" color="success"></stats-card>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {{-- DRAWER 2: PERFORMANCE (Custom Toggle) --}}
-                <div class="border-0 rounded-4 shadow-sm overflow-hidden glass-panel">
-                    <button class="w-100 bg-transparent py-4 px-4 shadow-none border-0 text-start d-flex align-items-center" 
-                            type="button"
-                            onclick="toggleCustomDrawer('drawerPerf')">
-                        <div class="rounded-circle bg-success bg-opacity-10 p-2 me-3 d-flex align-items-center justify-content-center"
-                            style="width: 42px; height: 42px;">
-                            <i class="fas fa-chart-line text-success" style="font-size: 1.2rem;"></i>
-                        </div>
-                        <div class="flex-grow-1">
-                            <h6 class="fw-bold text-dark mb-0">Performance</h6>
-                            <small class="text-muted">Net Profit: <span class="fw-bold text-success">₱{{ number_format($profitToday, 2) }}</span></small>
-                        </div>
-                        <i class="fas fa-chevron-down text-muted transition-transform" id="icon-drawerPerf"></i>
-                    </button>
-                    
-                    <div id="drawerPerf" class="hidden-drawer bg-light bg-opacity-50" style="display: none;">
-                        <div class="p-3 pt-0">
-                            <div class="d-flex flex-column gap-3 pt-3">
-                                <stats-card title="Profit (Today)" value="₱{{ number_format($profitToday, 2) }}"
-                                    subtitle="Net Income" icon="fas fa-coins" color="success"></stats-card>
-                                <stats-card title="Monthly Sales" value="₱{{ number_format($salesMonth, 2) }}"
-                                    subtitle="Accrual Basis" icon="fas fa-chart-line" color="primary"></stats-card>
-                                <stats-card title="Total Collectibles" value="₱{{ number_format($totalCredits, 2) }}"
-                                    subtitle="Unpaid Customer Debts" icon="fas fa-file-invoice-dollar"
-                                    color="warning"></stats-card>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-            </div>
-        </div>
+        <dashboard-stats-grid 
+            :initial-stats="{{ json_encode($initialStats) }}"
+            :store-id="{{ $storeId ?? 1 }}"
+            :out-of-stock-items="{{ $outOfStockItems }}"
+            :can-restock="{{ $canRestock ? 'true' : 'false' }}"
+            restock-url="{{ $restockUrl }}">
+        </dashboard-stats-grid>
 
         {{-- 2. CHART SECTION (Existing) --}}
         <div class="row mb-5">
