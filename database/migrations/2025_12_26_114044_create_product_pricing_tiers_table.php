@@ -10,7 +10,7 @@ return new class extends Migration
      * Run the migrations.
      */
     public function up(): void
-    {
+    {        if (!Schema::hasTable('product_pricing_tiers')) {
         Schema::create('product_pricing_tiers', function (Blueprint $table) {
             $table->id();
             $table->foreignId('product_id')->constrained()->onDelete('cascade');
@@ -19,6 +19,8 @@ return new class extends Migration
             $table->string('name')->nullable(); // Optional label (e.g., "Wholesale")
             $table->timestamps();
         });
+                }
+
     }
 
     /**
