@@ -12,20 +12,25 @@ class AdminSeeder extends Seeder
     public function run()
     {
         // 1. Create Admin
-        User::create([
-            'name' => 'Store Owner',
-            'email' => 'admin@pos.com',
-            'password' => Hash::make('Admin123456'), // Password is 'Admin123456'
-            'role' => 'admin',
-        ]);
+User::firstOrCreate(
+    ['email' => 'admin@pos.com'],
+    [
+        'name' => 'Store Owner',
+        'password' => Hash::make('Admin123456'),
+        'role' => 'admin',
+    ]
+);
 
-        // 2. Create Cashier
-        User::create([
-            'name' => 'Cashier One',
-            'email' => 'cashier@pos.com',
-            'password' => Hash::make('password'), // Password is 'password'
-            'role' => 'cashier',
-        ]);
+// 2. Create Cashier
+User::firstOrCreate(
+    ['email' => 'cashier@pos.com'],
+    [
+        'name' => 'Cashier One',
+        'password' => Hash::make('password'),
+        'role' => 'cashier',
+    ]
+);
+
 
         // 3. Create Dummy Products
         $products = []
