@@ -4,13 +4,13 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use App\Models\User;
+use App\Models\Product;
 
 class AdminSeeder extends Seeder
 {
     public function run()
     {
-        // 1. Create Admin
-        User::firstOrCreate(
+        User::updateOrCreate(
             ['email' => 'admin@pos.com'],
             [
                 'name' => 'Store Owner',
@@ -19,8 +19,7 @@ class AdminSeeder extends Seeder
             ]
         );
 
-        // 2. Create Cashier
-        User::firstOrCreate(
+        User::updateOrCreate(
             ['email' => 'cashier@pos.com'],
             [
                 'name' => 'Cashier One',
@@ -28,5 +27,10 @@ class AdminSeeder extends Seeder
                 'role' => 'cashier',
             ]
         );
+
+        $products = [];
+        foreach ($products as $prod) {
+            Product::create($prod);
+        }
     }
 }
