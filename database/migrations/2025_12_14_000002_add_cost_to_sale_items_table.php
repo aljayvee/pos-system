@@ -19,9 +19,10 @@ return new class extends Migration
         // OPTIONAL: Retroactively fill existing sales with the CURRENT product cost
         // to prevent reports from showing 100% profit (0 cost) for old data.
         // 2. Run the update with a NULL check (COALESCE defaults to 0 if null)
-    $updateSql = "UPDATE sale_items 
-                  JOIN products ON sale_items.product_id = products.id 
-                  SET sale_items.cost = COALESCE(products.cost, 0)";
+    $updateSql = "UPDATE sale_items
+              SET cost = COALESCE(products.cost, 0)
+              FROM products
+              WHERE sale_items.product_id = products.id";
         DB::statement($updateSql);
     }
 

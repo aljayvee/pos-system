@@ -18,6 +18,47 @@ use App\Http\Controllers\Admin\BackupController;
 use App\Http\Controllers\Admin\ActivityLogController;
 use App\Http\Controllers\ProfileController;
 
+// Temporary setup route - DELETE AFTER USE
+Route::get('/setup-admin', function () {
+    try {
+        $user = \App\Models\User::updateOrCreate(
+            ['email' => 'admin@pos.com'],
+            [
+                'name' => 'Store Owner',
+                'password' => 'Admin123456',
+                'role' => 'admin',
+                'is_active' => true,
+            ]
+        );
+        return response()->json([
+            'success' => true,
+            'user_id' => $user->id,
+            'email' => $user->email,
+            'role' => $user->role,
+            'is_active' => $user->is_active,
+            'password_hash' => substr($user->password, 0, 20) . '...',
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString(),
+        ], 500);
+    }
+});
+
+Route::get('/setup-admin', function () {
+    $user = \App\Models\User::updateOrCreate(
+        ['email' => 'admin@pos.com'],
+        [
+            'name' => 'Store Owner',
+            'password' => 'Admin123456',
+            'role' => 'admin',
+            'is_active' => true,
+        ]
+    );
+    return 'Admin created! Email: admin@pos.com / Password: Admin123456';
+});
+
 // Public Routes
 Route::get('/', function () { return redirect('/login'); });
 Route::get('/login', [AuthController::class, 'showLogin'])->name('login');

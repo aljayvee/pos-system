@@ -10,23 +10,26 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
     )
-    ->withMiddleware(function (Middleware $middleware): void {
+->withMiddleware(function (Middleware $middleware): void {
+    // ---- 1. Register the Single Device Check Globally ----
+    $middleware->append(\App\Http\Middleware\ForceSingleDevice::class);
+    $middleware->append(\App\Http\Middleware\LogUserActivity::class); // Log every click
 
-        // --- 1. Register the Single Device Check Globally ---
-        $middleware->append(\App\Http\Middleware\ForceSingleDevice::class);
-        $middleware->append(\App\Http\Middleware\LogUserActivity::class); // Log every click
+    // ---- ADD THIS BLOCK ----
+       $middleware->validateCsrfTokens(except: [
+        'logout',
+        'login',
+    ]);
+    // TRUST ALL PROXIES (Railway)
+    $middleware->trustProxies(at: '*');
 
-        // --- ADD THIS BLOCK ---
-        $middleware->validateCsrfTokens(except: [
-            'logout', // Exclude the logout route from CSRF checks
-        ]);
-        
-       // REGISTER THE ALIAS HERE
-        $middleware->alias([
-            'role' => \App\Http\Middleware\RoleMiddleware::class,
-            'register.open' => \App\Http\Middleware\EnsureRegisterOpen::class,
-        ]);
-    })
+    // REGISTER THE ALIAS HERE
+    $middleware->alias([
+        'role' => \App\Http\Middleware\RoleMiddleware::class,
+        'register.open' => \App\Http\Middleware\EnsureRegisterOpen::class,
+    ]);
+})
+
     ->withExceptions(function (Exceptions $exceptions): void {
         //
     })->create();
