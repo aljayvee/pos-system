@@ -11,12 +11,12 @@ return new class extends Migration
      */
 public function up(): void
 {
-    if (!Schema::hasTable('suppliers')) {
-        Schema::create('suppliers', function (Blueprint $table) {
-            $table->id();
-            $table->timestamps();
-        });
-    }
+        if (!Schema::hasTable('suppliers')) {
+            Schema::create('suppliers', function (Blueprint $table) {
+                $table->id();
+                $table->timestamps();
+            });
+        }
 }
 
     /**
