@@ -16,10 +16,10 @@ return Application::configure(basePath: dirname(__DIR__))
     $middleware->append(\App\Http\Middleware\LogUserActivity::class); // Log every click
 
     // ---- ADD THIS BLOCK ----
-    $middleware->validateCsrfTokens(except: [
-        'logout', // Exclude the logout route from CSRF checks
+       $middleware->validateCsrfTokens(except: [
+        'logout',
+        'login',
     ]);
-
     // TRUST ALL PROXIES (Railway)
     $middleware->trustProxies(at: '*');
 
