@@ -9,13 +9,15 @@ return new class extends Migration
     /**
      * Run the migrations.
      */
-    public function up(): void
-    {
+public function up(): void
+{
+    if (!Schema::hasTable('suppliers')) {
         Schema::create('suppliers', function (Blueprint $table) {
             $table->id();
             $table->timestamps();
         });
     }
+}
 
     /**
      * Reverse the migrations.
