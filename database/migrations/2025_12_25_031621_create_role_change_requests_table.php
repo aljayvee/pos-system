@@ -10,7 +10,8 @@ return new class extends Migration
      * Run the migrations.
      */
     public function up(): void
-    {
+    { if (!Schema::hasTable('role_change_requests')) 
+        {
         Schema::create('role_change_requests', function (Blueprint $table) {
             $table->id();
             $table->foreignId('requester_id')->constrained('users')->onDelete('cascade');
@@ -21,6 +22,7 @@ return new class extends Migration
             $table->timestamp('expires_at');
             $table->timestamps();
         });
+        }
     }
 
     /**
