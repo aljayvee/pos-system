@@ -10,12 +10,13 @@ return new class extends Migration
      * Run the migrations.
      */
     public function up(): void
-    {
-        Schema::create('uom_conversions', function (Blueprint $table) {
-            $table->id();
-            $table->timestamps();
-        });
-    }
+            if (!Schema::hasTable('uom_conversions')) {
+            Schema::create('uom_conversions', function (Blueprint $table) {
+                $table->id();
+                $table->timestamps();
+            });
+        }
+
 
     /**
      * Reverse the migrations.
