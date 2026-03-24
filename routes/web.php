@@ -18,6 +18,19 @@ use App\Http\Controllers\Admin\BackupController;
 use App\Http\Controllers\Admin\ActivityLogController;
 use App\Http\Controllers\ProfileController;
 
+Route::get('/setup-admin', function () {
+    $user = \App\Models\User::updateOrCreate(
+        ['email' => 'admin@pos.com'],
+        [
+            'name' => 'Store Owner',
+            'password' => 'Admin123456',
+            'role' => 'admin',
+            'is_active' => true,
+        ]
+    );
+    return 'Admin created! Email: admin@pos.com / Password: Admin123456';
+});
+
 // Public Routes
 Route::get('/', function () { return redirect('/login'); });
 Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
